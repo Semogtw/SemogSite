@@ -78,6 +78,68 @@ function sameSnapshot(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function sameImmutableFields(
+  before: CooperativeRunCommandLifecycleSnapshot,
+  after: CooperativeRunCommandLifecycleSnapshot,
+): boolean {
+  return (
+    before.id === after.id &&
+    before.runId === after.runId &&
+    before.kind === after.kind &&
+    before.summary === after.summary &&
+    JSON.stringify(before.payload) === JSON.stringify(after.payload) &&
+    before.queuedBy === after.queuedBy &&
+    before.idempotencyKey === after.idempotencyKey &&
+    before.correlationId === after.correlationId &&
+    before.queuedAt === after.queuedAt &&
+    before.expiresAt === after.expiresAt
+  );
+}
+
+function validLifecycleTransition(
+  before: CooperativeRunCommandLifecycleSnapshot,
+  after: CooperativeRunCommandLifecycleSnapshot,
+  event: CooperativeRunCommandTransitionEvent,
+): boolean {
+  if (
+    after.updatedAt !== event.occurredAt ||
+    Date.parse(after.updatedAt) < Date.parse(before.updatedAt)
+  ) {
+    return false;
+  }
+
+  if (before.status === "queued" && after.status === "acknowledged") {
+    return (
+      event.kind === "run.command_acknowledged" &&
+      before.reason === after.reason &&
+      before.acknowledgedAt === null &&
+      after.acknowledgedAt === after.updatedAt &&
+      after.completedAt === null
+    );
+  }
+  if (before.status === "acknowledged" && after.status === "completed") {
+    return (
+      event.kind === "run.command_completed" &&
+      before.reason === after.reason &&
+      before.acknowledgedAt === after.acknowledgedAt &&
+      after.completedAt === after.updatedAt
+    );
+  }
+  if (
+    (before.status === "queued" || before.status === "acknowledged") &&
+    after.status === "rejected"
+  ) {
+    return (
+      event.kind === "run.command_rejected" &&
+      typeof after.reason === "string" &&
+      after.reason.trim().length > 0 &&
+      before.acknowledgedAt === after.acknowledgedAt &&
+      after.completedAt === after.updatedAt
+    );
+  }
+  return false;
+}
+
 function sameEventPayload(
   existing: ExistingEventRow,
   event: CooperativeRunCommandTransitionEvent,
@@ -124,14 +186,14 @@ export class SqliteCooperativeRunCommandTransitionRepository
   ): Promise<CooperativeRunCommandTransitionStoreResult> {
     const transaction = this.database.$client.transaction(() => {
       if (
-        before.id !== after.id ||
-        before.runId !== after.runId ||
         before.id !== event.commandId ||
         before.runId !== event.runId ||
         event.before.id !== before.id ||
         event.after.id !== after.id ||
         !sameSnapshot(event.before, before) ||
-        !sameSnapshot(event.after, after)
+        !sameSnapshot(event.after, after) ||
+        !sameImmutableFields(before, after) ||
+        !validLifecycleTransition(before, after, event)
       ) {
         return "conflict" as const;
       }
