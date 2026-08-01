@@ -92,6 +92,8 @@ describe("recommendActiveBranch", () => {
         branch("broken-date", "1234567", "ontem"),
         branch(" ", "7654321", "2026-08-01T17:30:00.000Z"),
         branch("missing-sha", " ", "2026-08-01T17:30:00.000Z"),
+        branch("feature branch", "8888888", "2026-08-01T17:30:00.000Z"),
+        branch("unsafe-sha", "not-a-sha", "2026-08-01T17:30:00.000Z"),
       ],
       observedAt: now,
     });
@@ -103,8 +105,36 @@ describe("recommendActiveBranch", () => {
         "INVALID_COMMITTED_AT:broken-date",
         "INVALID_BRANCH_NAME",
         "INVALID_HEAD_SHA:missing-sha",
+        "INVALID_BRANCH_NAME:feature branch",
+        "INVALID_HEAD_SHA:unsafe-sha",
       ],
       evidence: [{ name: "main", headSha: "abcdef1" }],
+    });
+  });
+
+  it("remains deterministic when the observation timestamp is invalid", () => {
+    const input = {
+      defaultBranch: "main",
+      currentActiveBranch: null,
+      branches: [
+        branch("main", "1111111", "2026-08-01T17:00:00.000Z"),
+        branch("develop", "2222222", "2026-08-01T17:30:00.000Z"),
+      ],
+      observedAt: "invalid",
+    } as const;
+
+    const first = recommendActiveBranch(input);
+    const second = recommendActiveBranch(input);
+
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({
+      status: "recommended",
+      branch: "develop",
+      warnings: ["INVALID_OBSERVED_AT"],
+      evidence: [
+        { name: "develop", ageHours: 0 },
+        { name: "main", ageHours: 0 },
+      ],
     });
   });
 
