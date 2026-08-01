@@ -11,6 +11,18 @@ const target = {
   currentActiveBranch: "main",
 };
 
+const meta = {
+  etag: null,
+  rateLimit: {
+    limit: 5000,
+    remaining: 4999,
+    used: 1,
+    resetAt: null,
+    resource: "core",
+    retryAfterSeconds: null,
+  },
+};
+
 function repositoryResult(input: {
   fullName?: string;
   htmlUrl?: string;
@@ -30,17 +42,7 @@ function repositoryResult(input: {
       pushedAt: "2026-08-01T18:40:00.000Z",
       updatedAt: "2026-08-01T18:45:00.000Z",
     },
-    meta: {
-      etag: null,
-      rateLimit: {
-        limit: 5000,
-        remaining: 4999,
-        used: 1,
-        resetAt: null,
-        resource: "core",
-        retryAfterSeconds: null,
-      },
-    },
+    meta,
   };
 }
 
@@ -73,5 +75,53 @@ describe("GitHubRepositoryObservationSource provider validation", () => {
       failure: { code: "INVALID_RESPONSE", retryAt: null },
     });
     expect(client.listBranches).not.toHaveBeenCalled();
+  });
+
+  it("excludes malformed branch names and SHAs before commit reads", async () => {
+    const getCommitObservation = vi.fn().mockResolvedValue({
+      status: "ok",
+      data: {
+        sha: "1111111",
+        committedAt: "2026-08-01T18:30:00.000Z",
+      },
+      meta,
+    });
+    const client: GitHubReadClient = {
+      getRepository: vi.fn().mockResolvedValue(repositoryResult({})),
+      listBranches: vi.fn().mockResolvedValue({
+        status: "ok",
+        data: {
+          branches: [
+            { name: "feature branch", headSha: "2222222", protected: false },
+            { name: "bad-sha", headSha: "not-a-sha", protected: false },
+            { name: "main", headSha: "1111111", protected: true },
+          ],
+          truncated: false,
+        },
+        meta,
+      }),
+      getCommitObservation,
+    };
+    const source = new GitHubRepositoryObservationSource(client, () =>
+      Promise.resolve("2026-08-01T19:00:00.000Z"),
+    );
+
+    await expect(source.observe(target, 25)).resolves.toMatchObject({
+      ok: true,
+      observation: {
+        partial: true,
+        branches: [{ name: "main", headSha: "1111111" }],
+        warnings: [
+          "INVALID_BRANCH_NAME:feature branch",
+          "INVALID_HEAD_SHA:bad-sha",
+        ],
+      },
+    });
+    expect(getCommitObservation).toHaveBeenCalledTimes(1);
+    expect(getCommitObservation).toHaveBeenCalledWith(
+      "Semogtw",
+      "SemogSite",
+      "1111111",
+    );
   });
 });
