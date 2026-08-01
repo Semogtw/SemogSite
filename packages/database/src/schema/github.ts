@@ -1,32 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { syncRuns } from "./audit";
 import { repositories } from "./projects";
-
-export const syncRuns = sqliteTable(
-  "sync_runs",
-  {
-    id: text("id").primaryKey(),
-    integration: text("integration", {
-      enum: ["notion", "github", "manual", "migration"],
-    }).notNull(),
-    scope: text("scope").notNull(),
-    status: text("status", {
-      enum: ["running", "success", "partial", "failed"],
-    }).notNull(),
-    startedAt: text("started_at").notNull(),
-    finishedAt: text("finished_at"),
-    createdCount: integer("created_count").notNull(),
-    updatedCount: integer("updated_count").notNull(),
-    skippedCount: integer("skipped_count").notNull(),
-    errorCount: integer("error_count").notNull(),
-    warningsJson: text("warnings_json").notNull(),
-    errorSummary: text("error_summary"),
-    cursor: text("cursor"),
-    rateLimitRemaining: integer("rate_limit_remaining"),
-    rateLimitResetAt: text("rate_limit_reset_at"),
-    metadataJson: text("metadata_json").notNull(),
-  },
-  (table) => [index("idx_sync_runs_integration").on(table.integration, table.startedAt)],
-);
 
 export const githubRepositoryObservations = sqliteTable(
   "github_repository_observations",
