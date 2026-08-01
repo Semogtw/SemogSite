@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type {
   GitHubSyncRunFinish,
   RepositoryObservationAggregate,
+  RepositorySyncTargetRole,
 } from "@semogtw/domain";
 import { createSqliteDatabase, migrate } from "../adapters/sqlite";
 import { SqliteGitHubSyncStore } from "./github-sync-store";
@@ -14,16 +15,16 @@ function insertRepository(
     id: string;
     fullName: string;
     syncEnabled: boolean;
-    status: "active" | "historical" | "archived";
+    status: "active" | "paused" | "historical" | "experiment";
     activeBranch: string | null;
-    role?: "primary" | "secondary" | "archive";
+    role?: RepositorySyncTargetRole;
   },
 ): void {
   const [owner, name] = input.fullName.split("/");
   database.$client
     .prepare(
       `INSERT INTO repositories (
-        id, project_id, github_node_id, owner, name, full_name, html_url,
+        id, project_id, github_node_id, owner, name, full_name, github_url,
         visibility, default_branch, active_branch, role, sync_enabled, status,
         last_synced_at, data_source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -39,7 +40,7 @@ function insertRepository(
       "private",
       "main",
       input.activeBranch,
-      input.role ?? "primary",
+      input.role ?? "product",
       input.syncEnabled ? 1 : 0,
       input.status,
       null,
@@ -102,24 +103,24 @@ function aggregate(): RepositoryObservationAggregate {
 }
 
 describe("SqliteGitHubSyncStore", () => {
-  it("lists only active enabled targets in deterministic priority order", async () => {
+  it("lists only active enabled targets in deterministic role order", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     insertRepository(database, {
-      id: "repository-secondary",
-      fullName: "Semogtw/Secondary",
+      id: "repository-integration",
+      fullName: "Semogtw/Integration",
       syncEnabled: true,
       status: "active",
       activeBranch: "develop",
-      role: "secondary",
+      role: "integration",
     });
     insertRepository(database, {
-      id: "repository-primary",
-      fullName: "Semogtw/Primary",
+      id: "repository-product",
+      fullName: "Semogtw/Product",
       syncEnabled: true,
       status: "active",
       activeBranch: "main",
-      role: "primary",
+      role: "product",
     });
     insertRepository(database, {
       id: "repository-disabled",
@@ -129,35 +130,36 @@ describe("SqliteGitHubSyncStore", () => {
       activeBranch: null,
     });
     insertRepository(database, {
-      id: "repository-archived",
-      fullName: "Semogtw/Archived",
+      id: "repository-historical",
+      fullName: "Semogtw/Historical",
       syncEnabled: true,
-      status: "archived",
+      status: "historical",
       activeBranch: null,
     });
     const store = new SqliteGitHubSyncStore(database);
 
     await expect(store.listTargets(10)).resolves.toEqual([
       {
-        id: "repository-primary",
+        id: "repository-product",
         owner: "Semogtw",
-        name: "Primary",
-        fullName: "Semogtw/Primary",
+        name: "Product",
+        fullName: "Semogtw/Product",
         defaultBranch: "main",
         currentActiveBranch: "main",
       },
       {
-        id: "repository-secondary",
+        id: "repository-integration",
         owner: "Semogtw",
-        name: "Secondary",
-        fullName: "Semogtw/Secondary",
+        name: "Integration",
+        fullName: "Semogtw/Integration",
         defaultBranch: "main",
         currentActiveBranch: "develop",
       },
     ]);
+    database.$client.close();
   });
 
-  it("starts, records and finishes a sync run without changing active_branch", async () => {
+  it("starts, records and finishes a sync run without changing manual fields", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     insertRepository(database, {
@@ -166,6 +168,7 @@ describe("SqliteGitHubSyncStore", () => {
       syncEnabled: true,
       status: "active",
       activeBranch: "develop/foundation-bootstrap",
+      role: "product",
     });
     const store = new SqliteGitHubSyncStore(database);
 
@@ -181,16 +184,19 @@ describe("SqliteGitHubSyncStore", () => {
     expect(
       database.$client
         .prepare(
-          "SELECT github_node_id, full_name, html_url, visibility, default_branch, active_branch, last_synced_at, data_source FROM repositories WHERE id = ?",
+          "SELECT github_node_id, full_name, github_url, visibility, default_branch, active_branch, role, sync_enabled, status, last_synced_at, data_source FROM repositories WHERE id = ?",
         )
         .get("repository-1"),
     ).toEqual({
       github_node_id: "R_repo",
       full_name: "Semogtw/SemogSite-renamed",
-      html_url: "https://github.com/Semogtw/SemogSite-renamed",
+      github_url: "https://github.com/Semogtw/SemogSite-renamed",
       visibility: "private",
       default_branch: "trunk",
       active_branch: "develop/foundation-bootstrap",
+      role: "product",
+      sync_enabled: 1,
+      status: "active",
       last_synced_at: observedAt,
       data_source: "github",
     });
@@ -227,6 +233,7 @@ describe("SqliteGitHubSyncStore", () => {
       rate_limit_reset_at: "2026-08-01T20:00:00.000Z",
       metadata_json: JSON.stringify({ processedTargets: 1 }),
     });
+    database.$client.close();
   });
 
   it("returns duplicate idempotently while refreshing observed metadata", async () => {
@@ -255,6 +262,7 @@ describe("SqliteGitHubSyncStore", () => {
         .prepare("SELECT COUNT(*) AS count FROM github_repository_observations")
         .get(),
     ).toEqual({ count: 1 });
+    database.$client.close();
   });
 
   it("rolls back observation rows when the repository metadata update cannot match", async () => {
@@ -278,5 +286,6 @@ describe("SqliteGitHubSyncStore", () => {
         .prepare("SELECT COUNT(*) AS count FROM github_repository_observations")
         .get(),
     ).toEqual({ count: 0 });
+    database.$client.close();
   });
 });
