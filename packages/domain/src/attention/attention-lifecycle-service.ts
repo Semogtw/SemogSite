@@ -1,5 +1,10 @@
 import type { AttentionImpact, AttentionType } from "../capture/capture-service";
 
+export type AttentionLifecycleType =
+  | AttentionType
+  | "technical_debt"
+  | "security";
+
 export type AttentionLifecycleStatus =
   | "open"
   | "monitoring"
@@ -9,7 +14,7 @@ export type AttentionLifecycleStatus =
 export type AttentionLifecycleSnapshot = {
   id: string;
   projectId: string | null;
-  type: AttentionType;
+  type: AttentionLifecycleType;
   status: AttentionLifecycleStatus;
   impact: AttentionImpact;
   title: string;
