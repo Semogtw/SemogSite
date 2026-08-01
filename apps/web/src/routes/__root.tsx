@@ -1,3 +1,4 @@
+import sharedCss from "@semogtw/ui/styles/global.css?url";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   HeadContent,
@@ -25,7 +26,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           "Plataforma editorial da Semogtw para projetos, notas técnicas e experimentos.",
       },
     ],
-    links: [{ rel: "stylesheet", href: globalCss }],
+    links: [
+      { rel: "stylesheet", href: sharedCss },
+      { rel: "stylesheet", href: globalCss },
+    ],
   }),
   component: RootComponent,
   notFoundComponent: NotFoundPage,
