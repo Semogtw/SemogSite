@@ -152,6 +152,25 @@ function encodeSegment(value: string): string {
   return encodeURIComponent(normalized);
 }
 
+function normalizeBaseUrl(value: string | undefined): string {
+  const candidate = value?.trim() || "https://api.github.com";
+  try {
+    const url = new URL(candidate);
+    if (
+      url.protocol !== "https:" ||
+      url.username.length > 0 ||
+      url.password.length > 0 ||
+      url.search.length > 0 ||
+      url.hash.length > 0
+    ) {
+      throw new Error("unsafe");
+    }
+    return url.toString().replace(/\/$/u, "");
+  } catch {
+    throw new Error("INVALID_GITHUB_BASE_URL");
+  }
+}
+
 export class GitHubRestClient {
   private readonly token: string | undefined;
   private readonly apiVersion: string;
@@ -162,10 +181,7 @@ export class GitHubRestClient {
   constructor(options: GitHubRestClientOptions = {}) {
     this.token = options.token?.trim() || undefined;
     this.apiVersion = options.apiVersion?.trim() || GITHUB_API_VERSION;
-    this.baseUrl = (options.baseUrl?.trim() || "https://api.github.com").replace(
-      /\/$/u,
-      "",
-    );
+    this.baseUrl = normalizeBaseUrl(options.baseUrl);
     this.userAgent = options.userAgent?.trim() || "Semogtw-DevOS";
     this.fetcher = options.fetcher ?? fetch;
   }
@@ -277,7 +293,7 @@ export class GitHubRestClient {
       response = await this.fetcher(`${this.baseUrl}${path}`, {
         method: "GET",
         headers,
-        redirect: "follow",
+        redirect: "error",
       });
     } catch {
       throw new GitHubClientError({ code: "TRANSPORT_FAILURE" });
