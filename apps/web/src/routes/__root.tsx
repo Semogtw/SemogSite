@@ -13,6 +13,7 @@ import evidenceCss from "../styles/evidence.css?url";
 import globalCss from "../styles/global.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import roadmapCss from "../styles/roadmap.css?url";
+import stageCompletionCss from "../styles/stage-completion.css?url";
 import surfacesCss from "../styles/surfaces.css?url";
 
 type RouterContext = {
@@ -37,6 +38,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: surfacesCss },
       { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: evidenceCss },
+      { rel: "stylesheet", href: stageCompletionCss },
       { rel: "stylesheet", href: roadmapCss },
       { rel: "stylesheet", href: publicProjectsCss },
     ],
