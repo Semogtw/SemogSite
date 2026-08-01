@@ -8,7 +8,7 @@ import type {
   RoadmapResult,
   TodayQueue,
 } from "@semogtw/domain";
-import { z, type ZodType } from "zod";
+import { z, type ZodTypeAny } from "zod";
 import {
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
@@ -77,7 +77,7 @@ function errorPayload(code: StableErrorCode): JsonRecord {
 }
 
 function validateOutput(
-  schema: ZodType<unknown>,
+  schema: ZodTypeAny,
   value: unknown,
 ): OutputValidationResult {
   const parsed = schema.safeParse(value);
@@ -115,7 +115,7 @@ function toolFailure(code: StableErrorCode) {
 function toolSuccess(
   key: string,
   value: unknown,
-  schema: ZodType<unknown>,
+  schema: ZodTypeAny,
 ) {
   const validated = validateOutput(schema, value);
   if (!validated.ok) return toolFailure("DEVOS_READ_FAILED");
@@ -132,7 +132,7 @@ function toolSuccess(
 
 async function resourceContents(
   uri: string,
-  schema: ZodType<unknown>,
+  schema: ZodTypeAny,
   read: () => Promise<ResourceReadResult>,
 ) {
   let payload: JsonRecord;
