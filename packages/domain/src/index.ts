@@ -33,6 +33,32 @@ export type {
   ManualEvidenceKind,
   RecordedEvidence,
 } from "./evidence/evidence-service";
+export { BranchRecommendationAcceptanceService } from "./integrations/branch-recommendation-acceptance-service";
+export type {
+  AcceptBranchRecommendationInput,
+  BranchRecommendationAcceptanceAuditEvent,
+  BranchRecommendationAcceptanceContext,
+  BranchRecommendationAcceptanceRepository,
+  BranchRecommendationAcceptanceResult,
+  BranchRecommendationAcceptanceValidationError,
+  RepositoryBranchCandidate,
+  RepositoryBranchRecommendationSnapshot,
+  RepositoryBranchSnapshot,
+} from "./integrations/branch-recommendation-acceptance-service";
+export { GitHubSyncService } from "./integrations/github-sync-service";
+export type {
+  GitHubObservationSource,
+  GitHubSyncContext,
+  GitHubSyncRunFinish,
+  GitHubSyncRunStart,
+  GitHubSyncStore,
+  GitHubSyncSummary,
+  ProviderRepositoryObservation,
+  RepositoryObservationFailure,
+  RepositoryObservationResult,
+  RepositorySyncTarget,
+  SyncIdentityFactory,
+} from "./integrations/github-sync-service";
 export { recommendActiveBranch } from "./integrations/repository-observation";
 export type {
   BranchObservation,
@@ -50,6 +76,28 @@ export type {
   RepositoryObservationRecord,
   RepositoryObservationStore,
 } from "./integrations/repository-sync-record";
+export { RepositoryTargetLifecycleService } from "./integrations/repository-target-lifecycle-service";
+export type {
+  ChangeRepositorySyncTargetInput,
+  RepositorySyncTargetLifecycleAuditEvent,
+  RepositorySyncTargetLifecycleContext,
+  RepositorySyncTargetLifecycleRepository,
+  RepositorySyncTargetLifecycleSnapshot,
+  RepositoryTargetLifecycleResult,
+  RepositoryTargetLifecycleValidationError,
+} from "./integrations/repository-target-lifecycle-service";
+export { RepositoryTargetRegistrationService } from "./integrations/repository-target-registration-service";
+export type {
+  RegisteredRepositorySyncTarget,
+  RegisterRepositorySyncTargetInput,
+  RepositorySyncTargetRegistrationAuditEvent,
+  RepositorySyncTargetRegistrationContext,
+  RepositorySyncTargetRegistrationRepository,
+  RepositorySyncTargetRegistrationStoreResult,
+  RepositorySyncTargetRole,
+  RepositoryTargetRegistrationResult,
+  RepositoryTargetRegistrationValidationError,
+} from "./integrations/repository-target-registration-service";
 export { OverviewService } from "./overview/overview-service";
 export type {
   DevOSOverview,
