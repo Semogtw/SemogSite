@@ -30,6 +30,7 @@ export type ProviderRepositoryObservation = {
   branchesTruncated: boolean;
   branches: readonly BranchObservation[];
   warnings: readonly string[];
+  partial?: boolean;
 };
 
 export type RepositoryObservationFailure = {
@@ -142,7 +143,15 @@ export class GitHubSyncService {
     if (targets.length === 0) warnings.push("NO_SYNC_TARGETS");
 
     for (const target of targets) {
-      const result = await this.source.observe(target, maxBranches);
+      let result: RepositoryObservationResult;
+      try {
+        result = await this.source.observe(target, maxBranches);
+      } catch {
+        errorCount += 1;
+        warnings.push(`${target.id}:UNKNOWN_FAILURE`);
+        continue;
+      }
+
       if (!result.ok) {
         errorCount += 1;
         warnings.push(`${target.id}:${result.failure.code}`);
@@ -162,6 +171,18 @@ export class GitHubSyncService {
         rateLimitResetAt,
         provider.rateLimitResetAt,
       );
+
+      if (provider.partial === true) {
+        errorCount += 1;
+        warnings.push(`${target.id}:PARTIAL_OBSERVATION`);
+      }
+      for (const warning of provider.warnings) {
+        warnings.push(`${target.id}:${warning}`);
+      }
+      if (provider.branchesTruncated) {
+        warnings.push(`${target.id}:BRANCH_LIST_BOUNDED`);
+      }
+
       const recommendation = recommendActiveBranch({
         defaultBranch: provider.defaultBranch,
         currentActiveBranch: target.currentActiveBranch,
