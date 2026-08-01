@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  SEMOGTW_MCP_ERROR_CODES,
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
   SEMOGTW_MCP_RESOURCES,
@@ -26,6 +27,13 @@ describe("Semogtw MCP catalog", () => {
       "semogtw://devos/projects",
       "semogtw://devos/roadmap",
     ]);
+    expect(SEMOGTW_MCP_ERROR_CODES).toEqual([
+      "DEVOS_READ_FAILED",
+      "PROJECT_INVALID_INPUT",
+      "PROJECT_NOT_FOUND",
+      "ROADMAP_INVALID_INPUT",
+      "RESULT_TOO_LARGE",
+    ]);
 
     expect(new Set(SEMOGTW_MCP_TOOLS.map((tool) => tool.name)).size).toBe(
       SEMOGTW_MCP_TOOLS.length,
@@ -33,6 +41,9 @@ describe("Semogtw MCP catalog", () => {
     expect(
       new Set(SEMOGTW_MCP_RESOURCES.map((resource) => resource.uri)).size,
     ).toBe(SEMOGTW_MCP_RESOURCES.length);
+    expect(new Set(SEMOGTW_MCP_ERROR_CODES).size).toBe(
+      SEMOGTW_MCP_ERROR_CODES.length,
+    );
     expect(SEMOGTW_MCP_READ_ANNOTATIONS).toEqual({
       readOnlyHint: true,
       destructiveHint: false,
