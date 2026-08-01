@@ -1,3 +1,8 @@
+export const SEMOGTW_MCP_SERVER_INFO = {
+  name: "semogtw-devos",
+  version: "0.0.0",
+} as const;
+
 export const SEMOGTW_MCP_MAX_JSON_BYTES = 256 * 1024;
 
 export const SEMOGTW_MCP_READ_ANNOTATIONS = {
