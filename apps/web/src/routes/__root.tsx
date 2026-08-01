@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
+import roadmapCss from "../styles/roadmap.css?url";
 import surfacesCss from "../styles/surfaces.css?url";
 
 type RouterContext = {
@@ -31,6 +32,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: surfacesCss },
+      { rel: "stylesheet", href: roadmapCss },
     ],
   }),
   component: RootComponent,
