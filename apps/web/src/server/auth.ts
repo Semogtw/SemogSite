@@ -8,7 +8,6 @@ import {
 } from "@semogtw/auth";
 import { createServerFn } from "@tanstack/react-start";
 import {
-  deleteCookie,
   getCookie,
   getRequestHeader,
   setCookie,
@@ -124,8 +123,18 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
       await provider.revokeSession(owner.sessionId);
     }
     if (decision.clearCookies) {
-      deleteCookie(SESSION_COOKIE_NAME, { path: "/" });
-      deleteCookie(CSRF_COOKIE_NAME, { path: "/" });
+      const runtimeEnv = import.meta.env.PROD ? "production" : "development";
+      setCookie(SESSION_COOKIE_NAME, "", {
+        ...sessionCookieOptions(runtimeEnv),
+        maxAge: 0,
+      });
+      setCookie(CSRF_COOKIE_NAME, "", {
+        httpOnly: false,
+        sameSite: "lax",
+        secure: runtimeEnv === "production",
+        path: "/",
+        maxAge: 0,
+      });
     }
 
     return {
