@@ -21,7 +21,7 @@ const transportImportPattern =
 const networkImportPattern =
   /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:(?:node:)?(?:http|https|net|tls)|express|hono|@hono\/[^"']+)["']/u;
 const crossSurfaceImportPattern =
-  /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:@semogtw\/mcp(?:\/[^"']*)?|@modelcontextprotocol\/sdk(?:\/[^"']*)?|(?:\.\.\/)+(?:packages\/mcp|apps\/mcp|mcp)(?:\/[^"']*)?)["']/u;
+  /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:@semogtw\/mcp(?:-[^/"']+)?(?:\/[^"']*)?|@modelcontextprotocol\/sdk(?:\/[^"']*)?|(?:\.\.\/)+(?:packages\/mcp(?:-[^/"']+)?|apps\/mcp(?:-[^/"']+)?|mcp(?:-[^/"']+)?)(?:\/[^"']*)?)["']/u;
 const listenerPattern = /\.listen\s*\(|\bserve\s*\(/u;
 
 function collectSourceFiles(directory) {
