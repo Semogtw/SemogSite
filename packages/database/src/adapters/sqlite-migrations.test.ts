@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteDatabase, migrate } from "./sqlite";
 
 describe("SQLite migrations", () => {
-  it("applies every committed migration including GitHub sync runs", () => {
+  it("applies every committed migration including the cooperative run ledger", () => {
     const database = createSqliteDatabase(":memory:");
 
     migrate(database);
@@ -17,6 +17,7 @@ describe("SQLite migrations", () => {
       { name: "0002_seed_demo.sql" },
       { name: "0003_github_observations.sql" },
       { name: "0004_github_sync_runs.sql" },
+      { name: "0005_cooperative_run_ledger.sql" },
     ]);
     expect(
       database.$client
@@ -34,6 +35,25 @@ describe("SQLite migrations", () => {
       { name: "github_branch_observations" },
       { name: "github_branch_recommendations" },
       { name: "github_repository_observations" },
+    ]);
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name IN (
+             'cooperative_runs',
+             'cooperative_run_events',
+             'cooperative_run_checkpoints',
+             'cooperative_run_commands'
+           )
+           ORDER BY name ASC`,
+        )
+        .all(),
+    ).toEqual([
+      { name: "cooperative_run_checkpoints" },
+      { name: "cooperative_run_commands" },
+      { name: "cooperative_run_events" },
+      { name: "cooperative_runs" },
     ]);
 
     const syncRunColumns = new Set(
