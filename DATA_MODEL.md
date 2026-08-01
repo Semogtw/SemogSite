@@ -8,6 +8,7 @@
 - imported/demo origin is explicit in `source`, `data_source` or `updated_from`;
 - manual locks and separate decision mutations protect owner choices from synchronization;
 - public projections are independent allowlisted DTOs;
+- private adapter projections reuse domain DTOs rather than database rows;
 - sensitive manual mutations require a reason, confirmation and append-only audit event;
 - entity mutation and corresponding audit insertion share one database transaction;
 - provider observations are immutable evidence, not accepted decisions.
@@ -144,13 +145,43 @@ Current manual audit actions include:
 
 A stale optimistic transition writes no audit row. Audit insertion failure rolls back the entity mutation.
 
+### MCP private read projections
+
+The current MCP adapter creates no new table and persists no protocol session or response cache.
+
+`DevOSReadService` projects the canonical private domain DTOs:
+
+- `DevOSOverview`;
+- `TodayQueue`;
+- `OperationalPortfolio`;
+- `ProjectHub`;
+- `RoadmapResult`.
+
+The four static resources serialize these projections inside a JSON envelope:
+
+```ts
+type McpResourceEnvelope<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: { code: string } };
+```
+
+Successful tools return a keyed structured object plus an equivalent text content item. The keys are `overview`, `today`, `projects`, `project` or `roadmap`.
+
+These are private projections, not public DTOs. They may include repository identities, operational branches, blockers, evidence summaries and internal next actions. A remote transport must authorize the owner before allowing access.
+
+MCP annotations are not stored and do not change entity state. No audit event is produced for current read tools because they perform no mutation. A future security/audit design may record access metadata at the transport layer without persisting complete private response bodies.
+
 ### Authentication
 
 `owner_accounts` stores only an encoded password hash. `auth_sessions` stores only the digest of a random raw token, with creation, expiry and revocation timestamps.
 
+The browser session model is not implicitly an MCP session model. A future remote transport must define its own authenticated session mapping without adding raw credentials to tool inputs or persisted protocol payloads.
+
 ## Demo seed
 
 `0002_seed_demo.sql` contains a single private demonstration project and no repository target. It must never be described as migrated Notion data, live GitHub state or measured production progress.
+
+The SQLite-to-MCP integration specification reads this seed only to prove composition. Its output remains demonstrative and private.
 
 ## Public projection
 
@@ -169,4 +200,4 @@ type PublicProjectDto = {
 };
 ```
 
-A private project or a project without an approved public summary cannot be serialized. Repository targets, identities, observations, recommendations, sync runs, branch decisions, attention, sessions, evidence, stages and audit events are not part of this projection.
+A private project or a project without an approved public summary cannot be serialized. Repository targets, identities, observations, recommendations, sync runs, branch decisions, attention, sessions, evidence, stages, audit events and MCP private projections are not part of this projection.
