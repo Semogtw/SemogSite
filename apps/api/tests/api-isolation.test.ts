@@ -39,6 +39,24 @@ describe("API isolation", () => {
     expect(text).not.toContain("PRIVATE_MARKER");
   });
 
+  it("omits public records that lack approved editorial content", async () => {
+    const incomplete = { ...publicSource, publicSummary: null };
+    const app = createApiApp({
+      publicProjects: {
+        list: async () => [incomplete],
+        findBySlug: async () => incomplete,
+      },
+    });
+
+    const listResponse = await app.request("/api/v1/public/projects");
+    await expect(listResponse.json()).resolves.toEqual({ ok: true, data: [] });
+
+    const detailResponse = await app.request(
+      "/api/v1/public/projects/public-demo",
+    );
+    expect(detailResponse.status).toBe(404);
+  });
+
   it("rejects private routes before invoking services", async () => {
     const getOverview = vi.fn(async () => ({ activeProjects: 4 }));
     const app = createApiApp({
