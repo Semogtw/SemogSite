@@ -20,6 +20,7 @@ const expectedMigrations = [
   "0002_seed_demo.sql",
   "0003_github_observations.sql",
   "0004_github_sync_runs.sql",
+  "0005_cooperative_run_ledger.sql",
 ] as const;
 
 function temporaryDirectory(): string {
@@ -92,7 +93,7 @@ describe("SQLite backup", () => {
     migrate(database);
     database.$client
       .prepare("DELETE FROM _semogtw_migrations WHERE name = ?")
-      .run("0004_github_sync_runs.sql");
+      .run("0005_cooperative_run_ledger.sql");
     database.$client.close();
 
     expect(() => verifySqliteBackup(path, expectedMigrations)).toThrow(
