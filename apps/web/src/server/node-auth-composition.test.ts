@@ -6,6 +6,7 @@ import {
 } from "./auth-runtime";
 import {
   ensureWebAuthConfigured,
+  getNodeDatabase,
   resetNodeAuthCompositionForTests,
 } from "./node-auth-composition.server";
 
@@ -27,6 +28,7 @@ describe("node auth composition", () => {
     await expect(ensureWebAuthConfigured()).resolves.toBe(false);
     expect(getWebAuthProvider()).toBeNull();
     expect(getWebSessionSecret()).toBeNull();
+    await expect(getNodeDatabase()).resolves.toBeNull();
   });
 
   it("configures a revocable fourteen-day local session", async () => {
@@ -37,6 +39,7 @@ describe("node auth composition", () => {
 
     await expect(ensureWebAuthConfigured()).resolves.toBe(true);
     expect(getWebSessionSecret()).toBe("s".repeat(32));
+    await expect(getNodeDatabase()).resolves.not.toBeNull();
 
     const provider = getWebAuthProvider();
     expect(provider).not.toBeNull();
