@@ -140,7 +140,10 @@ export class GitHubSyncService {
     let rateLimitResetAt: string | null = null;
     const warnings: string[] = [];
 
-    if (targets.length === 0) warnings.push("NO_SYNC_TARGETS");
+    if (targets.length === 0) {
+      errorCount = 1;
+      warnings.push("NO_SYNC_TARGETS");
+    }
 
     for (const target of targets) {
       let result: RepositoryObservationResult;
