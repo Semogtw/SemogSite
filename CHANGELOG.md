@@ -2,99 +2,109 @@
 
 All notable changes to Semogtw Platform are recorded here. Dates use `America/Bahia` for presentation; commits remain UTC in Git.
 
-## Unreleased — Foundation and operational writes
+## Unreleased — Foundation, operational writes and GitHub operations
 
 ### Added
 
-- pnpm TypeScript monorepo with strict compiler settings;
-- guardrails against upstream personal/PDI content and domain boundary violations;
-- scanner for private fields and token patterns in public output surfaces;
-- portable domain entities, repository ports and stage invariants;
-- Overview, Today, Projects, typed project hub, agent-context and Roadmap services;
-- explicit public/private Zod contracts and allowlisted public project serializer;
-- SQLite-compatible canonical schema, Drizzle mappings, migrations and demo-only seed;
-- SQLite read models for Overview, Today, project portfolio/hub and Roadmap;
-- revocable local authentication, password hashing, token digest storage, CSRF and login throttling;
-- Node/SQLite auth composition isolated in `.server.ts` modules;
-- visible logout with session revocation and CSRF rejection;
-- password-hash rotation revoking active sessions transactionally;
-- Hono API partition with correlation IDs, sanitized errors, private authorization and `no-store` responses;
+- pnpm TypeScript monorepo with strict compiler settings and package boundaries;
+- explicit public/private contracts and allowlisted public serializers;
+- SQLite/Drizzle persistence, inspectable migrations and a demo-only seed;
+- revocable local authentication, password hashing, token-digest sessions, CSRF and throttling;
+- Hono public/private API partition with sanitized errors and `no-store` private responses;
 - Semogtw design tokens, accessible primitives and responsive public/DevOS navigation;
-- functional accessible public mobile menu;
-- public home, About, Projects, Journey, Lab, Notes, Stack and Contact route structures;
-- protected DevOS login, Overview, Today, Projects, project hub, Roadmap, Operations, Insights, Capture, Search, Content, Settings, Audit and More;
-- live private rendering from the canonical SQLite seed without claiming migration or GitHub sync;
-- confirmed attention capture with CSRF, explicit reason and transactional audit;
-- audited attention resolution/dismissal with optimistic concurrency protection;
-- development-session handoff capture with normalized commit SHAs and explicit test status;
-- manual evidence attachment with HTTPS-only links, preserved observed status and transactional audit;
-- guarded stage completion that reuses domain invariants, requires valid evidence and sets a manual lock;
-- responsive capture, evidence and stage-completion controls in the private DevOS interface;
-- verified local SQLite backup library and CLIs with no-overwrite, integrity, foreign-key and migration checks;
-- owner-only paginated audit review with exact filters, correlation IDs and malformed-JSON tolerance;
-- `robots.txt` excluding private route prefixes;
-- architecture, data model, security, public-site, migration, deployment, testing and design documentation;
-- executable operational-writes plan covering evidence, backup and audit closeout.
+- public editorial route structures and protected DevOS operational routes;
+- audited attention capture, resolution and dismissal;
+- audited development-session handoffs with explicit test status;
+- manual evidence attachment with HTTPS-only links and preserved evidence status;
+- guarded stage completion through canonical evidence invariants and optimistic concurrency;
+- verified local SQLite backup/verification library and CLIs;
+- owner-only paginated audit review with malformed historical JSON tolerance;
+- deterministic, provider-neutral branch recommendation with alias, tie and stability-window rules;
+- isolated `@semogtw/github` read-only REST adapter with versioned headers, ETags, bounded reads and typed rate-limit failures;
+- immutable repository, branch and recommendation observations linked to `sync_runs`;
+- partial-run semantics that preserve useful evidence while reporting provider or branch failures honestly;
+- owner-only Operations dashboard showing token configuration state, runs, warnings, rate limits and recommendations;
+- audited local acceptance of the latest branch recommendation without any GitHub write;
+- private repository-target registration without SQL or browser-supplied tokens;
+- audited pause/reactivation of repository observation targets while retaining historical evidence;
+- migration `0004_github_sync_runs.sql`, extending the legacy `sync_runs` table without deleting its original fields;
+- empty `SEMOGTW_GITHUB_TOKEN` declaration in `.env.example` for server-side configuration.
 
 ### Fixed during review
 
 - login rate-limiter result incorrectly treated as a boolean;
 - cookie environment argument used with the wrong type;
 - login success redirect being caught as an error;
-- potentially unsupported `deleteCookie` dependency replaced with documented cookie expiration;
 - CSRF cookie path expanded so TanStack server-function RPC requests can receive it;
-- incomplete public projects now omitted instead of causing serializer failures;
-- UI tests now run with jsdom and Testing Library matchers;
-- API integration tests outside `src` now run and typecheck;
-- semantic priority ordering replaces alphabetical enum ordering;
-- project hub queries filter by project in SQL;
-- Today links use project slugs rather than internal IDs;
-- native `better-sqlite3` is externalized from Vite SSR bundling;
-- empty example secrets no longer encourage predictable local configuration;
-- captured attention now maps domain `source` to SQLite `data_source` explicitly;
-- critical-test captures now map to canonical `local_test` storage values;
-- external dependencies and critical tests now enter the external-environment queue instead of the owner queue;
-- audit filters are applied before ordering/pagination through Drizzle's dynamic query mode;
-- backup tests now reopen the snapshot and verify restored data rather than checking file existence alone.
+- incomplete public projects omitted rather than causing serializer failures;
+- semantic priority ordering replacing alphabetical enum ordering;
+- Today links using project slugs rather than internal IDs;
+- native `better-sqlite3` externalized from Vite SSR bundling;
+- attention capture mapping domain `source` to SQLite `data_source`;
+- critical-test captures mapped to canonical `local_test` storage;
+- external dependencies and critical tests entering the external-environment queue;
+- audit filters applied before ordering/pagination through Drizzle dynamic queries;
+- backup tests reopening snapshots and verifying restored data;
+- operational GitHub services and adapters missing from package barrel exports;
+- missing `@semogtw/github` web workspace dependency;
+- the Operations route still rendering a placeholder despite committed server/UI modules;
+- GitHub Operations CSS files existing without being loaded by the root document;
+- partial provider evidence incorrectly finishing a synchronization as `success`;
+- unexpected provider exceptions aborting the whole synchronization before `finishRun`;
+- acceptance of the default branch producing a false branch-change audit when `active_branch` was null;
+- recommendation IDs omitted from the private read model used by stale-state protection;
+- paused targets being hidden instead of remaining visible as historical operational state;
+- repository-target registration using nonexistent `html_url` and `primary/secondary` schema values;
+- repository synchronization attempting to update nonexistent `html_url` and `archived` repository status values;
+- GitHub synchronization overwriting manual target state beyond provider metadata;
+- GitHub run inserts omitting the legacy required `trigger`, `repositories_checked` and `changes_applied` fields;
+- backup and migration gates stopping at `0003` after the sync-run migration was added;
+- SQLite tests using stale repository columns, roles and incomplete sync-run fixtures.
 
-### Verified in current environment
+### Verified in the current environment
 
 - stage validation equivalent suite: 4 passing tests;
 - local auth/session equivalent suite: 2 passing tests;
 - public confidentiality scanner behavior;
 - upstream and domain-boundary guardrail behavior;
-- Node.js 22 availability.
+- Node.js 22 availability;
+- connector-visible branch and PR state after each remote commit.
 
 ### Specified by committed tests but not yet executed here
 
-- attention capture validation, classification, mapping and transaction rollback;
-- attention lifecycle validation, optimistic conflicts and audit atomicity;
-- session handoff normalization, explicit test status and transaction rollback;
-- manual evidence allowlists, safe URL validation and audit atomicity;
-- guarded stage completion invariants, stale-write rejection and rollback;
-- verified SQLite backup creation, no-overwrite policy and restore content;
-- paginated audit filters and malformed historical JSON handling;
-- auth runtime composition and 14-day expiry;
-- safe login destinations and CSRF-aware logout policy;
-- password rotation session revocation;
-- SQLite repository priority ordering;
-- SQLite Overview, Today, project hub and Roadmap reads;
-- API incomplete-public-record filtering and private cache headers;
-- mobile menu interactions and UI accessibility matchers.
+- attention write validation, mapping, optimistic conflicts and audit rollback;
+- session handoff normalization and explicit test-status persistence;
+- evidence URL/status policy and transactional audit;
+- guarded stage completion and stale-write rejection;
+- backup creation, no-overwrite, migration state and restored content;
+- audit pagination and malformed historical JSON handling;
+- all four SQLite migrations applied idempotently;
+- GitHub REST request construction, response validation, ETags and rate limits;
+- provider identity/HTTPS rejection and immediate stop after rate limiting;
+- deterministic branch recommendation and partial observation semantics;
+- immutable observation idempotency and transaction rollback;
+- GitHub run lifecycle, legacy/extended counter compatibility and manual-state preservation;
+- target registration with canonical roles, duplicate detection and audit rollback;
+- target pause/reactivation concurrency and audit rollback;
+- latest-recommendation acceptance, default-branch no-op and stale-state rejection;
+- private Operations dashboard empty, configured, partial and paused-target states;
+- anonymous confidentiality for repository identities, branches and sync metadata.
 
 ### Not yet verified
 
 - dependency installation and generated `pnpm-lock.yaml`;
 - full TypeScript workspace check;
-- Vitest workspace;
+- Vitest workspace execution;
 - TanStack Start production build;
-- authenticated browser checks for operational writes and audit review;
-- backup CLI execution against a real file-backed database;
-- browser E2E and responsive visual review;
-- production host, deployment and rollback.
+- authenticated browser checks for operational writes and Operations controls;
+- GitHub token permissions and live provider behavior from the application runtime;
+- backup CLI execution against a real file-backed database after migration `0004`;
+- browser E2E, keyboard and 360 px responsive visual review;
+- production host composition, deployment and rollback.
 
 ### Constraints
 
-- connected Figma account reported a view-only starter seat, so editable frames were not falsely marked complete;
-- the environment npm registry previously returned 404 and the current runtime cannot resolve `registry.npmjs.org`, documented in `TESTING.md`;
-- no Notion migration, GitHub sync, MCP or public deployment has been performed.
+- the current runtime cannot resolve `registry.npmjs.org`, so committed tests remain specifications rather than passage evidence;
+- connected Figma access is view-only, so editable design frames are not claimed as complete;
+- no Notion migration, GitHub write, MCP exposure or public deployment has been performed;
+- no recommendation acceptance or repository-target mutation has been exercised through a built browser session.
