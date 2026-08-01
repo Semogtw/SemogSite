@@ -57,6 +57,9 @@ type StableErrorCode =
   | "ROADMAP_INVALID_INPUT";
 
 type JsonRecord = Record<string, unknown>;
+type ResourceReadResult =
+  | { ok: true; data: unknown }
+  | { ok: false; code: StableErrorCode };
 
 function errorPayload(code: StableErrorCode): JsonRecord {
   return { ok: false, error: { code } };
@@ -84,11 +87,14 @@ function toolFailure(code: StableErrorCode) {
 
 async function resourceContents(
   uri: string,
-  read: () => Promise<unknown>,
+  read: () => Promise<ResourceReadResult>,
 ) {
   let payload: JsonRecord;
   try {
-    payload = { ok: true, data: await read() };
+    const result = await read();
+    payload = result.ok
+      ? { ok: true, data: result.data }
+      : errorPayload(result.code);
   } catch {
     payload = errorPayload("DEVOS_READ_FAILED");
   }
@@ -235,7 +241,10 @@ export function createSemogtwMcpServer(
       mimeType: "application/json",
     },
     async (uri) =>
-      resourceContents(uri.toString(), () => service.getOverview()),
+      resourceContents(uri.toString(), async () => ({
+        ok: true,
+        data: await service.getOverview(),
+      })),
   );
 
   server.registerResource(
@@ -246,7 +255,11 @@ export function createSemogtwMcpServer(
       description: "Current private execution and attention queues.",
       mimeType: "application/json",
     },
-    async (uri) => resourceContents(uri.toString(), () => service.getToday()),
+    async (uri) =>
+      resourceContents(uri.toString(), async () => ({
+        ok: true,
+        data: await service.getToday(),
+      })),
   );
 
   server.registerResource(
@@ -258,7 +271,10 @@ export function createSemogtwMcpServer(
       mimeType: "application/json",
     },
     async (uri) =>
-      resourceContents(uri.toString(), () => service.listProjects()),
+      resourceContents(uri.toString(), async () => ({
+        ok: true,
+        data: await service.listProjects(),
+      })),
   );
 
   server.registerResource(
@@ -277,8 +293,9 @@ export function createSemogtwMcpServer(
           areas: [],
           includeCompleted: false,
         });
-        if (!result.ok) return errorPayload("ROADMAP_INVALID_INPUT");
-        return result.data;
+        return result.ok
+          ? { ok: true, data: result.data }
+          : { ok: false, code: "ROADMAP_INVALID_INPUT" };
       }),
   );
 
