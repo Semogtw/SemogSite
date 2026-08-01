@@ -121,6 +121,12 @@ export type {
   ProjectHubSession,
   ProjectHubStage,
 } from "./projects/project-service";
+export { DevOSReadService } from "./read/devos-read-service";
+export type {
+  DevOSReadDependencies,
+  DevOSReadResult,
+  DevOSRoadmapQueryInput,
+} from "./read/devos-read-service";
 export { StageCompletionService } from "./roadmap/stage-completion-service";
 export type {
   CompleteStageInput,
