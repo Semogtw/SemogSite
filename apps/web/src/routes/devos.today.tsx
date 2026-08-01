@@ -57,13 +57,7 @@ function TodayPage() {
                     </Status>
                     <Link
                       to="/devos/projects/$slug"
-                      params={{
-                        slug:
-                          queue.executeNow.find(
-                            (candidate) => candidate.stageId === item.stageId,
-                          )?.projectId ?? item.projectId,
-                      }}
-                      disabled
+                      params={{ slug: item.projectSlug }}
                     >
                       Projeto
                     </Link>
@@ -89,7 +83,15 @@ function TodayPage() {
                     <h3>{item.title}</h3>
                     <p>{item.projectName}</p>
                   </div>
-                  <Status tone="neutral">{item.projectPriority}</Status>
+                  <div className="devos-record-actions">
+                    <Status tone="neutral">{item.projectPriority}</Status>
+                    <Link
+                      to="/devos/projects/$slug"
+                      params={{ slug: item.projectSlug }}
+                    >
+                      Projeto
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>
