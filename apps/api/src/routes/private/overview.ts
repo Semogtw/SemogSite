@@ -1,8 +1,9 @@
+import type { DevOSOverview } from "@semogtw/domain";
 import { Hono } from "hono";
 import type { ApiEnvironment } from "../../middleware/request-context";
 
 export interface PrivateOverviewQueries {
-  getOverview(): Promise<unknown>;
+  getOverview(): Promise<DevOSOverview>;
 }
 
 const emptyOverview: PrivateOverviewQueries = {
