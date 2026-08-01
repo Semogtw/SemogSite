@@ -217,6 +217,19 @@ export type {
   CooperativeRunCommandStatus,
   QueueCooperativeRunCommandInput,
 } from "./runs/run-command-queue-service";
+export { CooperativeRunCommandTransitionService } from "./runs/run-command-transition-service";
+export type {
+  CooperativeRunCommandLifecycleSnapshot,
+  CooperativeRunCommandLifecycleStatus,
+  CooperativeRunCommandTransitionAction,
+  CooperativeRunCommandTransitionContext,
+  CooperativeRunCommandTransitionEvent,
+  CooperativeRunCommandTransitionInput,
+  CooperativeRunCommandTransitionRepository,
+  CooperativeRunCommandTransitionResult,
+  CooperativeRunCommandTransitionStoreResult,
+  CooperativeRunCommandTransitionValidationError,
+} from "./runs/run-command-transition-service";
 export { SessionHandoffService } from "./sessions/session-handoff-service";
 export type {
   RecordedDevelopmentSession,
