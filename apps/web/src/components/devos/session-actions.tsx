@@ -21,6 +21,10 @@ export function SessionActions() {
     setMessage(null);
     try {
       const result = await logoutOwnerFn({ data: { csrfToken } });
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
       await navigate({ to: result.redirectTo });
     } catch {
       setMessage("Não foi possível encerrar a sessão.");
