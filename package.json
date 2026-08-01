@@ -1,0 +1,14 @@
+{
+  "name": "semogtw-platform",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs"
+  }
+}
