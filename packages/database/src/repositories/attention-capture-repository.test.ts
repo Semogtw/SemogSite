@@ -9,7 +9,7 @@ import { SqliteAttentionCaptureRepository } from "./attention-capture-repository
 const attention: CapturedAttention = {
   id: "attention-1",
   projectId: null,
-  type: "risk",
+  type: "critical_test",
   status: "open",
   impact: "high",
   title: "Executar build integral",
@@ -36,7 +36,7 @@ const audit: CaptureAuditEvent = {
 };
 
 describe("SqliteAttentionCaptureRepository", () => {
-  it("inserts the attention item and audit event in one transaction", async () => {
+  it("maps the domain record to the canonical SQLite columns in one transaction", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     const repository = new SqliteAttentionCaptureRepository(database);
@@ -50,7 +50,8 @@ describe("SqliteAttentionCaptureRepository", () => {
     ).toMatchObject({
       id: "attention-1",
       status: "open",
-      source: "manual",
+      type: "local_test",
+      data_source: "manual",
     });
     expect(
       database.$client
