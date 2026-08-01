@@ -17,6 +17,8 @@ pnpm --filter @semogtw/auth test
 pnpm --filter @semogtw/contracts test
 pnpm --filter @semogtw/database test
 pnpm --filter @semogtw/github test
+pnpm --filter @semogtw/mcp test
+pnpm --filter @semogtw/mcp-app test
 pnpm --filter @semogtw/api test
 pnpm --filter @semogtw/ui test
 pnpm --filter @semogtw/web test
@@ -43,6 +45,13 @@ pnpm --filter @semogtw/web test
 - GitHub REST GET-only requests, encoding, version headers, ETags and rate-limit errors;
 - provider identity and credential-free HTTPS validation;
 - immediate stop of branch commit reads after rate limiting;
+- DevOS read-service delegation without DTO rewriting;
+- project-slug normalization and invalid-input/not-found distinction;
+- bounded, deduplicated roadmap filter normalization;
+- MCP tool/resource catalog containing no mutation operation;
+- MCP read-only annotations and stable sanitized error codes;
+- MCP successful tools returning text plus `structuredContent`;
+- MCP resources returning consistent JSON success/error envelopes;
 - public DTO allowlists;
 - password hashing, session expiry/revocation, CSRF and throttling;
 - safe post-login destination allowlist;
@@ -68,11 +77,30 @@ pnpm --filter @semogtw/web test
 - paused active targets visible in Operations but excluded from enabled-target count;
 - semantic repository ordering by `product`, `core`, `integration`, `infrastructure`, `academic`, `experiment`;
 - SQLite Overview, Today, Projects/hub and Roadmap data sources;
+- SQLite `DevOSReadService` composition using those canonical sources;
+- official MCP `Client` and `InMemoryTransport` discovering the expected catalog;
+- MCP tools/resources returning the migrated demo database state;
+- MCP composition returning a server without opening stdio, HTTP or another listener;
 - Hono public/private isolation and private `no-store` headers;
 - private service not called before authorization;
 - Node/SQLite auth composition and 14-day session lifetime;
 - TanStack private route redirect before data loader;
 - public route metadata, anonymous rendering and mobile-menu accessibility.
+
+### MCP protocol gate
+
+The protocol suite must verify with the official TypeScript SDK:
+
+- exact discovery order and names for four resources and five tools;
+- all tools advertise read-only, non-destructive, idempotent and closed-world annotations;
+- no tool name or definition represents a mutation;
+- output schemas accept the returned `structuredContent`;
+- missing projects map to `PROJECT_NOT_FOUND`;
+- invalid project/roadmap inputs return stable errors;
+- unexpected exception messages, database details and token-like strings never reach protocol content;
+- static resources and tools read through the same service instance;
+- SQLite composition exposes demo data only after migrations run;
+- client/server close cleanly after in-memory tests.
 
 ### E2E, before deployment
 
@@ -93,9 +121,13 @@ pnpm --filter @semogtw/web test
 - public HTML/payload/metadata/sitemap/robots confidentiality scan;
 - private API/page cache behavior on the selected host.
 
+A remote MCP endpoint has a separate future E2E matrix. It is not part of the current in-process adapter and must cover transport authentication, session isolation, TLS/origin/host policy, rate limits, timeouts, cache prevention, revocation and sanitized logs before exposure.
+
 ## Evidence from this implementation environment
 
-The connected environment provides Node.js `v22.16.0`, but the current runtime cannot resolve `registry.npmjs.org` and cannot clone the private repository into a dependency-capable local workspace. Therefore dependency installation, TypeScript checking, Vitest and the Vite production build are **not claimed as executed**.
+The connected environment provides Node.js `v22.16.0`, but the current shell registry reports the scoped MCP SDK as unavailable and direct public GitHub access fails DNS resolution. The repository is modified through the connected GitHub tool rather than a dependency-capable local clone. Therefore the new MCP package installation, TypeScript checking, Vitest protocol suite and production build are **not claimed as executed**.
+
+Official v1.29.0 package metadata and source signatures were reviewed through connected official sources. This supports static API alignment but is not runtime passage evidence.
 
 Equivalent behavior previously exercised with Node-native facilities:
 
@@ -116,14 +148,16 @@ Run, in order:
 corepack enable
 pnpm install --frozen-lockfile=false
 pnpm --filter @semogtw/domain test
-pnpm --filter @semogtw/github test
 pnpm --filter @semogtw/database test
+pnpm --filter @semogtw/mcp test
+pnpm --filter @semogtw/mcp-app test
+pnpm --filter @semogtw/github test
 pnpm --filter @semogtw/web test
 pnpm check
 pnpm build
 ```
 
-Because no lockfile exists yet, the first successful install must create and commit `pnpm-lock.yaml` immediately.
+Because no lockfile exists yet, the first successful install must create and commit `pnpm-lock.yaml` immediately. Confirm that the resolved MCP SDK remains on the reviewed stable v1.x line and record the exact version.
 
 Then use a file-backed database:
 
@@ -131,6 +165,8 @@ Then use a file-backed database:
 pnpm --filter @semogtw/web dev
 ```
 
-Verify migrations `0001`–`0004`, create a synthetic private project/repository target, run the no-token and token-configured Operations states, rehearse backup/restore, and execute anonymous confidentiality checks. Fix framework or ORM API mismatches from current official documentation and record exact evidence in `CHANGELOG.md`.
+Verify migrations `0001`–`0004`, create a synthetic private project/repository target, run the no-token and token-configured Operations states, rehearse backup/restore, and execute anonymous confidentiality checks. Fix framework, ORM or SDK API mismatches from current official documentation and record exact evidence in `CHANGELOG.md`.
+
+Do not expose an MCP transport merely because the in-memory suite passes. Create and execute the authenticated Streamable HTTP plan first.
 
 GitHub Actions should not be used merely to compensate for this environment limitation. Prefer a local or agent runtime with package access; use CI only when it becomes an essential release gate.
