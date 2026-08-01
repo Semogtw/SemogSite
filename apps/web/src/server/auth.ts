@@ -4,7 +4,6 @@ import {
   SlidingWindowRateLimiter,
   verifyCsrfToken,
 } from "@semogtw/auth";
-import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
   deleteCookie,
@@ -93,6 +92,7 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
     const secret = getWebSessionSecret();
     const rawToken = getCookie(SESSION_COOKIE);
     const csrfCookie = getCookie(CSRF_COOKIE);
+    let revoked = false;
 
     if (provider !== null && secret !== null && rawToken && csrfCookie) {
       const owner = await provider.resolveSession(rawToken);
@@ -106,10 +106,15 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
         ))
       ) {
         await provider.revokeSession(owner.sessionId);
+        revoked = true;
       }
     }
 
     deleteCookie(SESSION_COOKIE, { path: "/" });
     deleteCookie(CSRF_COOKIE, { path: "/devos" });
-    throw redirect({ to: "/devos/login" });
+    return {
+      ok: true as const,
+      revoked,
+      redirectTo: "/devos/login" as const,
+    };
   });
