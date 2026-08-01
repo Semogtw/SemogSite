@@ -62,19 +62,23 @@ export class SqliteAuditDataSource {
     if (entityType) conditions.push(eq(auditEvents.entityType, entityType));
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const countQuery = this.database
+    let countQuery = this.database
       .select({ value: count() })
-      .from(auditEvents);
-    const totalRow = where ? countQuery.where(where).get() : countQuery.get();
-    const total = totalRow?.value ?? 0;
+      .from(auditEvents)
+      .$dynamic();
+    if (where) countQuery = countQuery.where(where);
+    const total = countQuery.get()?.value ?? 0;
 
-    const pageQuery = this.database
+    let pageQuery = this.database
       .select()
       .from(auditEvents)
+      .$dynamic();
+    if (where) pageQuery = pageQuery.where(where);
+    const rows = pageQuery
       .orderBy(desc(auditEvents.occurredAt), desc(auditEvents.id))
       .limit(pageSize)
-      .offset((page - 1) * pageSize);
-    const rows = where ? pageQuery.where(where).all() : pageQuery.all();
+      .offset((page - 1) * pageSize)
+      .all();
 
     return {
       items: rows.map((row) => {
