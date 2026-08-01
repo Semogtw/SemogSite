@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
+import surfacesCss from "../styles/surfaces.css?url";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -29,6 +30,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
+      { rel: "stylesheet", href: surfacesCss },
     ],
   }),
   component: RootComponent,
