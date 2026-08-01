@@ -4,20 +4,38 @@ export const syncRuns = sqliteTable(
   "sync_runs",
   {
     id: text("id").primaryKey(),
+    integration: text("integration", {
+      enum: ["legacy", "github", "notion", "migration", "mcp"],
+    }).notNull(),
     scope: text("scope").notNull(),
     trigger: text("trigger", {
       enum: ["manual", "scheduled_work", "webhook", "mcp", "migration"],
     }).notNull(),
     startedAt: text("started_at").notNull(),
     finishedAt: text("finished_at"),
-    status: text("status", { enum: ["running", "success", "partial", "failed"] }).notNull(),
+    status: text("status", {
+      enum: ["running", "success", "partial", "failed"],
+    }).notNull(),
     repositoriesChecked: integer("repositories_checked").notNull(),
     changesApplied: integer("changes_applied").notNull(),
+    createdCount: integer("created_count").notNull(),
+    updatedCount: integer("updated_count").notNull(),
+    skippedCount: integer("skipped_count").notNull(),
+    errorCount: integer("error_count").notNull(),
     warningsJson: text("warnings_json").notNull(),
     errorSummary: text("error_summary"),
     cursor: text("cursor"),
+    rateLimitRemaining: integer("rate_limit_remaining"),
+    rateLimitResetAt: text("rate_limit_reset_at"),
+    metadataJson: text("metadata_json").notNull(),
   },
-  (table) => [index("idx_sync_runs_started").on(table.startedAt)],
+  (table) => [
+    index("idx_sync_runs_started").on(table.startedAt),
+    index("idx_sync_runs_integration_started").on(
+      table.integration,
+      table.startedAt,
+    ),
+  ],
 );
 
 export const auditEvents = sqliteTable(
