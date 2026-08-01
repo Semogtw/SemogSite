@@ -7,6 +7,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "backup:database": "node scripts/backup-database.mjs",
     "build": "pnpm -r build",
     "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm -r test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
@@ -18,7 +19,8 @@
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "pnpm -r test",
     "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "verify:backup": "node scripts/verify-backup.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
