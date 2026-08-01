@@ -9,6 +9,7 @@
 - The adapter never receives database handles, tokens or raw HTTP requests.
 - A provider-neutral read service composes existing Overview, Today, Projects and Roadmap services.
 - Tool and resource failures return stable sanitized codes; internal exception messages are never protocol content.
+- Logical JSON responses larger than 256 KiB fail explicitly rather than being truncated or duplicated into an uncontrolled response.
 - Private repository names, branches and operational data remain private and require an authenticated transport before remote exposure.
 - Stdio, Streamable HTTP, Sites hosting and external MCP bridges remain separate runtime decisions.
 
@@ -46,6 +47,7 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 - [x] Return both human-readable text and `structuredContent` for successful tools.
 - [x] Return `isError: true` with stable codes for tool failures.
 - [x] Return sanitized JSON error resources rather than leaking thrown messages.
+- [x] Reject oversized logical JSON through `RESULT_TOO_LARGE`.
 - [x] Keep transport creation outside the package.
 
 ## Task 3: Protocol tests
@@ -55,6 +57,7 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 - [x] Specify structured results for overview, project list, project hub and roadmap queries.
 - [x] Specify not-found and unexpected-failure sanitization.
 - [x] Specify that no mutation tool is discoverable.
+- [x] Specify the 256 KiB response bound for tools and resources.
 - [ ] Execute the protocol suite in an environment that can install `@modelcontextprotocol/sdk`.
 
 ## Task 4: SQLite composition
@@ -68,13 +71,33 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 
 ## Task 5: Documentation and release gates
 
-- [ ] Update architecture, security, data model, testing, runbook and changelog.
+- [x] Update architecture, security, data model, testing, deployment, runbook, changelog, README and `MCP.md`.
+- [x] Add a Node-native guardrail rejecting MCP transport imports and network listeners.
+- [x] Execute the guardrail fixture suite and allowed-tree scan.
 - [ ] Run package tests, typecheck, workspace check and production build in a dependency-complete environment.
 - [x] Keep the PR draft until the protocol suite and workspace gates are observed.
 - [ ] Create a separate authenticated Streamable HTTP plan before remote exposure.
 
+## Observed evidence
+
+On 2026-08-01, the exact Node-native transport-boundary guardrail was executed with:
+
+- an allowed `McpServer` + `InMemoryTransport` fixture;
+- a forbidden stdio transport fixture;
+- a forbidden Streamable HTTP transport fixture;
+- a forbidden Node HTTP listener fixture;
+- an allowed production-tree scan.
+
+Observed output:
+
+```text
+MCP transport boundary guardrail fixtures passed.
+MCP transport boundary passed.
+```
+
 ## Observed constraints
 
-- The current shell registry reports the scoped SDK as unavailable and direct public GitHub access fails DNS resolution.
+- An explicit installation attempt against `https://registry.npmjs.org` produced no package output before timing out.
+- A subsequent DNS probe returned `Could not resolve host: registry.npmjs.org`.
 - Official v1.29.0 source and signatures were reviewed through the connected GitHub and Context7 sources.
-- The committed tests are executable specifications, not passage evidence, until the package can be installed and the output observed.
+- The committed SDK-backed tests are executable specifications, not passage evidence, until the package can be installed and the output observed.
