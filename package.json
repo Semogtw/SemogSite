@@ -12,6 +12,7 @@
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "dev": "pnpm --filter @semogtw/web dev",
+    "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "pnpm -r test",
     "test:guardrails": "node scripts/check-upstream-clean.test.mjs",
     "typecheck": "pnpm -r typecheck"
