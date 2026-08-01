@@ -47,15 +47,32 @@ type NormalizedBranch = BranchObservation & {
 
 const oneHourMs = 60 * 60 * 1_000;
 const highConfidenceGapMs = 24 * oneHourMs;
+const headShaPattern = /^[0-9a-f]{7,64}$/u;
+
+function isSafeBranchName(name: string): boolean {
+  return (
+    name.length > 0 &&
+    name.length <= 255 &&
+    !/[\u0000-\u0020\u007f~^:?*[\\]/u.test(name) &&
+    !name.startsWith("/") &&
+    !name.endsWith("/") &&
+    !name.startsWith(".") &&
+    !name.endsWith(".") &&
+    !name.endsWith(".lock") &&
+    !name.includes("..") &&
+    !name.includes("@{") &&
+    !name.includes("//")
+  );
+}
 
 function normalizeBranches(
   input: BranchRecommendationInput,
 ): { branches: NormalizedBranch[]; warnings: string[] } {
   const warnings: string[] = [];
   const observedAtEpoch = Date.parse(input.observedAt);
-  const safeObservedAt = Number.isNaN(observedAtEpoch)
-    ? Date.now()
-    : observedAtEpoch;
+  const safeObservedAt = Number.isNaN(observedAtEpoch) ? 0 : observedAtEpoch;
+  if (Number.isNaN(observedAtEpoch)) warnings.push("INVALID_OBSERVED_AT");
+
   const defaultBranch = input.defaultBranch.trim();
   const currentActiveBranch = input.currentActiveBranch?.trim() ?? null;
   const byName = new Map<string, NormalizedBranch>();
@@ -64,11 +81,13 @@ function normalizeBranches(
     const name = observation.name.trim();
     const headSha = observation.headSha.trim().toLowerCase();
     const committedAt = observation.committedAt.trim();
-    if (name.length === 0) {
-      warnings.push("INVALID_BRANCH_NAME");
+    if (!isSafeBranchName(name)) {
+      warnings.push(
+        name.length === 0 ? "INVALID_BRANCH_NAME" : `INVALID_BRANCH_NAME:${name}`,
+      );
       continue;
     }
-    if (headSha.length === 0) {
+    if (!headShaPattern.test(headSha)) {
       warnings.push(`INVALID_HEAD_SHA:${name}`);
       continue;
     }
@@ -86,7 +105,9 @@ function normalizeBranches(
       committedAtEpoch,
       isDefault: name === defaultBranch,
       isCurrentActive: name === currentActiveBranch,
-      ageHours: Math.max(0, (safeObservedAt - committedAtEpoch) / oneHourMs),
+      ageHours: Number.isNaN(observedAtEpoch)
+        ? 0
+        : Math.max(0, (safeObservedAt - committedAtEpoch) / oneHourMs),
     };
     const existing = byName.get(name);
     if (!existing || normalized.committedAtEpoch > existing.committedAtEpoch) {
