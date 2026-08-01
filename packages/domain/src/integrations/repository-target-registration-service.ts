@@ -1,4 +1,10 @@
-export type RepositorySyncTargetRole = "primary" | "secondary";
+export type RepositorySyncTargetRole =
+  | "product"
+  | "core"
+  | "integration"
+  | "infrastructure"
+  | "academic"
+  | "experiment";
 
 export type RegisteredRepositorySyncTarget = {
   id: string;
@@ -93,6 +99,14 @@ export type RepositoryTargetRegistrationResult =
 const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u;
 const repositoryPattern = /^[A-Za-z0-9._-]{1,100}$/u;
 const branchPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
+const roles = new Set<RepositorySyncTargetRole>([
+  "product",
+  "core",
+  "integration",
+  "infrastructure",
+  "academic",
+  "experiment",
+]);
 
 function parseFullName(value: string):
   | { owner: string; name: string; fullName: string }
@@ -127,9 +141,7 @@ export class RepositoryTargetRegistrationService {
     if (!branchPattern.test(defaultBranch)) {
       errors.push("DEFAULT_BRANCH_INVALID");
     }
-    if (input.role !== "primary" && input.role !== "secondary") {
-      errors.push("ROLE_INVALID");
-    }
+    if (!roles.has(input.role)) errors.push("ROLE_INVALID");
     if (reason.length === 0) errors.push("REASON_REQUIRED");
     else if (reason.length > 500) errors.push("REASON_TOO_LONG");
 
