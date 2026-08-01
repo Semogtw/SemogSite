@@ -197,9 +197,7 @@ export class GitHubSyncService {
       const providerPartial = provider.partial === true;
       const recommendationPartial = recommendation.warnings.length > 0;
       const bounded = provider.branchesTruncated;
-      if (providerPartial || recommendationPartial || bounded) {
-        errorCount += 1;
-      }
+      let targetProblem = providerPartial || recommendationPartial || bounded;
       if (providerPartial) {
         warnings.push(`${target.id}:PARTIAL_OBSERVATION`);
       }
@@ -229,9 +227,10 @@ export class GitHubSyncService {
         if (persisted === "inserted") createdCount += 1;
         else skippedCount += 1;
       } catch {
-        errorCount += 1;
+        targetProblem = true;
         warnings.push(`${target.id}:STORAGE_FAILURE`);
       }
+      if (targetProblem) errorCount += 1;
     }
 
     const status =
