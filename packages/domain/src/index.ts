@@ -203,6 +203,20 @@ export type {
   CooperativeRunCheckpointValidationError,
   RecordCooperativeRunCheckpointInput,
 } from "./runs/run-checkpoint-service";
+export { CooperativeRunCommandQueueService } from "./runs/run-command-queue-service";
+export type {
+  CooperativeRunCommand,
+  CooperativeRunCommandKind,
+  CooperativeRunCommandPayload,
+  CooperativeRunCommandQueuedEvent,
+  CooperativeRunCommandQueueContext,
+  CooperativeRunCommandQueueRepository,
+  CooperativeRunCommandQueueResult,
+  CooperativeRunCommandQueueStoreResult,
+  CooperativeRunCommandQueueValidationError,
+  CooperativeRunCommandStatus,
+  QueueCooperativeRunCommandInput,
+} from "./runs/run-command-queue-service";
 export { SessionHandoffService } from "./sessions/session-handoff-service";
 export type {
   RecordedDevelopmentSession,
