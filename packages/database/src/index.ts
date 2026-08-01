@@ -10,6 +10,7 @@ export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqlitePublicProjectSource } from "./repositories/public-project-source";
 export { SqliteRoadmapDataSource } from "./repositories/roadmap-data-source";
 export { SqliteSessionHandoffRepository } from "./repositories/session-handoff-repository";
+export { SqliteStageCompletionRepository } from "./repositories/stage-completion-repository";
 export { SqliteStageRepository } from "./repositories/stage-repository";
 export { SqliteTodayDataSource } from "./repositories/today-data-source";
 export * as schema from "./schema";
