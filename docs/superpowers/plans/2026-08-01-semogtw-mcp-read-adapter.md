@@ -77,7 +77,7 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 - [x] Inspect the remote PR diff for forbidden transport/listener references and confirm production MCP files contain none.
 - [ ] Run package tests, typecheck, workspace check and production build in a dependency-complete environment.
 - [x] Keep the PR draft until the protocol suite and workspace gates are observed.
-- [ ] Create a separate authenticated Streamable HTTP plan before remote exposure.
+- [x] Create the separate authenticated Streamable HTTP plan before remote exposure: [`2026-08-01-semogtw-mcp-streamable-http.md`](./2026-08-01-semogtw-mcp-streamable-http.md).
 
 ## Observed evidence
 
@@ -87,12 +87,16 @@ On 2026-08-01, the exact Node-native transport-boundary guardrail was executed w
 - a forbidden stdio transport fixture;
 - a forbidden Streamable HTTP transport fixture;
 - a forbidden Node HTTP listener fixture;
+- side-effect, dynamic, CommonJS and framework import variants;
+- a future `apps/mcp-*` namespace fixture;
 - a representative allowed source tree.
 
-Observed output:
+Observed output across the executed suites:
 
 ```text
 MCP transport boundary guardrail fixtures passed.
+MCP transport import variants passed.
+Future MCP app namespace boundary passed.
 MCP transport boundary passed.
 ```
 
