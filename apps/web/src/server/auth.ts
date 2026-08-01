@@ -26,8 +26,27 @@ const loginLimiter = new SlidingWindowRateLimiter({
   windowMs: 15 * 60 * 1000,
 });
 
-const safeReturnTo = (value: string | undefined): string =>
-  value?.startsWith("/devos") && !value.startsWith("//") ? value : "/devos";
+const safeReturnRoutes = new Set([
+  "/devos",
+  "/devos/today",
+  "/devos/projects",
+  "/devos/roadmap",
+  "/devos/operations",
+  "/devos/settings",
+]);
+
+type SafeReturnRoute =
+  | "/devos"
+  | "/devos/today"
+  | "/devos/projects"
+  | "/devos/roadmap"
+  | "/devos/operations"
+  | "/devos/settings";
+
+const safeReturnTo = (value: string | undefined): SafeReturnRoute =>
+  value !== undefined && safeReturnRoutes.has(value)
+    ? (value as SafeReturnRoute)
+    : "/devos";
 
 export const getCurrentOwnerFn = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -61,7 +80,7 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
 
     loginLimiter.reset(rateKey);
     const csrf = await issueCsrfToken(secret, result.session.id);
-    const production = process.env.NODE_ENV === "production";
+    const production = import.meta.env.PROD;
     setCookie(SESSION_COOKIE, result.rawToken, sessionCookieOptions(production));
     setCookie(CSRF_COOKIE, csrf, {
       httpOnly: false,
