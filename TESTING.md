@@ -30,6 +30,9 @@ pnpm --filter @semogtw/web test
 - agent-context sanitization and size cap;
 - attention capture validation, normalization and external-environment ownership;
 - attention lifecycle validation, final-state protection and optimistic-conflict reporting;
+- session handoff validation, SHA normalization and explicit test-status preservation;
+- manual evidence kind/status allowlists and HTTPS URL validation;
+- guarded stage completion through the canonical stage invariants;
 - public DTO allowlists;
 - password hashing and verification;
 - session digest, expiry and revocation;
@@ -44,6 +47,9 @@ pnpm --filter @semogtw/web test
 - SQLite migrations and repository contracts;
 - attention capture column/type mapping and transaction rollback;
 - attention lifecycle read mapping, optimistic update and audit transaction;
+- session handoff persistence and audit rollback;
+- manual evidence persistence and audit rollback;
+- stage evidence hydration, optimistic completion, stale-write rejection and audit rollback;
 - semantic project-priority ordering;
 - SQLite Overview, Today, Projects/hub and Roadmap data sources;
 - Hono public/private isolation;
@@ -63,6 +69,11 @@ pnpm --filter @semogtw/web test
 - capture an owner item and an external-environment item with audit records;
 - resolve and dismiss attention items from Hoje with reason and confirmation;
 - reject stale concurrent attention transitions without writing audit events;
+- capture a session handoff and verify it appears in recent activity/project history;
+- attach project-level and stage-level evidence while preserving the selected status;
+- reject non-HTTPS evidence links and stale/deleted stage relationships;
+- reject stage completion without observed/passed evidence;
+- complete an evidenced stage, set its manual lock and remove it from active stages;
 - all secondary private routes protected;
 - logout, CSRF rejection and revoked-session denial;
 - password rotation invalidating existing sessions;
@@ -87,6 +98,9 @@ The committed Vitest suites additionally specify the expected behavior for:
 
 - attention capture mapping, classification and rollback;
 - attention lifecycle validation, canonical type mapping, audit and concurrency conflicts;
+- session handoff validation, explicit test status and transaction rollback;
+- manual evidence allowlists, URL policy, status preservation and transaction rollback;
+- stage completion invariants, evidence hydration, optimistic conflicts and rollback;
 - runtime auth composition;
 - project priority ordering;
 - credential-rotation revocation;
