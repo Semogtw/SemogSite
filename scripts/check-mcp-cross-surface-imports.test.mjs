@@ -33,6 +33,14 @@ for (const [path, content] of [
     "apps/api/src/routes/mcp.cjs",
     'const adapter = require("@semogtw/mcp");\nvoid adapter;\n',
   ],
+  [
+    "apps/web/src/server/mcp-app.ts",
+    'import { createSqliteSemogtwMcpServer } from "@semogtw/mcp-app";\nvoid createSqliteSemogtwMcpServer;\n',
+  ],
+  [
+    "apps/api/src/routes/mcp-http.ts",
+    'const transport = await import("../../../mcp-http/src/index");\nvoid transport;\n',
+  ],
 ]) {
   const violations = scan(path, content);
   assert.equal(violations.length, 1, path);
