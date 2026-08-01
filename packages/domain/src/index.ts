@@ -1,3 +1,15 @@
+export { AttentionCaptureService } from "./capture/capture-service";
+export type {
+  AttentionCaptureRepository,
+  AttentionImpact,
+  AttentionType,
+  CaptureAttentionInput,
+  CaptureAttentionResult,
+  CaptureAuditEvent,
+  CaptureContext,
+  CapturedAttention,
+  CaptureValidationError,
+} from "./capture/capture-service";
 export { OverviewService } from "./overview/overview-service";
 export type {
   DevOSOverview,
