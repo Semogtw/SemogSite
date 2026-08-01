@@ -13,6 +13,7 @@ import {
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
   SEMOGTW_MCP_RESOURCES,
+  SEMOGTW_MCP_SERVER_INFO,
   SEMOGTW_MCP_TOOLS,
 } from "./catalog";
 import {
@@ -179,10 +180,7 @@ async function guardedTool(
 export function createSemogtwMcpServer(
   service: SemogtwMcpReadService,
 ): McpServer {
-  const server = new McpServer({
-    name: "semogtw-devos",
-    version: "0.1.0",
-  });
+  const server = new McpServer(SEMOGTW_MCP_SERVER_INFO);
 
   server.registerTool(
     overviewTool.name,
