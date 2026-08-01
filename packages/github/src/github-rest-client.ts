@@ -144,12 +144,9 @@ function readMeta(headers: Headers): GitHubResponseMeta {
   };
 }
 
-function encodeSegment(value: string, label: string): string {
+function encodeSegment(value: string): string {
   const normalized = value.trim();
-  if (normalized.length === 0) {
-    throw new GitHubClientError({ code: "INVALID_ARGUMENT" });
-  }
-  if (normalized.length > 255) {
+  if (normalized.length === 0 || normalized.length > 255) {
     throw new GitHubClientError({ code: "INVALID_ARGUMENT" });
   }
   return encodeURIComponent(normalized);
@@ -165,7 +162,10 @@ export class GitHubRestClient {
   constructor(options: GitHubRestClientOptions = {}) {
     this.token = options.token?.trim() || undefined;
     this.apiVersion = options.apiVersion?.trim() || GITHUB_API_VERSION;
-    this.baseUrl = (options.baseUrl?.trim() || "https://api.github.com").replace(/\/$/u, "");
+    this.baseUrl = (options.baseUrl?.trim() || "https://api.github.com").replace(
+      /\/$/u,
+      "",
+    );
     this.userAgent = options.userAgent?.trim() || "Semogtw-DevOS";
     this.fetcher = options.fetcher ?? fetch;
   }
@@ -176,7 +176,7 @@ export class GitHubRestClient {
     options: { etag?: string } = {},
   ): Promise<GitHubResult<GitHubRepository>> {
     const result = await this.request(
-      `/repos/${encodeSegment(owner, "owner")}/${encodeSegment(repository, "repository")}`,
+      `/repos/${encodeSegment(owner)}/${encodeSegment(repository)}`,
       repositorySchema,
       options,
     );
@@ -213,7 +213,7 @@ export class GitHubRestClient {
       throw new GitHubClientError({ code: "INVALID_ARGUMENT" });
     }
     const result = await this.request(
-      `/repos/${encodeSegment(owner, "owner")}/${encodeSegment(repository, "repository")}/branches?per_page=${maxBranches}&page=1`,
+      `/repos/${encodeSegment(owner)}/${encodeSegment(repository)}/branches?per_page=${maxBranches}&page=1`,
       branchListSchema,
       options,
     );
@@ -239,7 +239,7 @@ export class GitHubRestClient {
     options: { etag?: string } = {},
   ): Promise<GitHubResult<GitHubCommitObservation>> {
     const result = await this.request(
-      `/repos/${encodeSegment(owner, "owner")}/${encodeSegment(repository, "repository")}/commits/${encodeSegment(ref, "ref")}`,
+      `/repos/${encodeSegment(owner)}/${encodeSegment(repository)}/commits/${encodeSegment(ref)}`,
       commitSchema,
       options,
     );
@@ -306,7 +306,10 @@ export class GitHubRestClient {
     return { status: "ok", data: parsed.data, meta };
   }
 
-  private toHttpError(status: number, meta: GitHubResponseMeta): GitHubClientError {
+  private toHttpError(
+    status: number,
+    meta: GitHubResponseMeta,
+  ): GitHubClientError {
     if (
       status === 429 ||
       (status === 403 &&
@@ -316,13 +319,21 @@ export class GitHubRestClient {
       return new GitHubClientError({
         code: "RATE_LIMITED",
         status,
-        retryAfterSeconds: meta.rateLimit.retryAfterSeconds ?? undefined,
+        ...(meta.rateLimit.retryAfterSeconds === null
+          ? {}
+          : { retryAfterSeconds: meta.rateLimit.retryAfterSeconds }),
         rateLimitResetAt: meta.rateLimit.resetAt,
       });
     }
-    if (status === 401) return new GitHubClientError({ code: "UNAUTHORIZED", status });
-    if (status === 403) return new GitHubClientError({ code: "FORBIDDEN", status });
-    if (status === 404) return new GitHubClientError({ code: "NOT_FOUND", status });
+    if (status === 401) {
+      return new GitHubClientError({ code: "UNAUTHORIZED", status });
+    }
+    if (status === 403) {
+      return new GitHubClientError({ code: "FORBIDDEN", status });
+    }
+    if (status === 404) {
+      return new GitHubClientError({ code: "NOT_FOUND", status });
+    }
     if (status === 410) {
       return new GitHubClientError({ code: "API_VERSION_UNSUPPORTED", status });
     }
