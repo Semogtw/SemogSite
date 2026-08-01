@@ -20,7 +20,7 @@ const ignoredDirectories = new Set([
 const transportImportPattern =
   /@modelcontextprotocol\/sdk\/server\/(?:stdio|streamableHttp|sse)(?:\.js)?|\b(?:StdioServerTransport|StreamableHTTPServerTransport|SSEServerTransport)\b/u;
 const networkImportPattern =
-  /(?:from\s+|import\s*\()["'](?:node:)?(?:http|https|net|tls)["']|(?:from\s+|import\s*\()["'](?:express|hono|@hono\/[^"']+)["']/u;
+  /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:(?:node:)?(?:http|https|net|tls)|express|hono|@hono\/[^"']+)["']/u;
 const listenerPattern = /\.listen\s*\(|\bserve\s*\(/u;
 
 function collectSourceFiles(directory) {
