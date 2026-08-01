@@ -33,6 +33,7 @@ describe("Semogtw MCP catalog", () => {
       "PROJECT_NOT_FOUND",
       "ROADMAP_INVALID_INPUT",
       "RESULT_TOO_LARGE",
+      "SENSITIVE_OUTPUT_REJECTED",
     ]);
 
     expect(new Set(SEMOGTW_MCP_TOOLS.map((tool) => tool.name)).size).toBe(
