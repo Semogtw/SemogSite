@@ -6,6 +6,7 @@ const source: TodayDataSource = {
     {
       stageId: "high-active",
       projectId: "p3",
+      projectSlug: "project-3",
       projectName: "Projeto 3",
       projectPriority: "high",
       title: "Implementar",
@@ -20,6 +21,7 @@ const source: TodayDataSource = {
     {
       stageId: "critical-active",
       projectId: "p2",
+      projectSlug: "project-2",
       projectName: "Projeto 2",
       projectPriority: "critical",
       title: "Integrar",
@@ -34,6 +36,7 @@ const source: TodayDataSource = {
     {
       stageId: "critical-partially-blocked",
       projectId: "p1",
+      projectSlug: "project-1",
       projectName: "Projeto 1",
       projectPriority: "critical",
       title: "Migrar",
@@ -61,5 +64,6 @@ describe("TodayService", () => {
       "critical-active",
       "high-active",
     ]);
+    expect(queue.executeNow[0]?.projectSlug).toBe("project-1");
   });
 });
