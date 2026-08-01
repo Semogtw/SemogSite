@@ -1,6 +1,6 @@
 import { OverviewService, type DevOSOverview } from "@semogtw/domain";
 import { SqliteOverviewDataSource } from "@semogtw/database";
-import { getNodeDatabase } from "./node-auth-composition.server";
+import { getNodeDatabase } from "./node-database.server";
 
 export async function readDevOSOverview(): Promise<DevOSOverview | null> {
   const database = await getNodeDatabase();
