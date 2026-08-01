@@ -17,6 +17,7 @@ import {
   getWebAuthProvider,
   getWebSessionSecret,
 } from "./auth-runtime";
+import { ensureWebAuthConfigured } from "./node-auth-composition";
 
 export const SESSION_COOKIE = "semogtw_session";
 export const CSRF_COOKIE = "semogtw_csrf";
@@ -50,6 +51,8 @@ const safeReturnTo = (value: string | undefined): SafeReturnRoute =>
 
 export const getCurrentOwnerFn = createServerFn({ method: "GET" }).handler(
   async () => {
+    if (!(await ensureWebAuthConfigured())) return null;
+
     const provider = getWebAuthProvider();
     const rawToken = getCookie(SESSION_COOKIE);
     if (provider === null || rawToken === undefined) return null;
@@ -65,12 +68,13 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const configured = await ensureWebAuthConfigured();
     const provider = getWebAuthProvider();
     const secret = getWebSessionSecret();
     const rateKey = getRequestHeader("x-forwarded-for") ?? "unknown-client";
     const rateLimit = loginLimiter.consume(rateKey);
 
-    if (provider === null || secret === null || !rateLimit.allowed) {
+    if (!configured || provider === null || secret === null || !rateLimit.allowed) {
       return { ok: false as const, message: "Não foi possível autenticar." };
     }
 
@@ -97,6 +101,8 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
 export const logoutOwnerFn = createServerFn({ method: "POST" })
   .validator(z.object({ csrfToken: z.string().min(1) }))
   .handler(async ({ data }) => {
+    await ensureWebAuthConfigured();
+
     const provider = getWebAuthProvider();
     const secret = getWebSessionSecret();
     const rawToken = getCookie(SESSION_COOKIE);
