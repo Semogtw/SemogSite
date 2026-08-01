@@ -22,7 +22,7 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - Semogtw design tokens, accessible primitives and responsive public/DevOS navigation;
 - functional accessible public mobile menu;
 - public home, About, Projects, Journey, Lab, Notes, Stack and Contact route structures;
-- protected DevOS login, Overview, Today, Projects, project hub, Roadmap, Operations, Insights, Capture, Search, Content, Settings and More;
+- protected DevOS login, Overview, Today, Projects, project hub, Roadmap, Operations, Insights, Capture, Search, Content, Settings, Audit and More;
 - live private rendering from the canonical SQLite seed without claiming migration or GitHub sync;
 - confirmed attention capture with CSRF, explicit reason and transactional audit;
 - audited attention resolution/dismissal with optimistic concurrency protection;
@@ -30,6 +30,8 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - manual evidence attachment with HTTPS-only links, preserved observed status and transactional audit;
 - guarded stage completion that reuses domain invariants, requires valid evidence and sets a manual lock;
 - responsive capture, evidence and stage-completion controls in the private DevOS interface;
+- verified local SQLite backup library and CLIs with no-overwrite, integrity, foreign-key and migration checks;
+- owner-only paginated audit review with exact filters, correlation IDs and malformed-JSON tolerance;
 - `robots.txt` excluding private route prefixes;
 - architecture, data model, security, public-site, migration, deployment, testing and design documentation;
 - executable operational-writes plan covering evidence, backup and audit closeout.
@@ -51,7 +53,9 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - empty example secrets no longer encourage predictable local configuration;
 - captured attention now maps domain `source` to SQLite `data_source` explicitly;
 - critical-test captures now map to canonical `local_test` storage values;
-- external dependencies and critical tests now enter the external-environment queue instead of the owner queue.
+- external dependencies and critical tests now enter the external-environment queue instead of the owner queue;
+- audit filters are applied before ordering/pagination through Drizzle's dynamic query mode;
+- backup tests now reopen the snapshot and verify restored data rather than checking file existence alone.
 
 ### Verified in current environment
 
@@ -68,6 +72,8 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - session handoff normalization, explicit test status and transaction rollback;
 - manual evidence allowlists, safe URL validation and audit atomicity;
 - guarded stage completion invariants, stale-write rejection and rollback;
+- verified SQLite backup creation, no-overwrite policy and restore content;
+- paginated audit filters and malformed historical JSON handling;
 - auth runtime composition and 14-day expiry;
 - safe login destinations and CSRF-aware logout policy;
 - password rotation session revocation;
@@ -82,7 +88,8 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - full TypeScript workspace check;
 - Vitest workspace;
 - TanStack Start production build;
-- authenticated browser checks for operational writes;
+- authenticated browser checks for operational writes and audit review;
+- backup CLI execution against a real file-backed database;
 - browser E2E and responsive visual review;
 - production host, deployment and rollback.
 
