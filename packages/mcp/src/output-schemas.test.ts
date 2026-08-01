@@ -51,7 +51,7 @@ describe("Semogtw MCP output schemas", () => {
         recentSessions: [],
         nextGate: null,
         safetyConstraint: "Não publicar dados privados.",
-        dataSource: "custom_read_adapter",
+        dataSource: "seed_demo",
         updatedAt: timestamp,
       }).success,
     ).toBe(true);
@@ -85,7 +85,7 @@ describe("Semogtw MCP output schemas", () => {
         recentSessions: [],
         nextGate: { id: "not-text" },
         safetyConstraint: null,
-        dataSource: "",
+        dataSource: "custom_read_adapter",
         updatedAt: timestamp,
       },
     ],
