@@ -8,13 +8,14 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm -r typecheck && pnpm -r test",
+    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm -r test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:public-confidentiality": "node scripts/check-public-confidentiality.mjs",
     "dev": "pnpm --filter @semogtw/web dev",
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "pnpm -r test",
-    "test:guardrails": "node scripts/check-upstream-clean.test.mjs",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
