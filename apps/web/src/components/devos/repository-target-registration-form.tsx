@@ -1,10 +1,23 @@
 import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import type { RepositoryTargetProjectOption } from "@semogtw/database";
+import type { RepositorySyncTargetRole } from "@semogtw/domain";
 import { Button, EmptyState } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import { registerRepositoryTargetFn } from "../../server/devos-repository-target";
+
+const roleOptions: ReadonlyArray<{
+  value: RepositorySyncTargetRole;
+  label: string;
+}> = [
+  { value: "product", label: "Produto principal" },
+  { value: "core", label: "Núcleo compartilhado" },
+  { value: "integration", label: "Integração" },
+  { value: "infrastructure", label: "Infraestrutura" },
+  { value: "academic", label: "Acadêmico" },
+  { value: "experiment", label: "Experimento" },
+];
 
 export function RepositoryTargetRegistrationForm({
   projects,
@@ -15,7 +28,7 @@ export function RepositoryTargetRegistrationForm({
   const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
-  const [role, setRole] = useState<"primary" | "secondary">("secondary");
+  const [role, setRole] = useState<RepositorySyncTargetRole>("product");
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -72,7 +85,7 @@ export function RepositoryTargetRegistrationForm({
 
       setFullName("");
       setDefaultBranch("main");
-      setRole("secondary");
+      setRole("product");
       setReason("");
       setConfirmed(false);
       await router.invalidate();
@@ -130,11 +143,14 @@ export function RepositoryTargetRegistrationForm({
           <select
             value={role}
             onChange={(event) =>
-              setRole(event.target.value as "primary" | "secondary")
+              setRole(event.target.value as RepositorySyncTargetRole)
             }
           >
-            <option value="secondary">Secundário</option>
-            <option value="primary">Principal</option>
+            {roleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>
