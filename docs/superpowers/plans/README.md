@@ -20,7 +20,9 @@ Related evidence:
 
 ### 2. Operational writes, evidence, audit, and backup
 
-Create a dedicated plan after foundation contracts are implemented and verified. This phase must establish safe state mutations and auditability before agent write tools are exposed.
+[`2026-08-01-semogtw-operational-writes.md`](./2026-08-01-semogtw-operational-writes.md)
+
+Establishes confirmed attention capture, audited attention lifecycle transitions, development-session handoffs, manual evidence and stage-completion writes, private backup verification, and an owner-only audit review surface. Safe operational writes must be complete before agent write tools are exposed.
 
 ### 3. GitHub read-only synchronization and branch recommendations
 
