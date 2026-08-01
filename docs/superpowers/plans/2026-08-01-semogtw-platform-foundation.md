@@ -4,7 +4,7 @@
 
 **Goal:** Build the portable Semogtw public site and protected Semogtw DevOS foundation, using the inspected `pdi-template` selectively while preserving independent domain rules, explicit public DTOs, revocable local authentication, and host portability.
 
-**Architecture:** The web surface uses TanStack Start, TanStack Router, and TanStack Query. Hono exposes the versioned public/private HTTP API and later becomes the external MCP bridge entry point. Domain, contracts, database, auth, and UI live in separate workspace packages; TanStack, Hono, D1, Wrangler, and browser code cannot enter the domain package.
+**Architecture:** The web surface uses TanStack Start, TanStack Router, and TanStack Query. Hono exposes the versioned public/private HTTP API and remains the potential MCP bridge entry point, but the Sites assessment does not establish that Sites can host a production MCP endpoint; that surface requires a separate compatibility gate. Domain, contracts, database, auth, and UI live in separate workspace packages; TanStack, Hono, D1, Wrangler, and browser code cannot enter the domain package.
 
 **Tech Stack:** Node.js 22+, pnpm workspaces, TypeScript strict mode, React 18.3+, TanStack Start/Router/Query 1.168.32+, Hono, Zod, Drizzle ORM, SQLite through `better-sqlite3`, Radix primitives selected per feature, Vitest, Playwright, CSS variables, Figma, Supericons.
 
@@ -17,7 +17,7 @@
 - No upstream PDI taxonomy, personal names, profile data, images, seeds, gradients, or branding may enter SemogSite.
 - `THIRD_PARTY_NOTICES.md` must identify every materially reused upstream file.
 - No `LICENSE` file was found in the inspected upstream; provenance and the authorization statement must remain explicit.
-- Production hosting is not selected. D1, Wrangler, Cloudflare, Vercel, Netlify, Supabase, and ChatGPT Sites remain optional adapters.
+- Production hosting is not selected. ChatGPT Sites is now assessed as a candidate primary host for the public/editorial surface and a lightweight D1/R2-backed DevOS; remote MCP, arbitrary API routing, webhooks, background jobs, and final deployment mode remain unverified. D1, Wrangler, Cloudflare, Vercel, Netlify, Supabase, and Sites remain adapters.
 - `/devos` and `/api/v1/private/*` must be protected server-side and fail closed without auth configuration.
 - Public responses are generated from dedicated allowlist DTOs, never by subtracting private fields.
 - No private repository name, branch, blocker, evidence URL, session detail, token, secret, or private summary may appear in anonymous HTML, payloads, metadata, logs, sitemap, robots, or public APIs.
