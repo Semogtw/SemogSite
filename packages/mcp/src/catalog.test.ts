@@ -3,11 +3,16 @@ import {
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
   SEMOGTW_MCP_RESOURCES,
+  SEMOGTW_MCP_SERVER_INFO,
   SEMOGTW_MCP_TOOLS,
 } from "./catalog";
 
 describe("Semogtw MCP catalog", () => {
-  it("defines a unique, immutable read-only catalog", () => {
+  it("defines the unreleased server identity and unique read-only catalog", () => {
+    expect(SEMOGTW_MCP_SERVER_INFO).toEqual({
+      name: "semogtw-devos",
+      version: "0.0.0",
+    });
     expect(SEMOGTW_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "devos_get_overview",
       "devos_get_today",
