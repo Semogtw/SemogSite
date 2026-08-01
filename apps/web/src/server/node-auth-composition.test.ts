@@ -6,9 +6,12 @@ import {
 } from "./auth-runtime";
 import {
   ensureWebAuthConfigured,
-  getNodeDatabase,
   resetNodeAuthCompositionForTests,
 } from "./node-auth-composition.server";
+import {
+  getNodeDatabase,
+  resetNodeDatabaseForTests,
+} from "./node-database.server";
 
 const originalEnv = { ...process.env };
 const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
@@ -17,10 +20,11 @@ afterEach(() => {
   process.env = { ...originalEnv };
   resetWebAuthForTests();
   resetNodeAuthCompositionForTests();
+  resetNodeDatabaseForTests();
 });
 
 describe("node auth composition", () => {
-  it("fails closed when required configuration is missing", async () => {
+  it("fails closed when required auth configuration is missing", async () => {
     delete process.env.SEMOGTW_SESSION_SECRET;
     delete process.env.SEMOGTW_OWNER_PASSWORD_HASH;
     process.env.SEMOGTW_DATABASE_URL = ":memory:";
@@ -28,7 +32,7 @@ describe("node auth composition", () => {
     await expect(ensureWebAuthConfigured()).resolves.toBe(false);
     expect(getWebAuthProvider()).toBeNull();
     expect(getWebSessionSecret()).toBeNull();
-    await expect(getNodeDatabase()).resolves.toBeNull();
+    await expect(getNodeDatabase()).resolves.not.toBeNull();
   });
 
   it("fails closed when the configured password hash is malformed", async () => {
@@ -38,7 +42,7 @@ describe("node auth composition", () => {
 
     await expect(ensureWebAuthConfigured()).resolves.toBe(false);
     expect(getWebAuthProvider()).toBeNull();
-    await expect(getNodeDatabase()).resolves.toBeNull();
+    await expect(getNodeDatabase()).resolves.not.toBeNull();
   });
 
   it("configures a revocable fourteen-day local session", async () => {
