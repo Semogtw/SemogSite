@@ -56,6 +56,15 @@ export type {
   ProjectHubSession,
   ProjectHubStage,
 } from "./projects/project-service";
+export { StageCompletionService } from "./roadmap/stage-completion-service";
+export type {
+  CompleteStageInput,
+  StageCompletionAuditEvent,
+  StageCompletionContext,
+  StageCompletionRepository,
+  StageCompletionResult,
+  StageCompletionValidationError,
+} from "./roadmap/stage-completion-service";
 export { RoadmapService } from "./roadmap/roadmap-service";
 export type {
   RoadmapArea,
