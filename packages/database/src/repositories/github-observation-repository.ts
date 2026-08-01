@@ -23,7 +23,7 @@ function parseStringArray(
       malformed.push(field);
       return [];
     }
-    return parsed;
+    return parsed.filter((item): item is string => typeof item === "string");
   } catch {
     malformed.push(field);
     return [];
@@ -133,6 +133,9 @@ export class SqliteGitHubObservationRepository
   ): Promise<LatestRepositoryRecommendation | null> {
     const row = this.database
       .select({
+        id: githubBranchRecommendations.id,
+        repositoryObservationId:
+          githubBranchRecommendations.repositoryObservationId,
         repositoryId: githubRepositoryObservations.repositoryId,
         fullName: githubRepositoryObservations.fullName,
         observedAt: githubRepositoryObservations.observedAt,
@@ -163,6 +166,8 @@ export class SqliteGitHubObservationRepository
     if (row === undefined) return null;
     const malformedJson: Array<"warnings" | "evidence"> = [];
     return {
+      id: row.id,
+      repositoryObservationId: row.repositoryObservationId,
       repositoryId: row.repositoryId,
       fullName: row.fullName,
       observedAt: row.observedAt,
