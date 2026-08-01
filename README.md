@@ -6,7 +6,7 @@ Plataforma pessoal portátil composta por:
 - aplicação privada **Semogtw DevOS** em `/devos`;
 - API Hono versionada;
 - integração GitHub somente leitura;
-- contratos compartilhados para um futuro adaptador MCP.
+- adapter MCP interno, somente leitura, sobre os mesmos serviços do DevOS.
 
 O repositório está em desenvolvimento. O seed demonstrativo não representa migração concluída do Notion, estado confirmado do GitHub ou progresso real de produção.
 
@@ -15,10 +15,12 @@ O repositório está em desenvolvimento. O seed demonstrativo não representa mi
 ```text
 apps/web               TanStack Start: site público e DevOS
 apps/api               Hono: API pública/privada e runtime Node
-packages/domain        regras e serviços sem framework
+apps/mcp               composição SQLite → DevOSReadService → McpServer
+packages/domain        regras, serviços e contrato de leitura sem framework
 packages/contracts     schemas e DTOs públicos/privados
 packages/database      Drizzle, SQLite, migrations, writes e read models
 packages/github        cliente REST GET-only e fonte de observações
+packages/mcp           adapter do protocolo MCP sem transporte/listener
 packages/auth          autenticação local e sessões revogáveis
 packages/ui            tokens, primitivas e navegação
 packages/config        configuração tipada e fail-closed
@@ -29,7 +31,8 @@ packages/config        configuração tipada e fail-closed
 - Node.js 22 ou superior;
 - pnpm 10;
 - compilador nativo para `better-sqlite3` quando não houver binário compatível;
-- acesso HTTPS ao GitHub apenas para executar observações reais.
+- acesso HTTPS ao GitHub apenas para executar observações reais;
+- acesso ao registry para instalar o SDK MCP e executar sua suíte de protocolo.
 
 ## Instalação
 
@@ -59,6 +62,8 @@ pnpm dev:all   # ambos
 ```
 
 Sem autenticação válida, `/devos` e `/api/v1/private/*` falham fechados. Sem token GitHub, a página Operação continua disponível para cadastro local de alvos, mas o botão de leitura fica desabilitado.
+
+Não existe comando de execução MCP remoto nesta fase. `apps/mcp` exporta apenas uma factory para um runtime futuro, sem abrir porta, stdio ou rota HTTP.
 
 ## Banco e migrations
 
@@ -94,6 +99,33 @@ Em **Operação**, o owner pode:
 
 A sincronização nunca altera automaticamente `active_branch`, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local do DevOS e não envia escrita ao GitHub.
 
+## MCP somente leitura
+
+`DevOSReadService` reutiliza exatamente os serviços de Overview, Today, Projetos e Roadmap. Ele valida slugs e filtros antes de chegar aos read models.
+
+O catálogo inicial contém:
+
+```text
+Resources
+semogtw://devos/overview
+semogtw://devos/today
+semogtw://devos/projects
+semogtw://devos/roadmap
+
+Tools
+devos_get_overview
+devos_get_today
+devos_list_projects
+devos_get_project
+devos_query_roadmap
+```
+
+Todos os tools são anotados como somente leitura, não destrutivos, idempotentes e fechados ao mundo externo. Sucessos retornam JSON textual e `structuredContent`; erros retornam apenas códigos estáveis sanitizados.
+
+O adapter não recebe token, cookie, caminho de banco ou request HTTP. `createSqliteSemogtwMcpServer(database)` recebe um banco já aberto/migrado e retorna uma instância do servidor MCP.
+
+Isso **não** é um endpoint disponível. Exposição remota exige uma fase separada para autenticação, autorização, isolamento de sessão, TLS/origin/host, rate limiting, timeouts, cache privado, logs e compatibilidade do host.
+
 ## API local
 
 Rotas iniciais:
@@ -114,9 +146,18 @@ pnpm check
 pnpm build
 ```
 
-`pnpm check` executa guardrails, scanners, fronteiras, typecheck e testes recursivos — incluindo `@semogtw/github`.
+`pnpm check` executa guardrails, scanners, fronteiras, typecheck e testes recursivos — incluindo `@semogtw/github`, `@semogtw/mcp` e `@semogtw/mcp-app` quando as dependências estiverem instaladas.
 
-O primeiro install válido deve gerar e commitar `pnpm-lock.yaml`. O ambiente conectado atual não resolve `registry.npmjs.org`; por isso, typecheck, Vitest e build ainda não são declarados aprovados.
+Gates focados do MCP:
+
+```bash
+pnpm --filter @semogtw/domain test
+pnpm --filter @semogtw/database test
+pnpm --filter @semogtw/mcp test
+pnpm --filter @semogtw/mcp-app test
+```
+
+O primeiro install válido deve gerar e commitar `pnpm-lock.yaml`. O shell conectado atual não consegue instalar o SDK MCP; por isso, seus testes de protocolo, typecheck e build ainda não são declarados aprovados. A fonte oficial v1.29.0 foi revisada apenas para alinhamento estático.
 
 ## Backup
 
@@ -133,10 +174,12 @@ Os comandos recusam overwrite, verificam integridade, chaves estrangeiras e esta
 - tokens de sessão são persistidos apenas como digest;
 - CSRF, confirmação, razão e auditoria protegem mutações sensíveis;
 - respostas e DTOs públicos são allowlist;
-- nomes de repositório, URLs, branches, observações, recomendações e runs são privados;
+- nomes de repositório, URLs, branches, observações, recomendações, runs e payloads MCP são privados;
 - GitHub é tratado como fonte de dados não confiável;
 - o cliente GitHub implementa apenas GET, valida identidade/HTTPS e interrompe leituras posteriores após rate limit;
-- nenhum token, authorization header ou corpo bruto do provider é persistido.
+- nenhum token, authorization header ou corpo bruto do provider é persistido;
+- MCP não possui ferramenta de escrita nem transporte remoto;
+- annotations read-only não substituem autenticação ou autorização.
 
 Consulte `SECURITY.md`, `DATA_MODEL.md`, `TESTING.md` e `RUNBOOK.md` antes de alterar integrações ou superfícies públicas.
 
@@ -150,16 +193,20 @@ Implementado em código e salvo na branch de desenvolvimento:
 - integração GitHub somente leitura;
 - cadastro e ciclo de vida de alvos;
 - recomendações e decisão local de branch;
+- serviço de leitura compartilhado para adapters;
+- catálogo MCP interno somente leitura;
+- composição SQLite para MCP sem listener;
 - migrations e documentação de continuidade.
 
 Ainda não concluído:
 
 - instalação integral e lockfile em ambiente com registry;
-- execução de typecheck, Vitest, build e browser E2E;
-- validação do token/provider em runtime real;
+- execução de typecheck, Vitest, build e browser E2E da branch atual;
+- execução da suíte de protocolo MCP e integração SQLite-to-MCP;
+- autenticação/transporte MCP remoto;
+- validação do token/provider GitHub em runtime real;
 - adaptador de produção para o host escolhido;
 - migração Notion;
-- MCP;
 - conteúdo editorial real aprovado;
 - deploy público.
 
