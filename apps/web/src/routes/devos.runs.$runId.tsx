@@ -3,6 +3,7 @@ import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { RunCommandQueueForm } from "../components/devos/run-command-queue-form";
+import { RunTransitionForm } from "../components/devos/run-transition-form";
 import { getCooperativeRunDetailFn } from "../server/devos-runs";
 import { requireOwner } from "../server/require-owner";
 
@@ -162,6 +163,32 @@ function CooperativeRunDetailPage() {
           </p>
         </Surface>
       </div>
+
+      {acceptsCommands ? (
+        <Surface className="run-detail-section">
+          <div className="surface-heading-row">
+            <div>
+              <p className="eyebrow">Estado cooperativo</p>
+              <h2>Registrar transição</h2>
+              <p className="muted-copy">
+                A transição atualiza o ledger; ela não controla o processo ou a
+                conversa de origem.
+              </p>
+            </div>
+          </div>
+          <RunTransitionForm
+            run={{
+              id: run.id,
+              status: run.status,
+              progress: run.progress,
+              phase: run.phase,
+              branch: run.branch,
+              nextAction: run.nextAction,
+              updatedAt: run.updatedAt,
+            }}
+          />
+        </Surface>
+      ) : null}
 
       <Surface className="run-detail-section">
         <div className="surface-heading-row">
