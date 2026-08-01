@@ -15,6 +15,12 @@ import {
 } from "./sqlite-backup";
 
 const temporaryDirectories: string[] = [];
+const expectedMigrations = [
+  "0001_foundation.sql",
+  "0002_seed_demo.sql",
+  "0003_github_observations.sql",
+  "0004_github_sync_runs.sql",
+] as const;
 
 function temporaryDirectory(): string {
   const directory = mkdtempSync(join(tmpdir(), "semogtw-backup-"));
@@ -46,7 +52,7 @@ describe("SQLite backup", () => {
       integrity: "ok",
       foreignKeyViolations: 0,
       remainingPages: 0,
-      migrations: ["0001_foundation.sql", "0002_seed_demo.sql"],
+      migrations: expectedMigrations,
     });
     expect(result.sizeBytes).toBeGreaterThan(0);
 
@@ -86,14 +92,11 @@ describe("SQLite backup", () => {
     migrate(database);
     database.$client
       .prepare("DELETE FROM _semogtw_migrations WHERE name = ?")
-      .run("0002_seed_demo.sql");
+      .run("0004_github_sync_runs.sql");
     database.$client.close();
 
-    expect(() =>
-      verifySqliteBackup(path, [
-        "0001_foundation.sql",
-        "0002_seed_demo.sql",
-      ]),
-    ).toThrow("BACKUP_MIGRATION_MISMATCH");
+    expect(() => verifySqliteBackup(path, expectedMigrations)).toThrow(
+      "BACKUP_MIGRATION_MISMATCH",
+    );
   });
 });
