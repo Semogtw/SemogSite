@@ -154,6 +154,55 @@ export type {
   StageValidationError,
 } from "./roadmap/stage";
 export { validateStage } from "./roadmap/stage";
+export {
+  applyRunTransition,
+  deriveRunFreshness,
+} from "./runs/run-state";
+export type {
+  CooperativeRunOrigin,
+  CooperativeRunSnapshot,
+  CooperativeRunStatus,
+  RunFreshness,
+  RunStateValidationError,
+  RunTransitionCommand,
+  RunTransitionContext,
+  RunTransitionEventKind,
+  RunTransitionEventProposal,
+  RunTransitionResult,
+  RunTransitionValidationError,
+} from "./runs/run-state";
+export { CooperativeRunRegistrationService } from "./runs/run-registration-service";
+export type {
+  CooperativeRunRegistrationContext,
+  CooperativeRunRegistrationEvent,
+  CooperativeRunRegistrationRepository,
+  CooperativeRunRegistrationResult,
+  CooperativeRunRegistrationStoreResult,
+  CooperativeRunRegistrationValidationError,
+  RegisterCooperativeRunInput,
+} from "./runs/run-registration-service";
+export { CooperativeRunTransitionService } from "./runs/run-transition-service";
+export type {
+  CooperativeRunEvent,
+  CooperativeRunTransitionContext,
+  CooperativeRunTransitionInput,
+  CooperativeRunTransitionRepository,
+  CooperativeRunTransitionServiceResult,
+  CooperativeRunTransitionServiceValidationError,
+  CooperativeRunTransitionStoreResult,
+} from "./runs/run-transition-service";
+export { CooperativeRunCheckpointService } from "./runs/run-checkpoint-service";
+export type {
+  CooperativeRunCheckpoint,
+  CooperativeRunCheckpointContext,
+  CooperativeRunCheckpointEvent,
+  CooperativeRunCheckpointRepository,
+  CooperativeRunCheckpointResult,
+  CooperativeRunCheckpointStoreResult,
+  CooperativeRunCheckpointTestsStatus,
+  CooperativeRunCheckpointValidationError,
+  RecordCooperativeRunCheckpointInput,
+} from "./runs/run-checkpoint-service";
 export { SessionHandoffService } from "./sessions/session-handoff-service";
 export type {
   RecordedDevelopmentSession,
