@@ -21,7 +21,7 @@ const canPublish = (source: PublishableProjectSource): boolean =>
 export function createPublicProjectRoutes(
   queries: PublicProjectQueries = emptyQueries,
 ) {
-  return new Hono<ApiEnvironment>()
+  return new Hono<ApiEnvironment>({ strict: false })
     .get("/", async (context) => {
       const sources = await queries.list();
       const data = sources
