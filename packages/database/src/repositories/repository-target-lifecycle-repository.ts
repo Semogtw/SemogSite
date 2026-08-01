@@ -17,7 +17,7 @@ export class SqliteRepositoryTargetLifecycleRepository
       .prepare(
         `SELECT id, full_name, sync_enabled, updated_at
          FROM repositories
-         WHERE id = ?`,
+         WHERE id = ? AND status = 'active'`,
       )
       .get(repositoryId) as
       | {
@@ -49,6 +49,7 @@ export class SqliteRepositoryTargetLifecycleRepository
           `UPDATE repositories
            SET sync_enabled = ?, updated_at = ?
            WHERE id = ?
+             AND status = 'active'
              AND sync_enabled = ?
              AND updated_at = ?`,
         )
