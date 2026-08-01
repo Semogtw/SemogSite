@@ -33,40 +33,48 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 
 ## Task 1: Provider-neutral read service
 
-- [ ] Specify a read-service contract in the domain package.
-- [ ] Delegate to the existing `OverviewService`, `TodayService`, `ProjectService` and `RoadmapService`.
-- [ ] Normalize and validate project slugs and roadmap filters.
-- [ ] Preserve the existing domain DTOs instead of inventing protocol-specific copies.
-- [ ] Export the service and contracts from `@semogtw/domain`.
+- [x] Specify a read-service contract in the domain package.
+- [x] Delegate to the existing `OverviewService`, `TodayService`, `ProjectService` and `RoadmapService`.
+- [x] Normalize and validate project slugs and roadmap filters.
+- [x] Preserve the existing domain DTOs instead of inventing protocol-specific copies.
+- [x] Export the service and contracts from `@semogtw/domain`.
 
 ## Task 2: MCP SDK adapter
 
-- [ ] Add `@semogtw/mcp` using the stable v1.x TypeScript SDK.
-- [ ] Register the four static resources and five read tools.
-- [ ] Return both human-readable text and `structuredContent` for successful tools.
-- [ ] Return `isError: true` with stable codes for tool failures.
-- [ ] Return sanitized JSON error resources rather than leaking thrown messages.
-- [ ] Keep transport creation outside the package.
+- [x] Add `@semogtw/mcp` using the stable v1.x TypeScript SDK contract.
+- [x] Register the four static resources and five read tools.
+- [x] Return both human-readable text and `structuredContent` for successful tools.
+- [x] Return `isError: true` with stable codes for tool failures.
+- [x] Return sanitized JSON error resources rather than leaking thrown messages.
+- [x] Keep transport creation outside the package.
 
 ## Task 3: Protocol tests
 
-- [ ] Connect the server and official client through `InMemoryTransport`.
-- [ ] Verify tool/resource discovery and read-only annotations.
-- [ ] Verify structured results for overview, project list, project hub and roadmap queries.
-- [ ] Verify not-found and unexpected failures are sanitized.
-- [ ] Verify no mutation tool is discoverable.
+- [x] Specify connection through the official `Client` and `InMemoryTransport`.
+- [x] Specify tool/resource discovery and read-only annotations.
+- [x] Specify structured results for overview, project list, project hub and roadmap queries.
+- [x] Specify not-found and unexpected-failure sanitization.
+- [x] Specify that no mutation tool is discoverable.
+- [ ] Execute the protocol suite in an environment that can install `@modelcontextprotocol/sdk`.
 
 ## Task 4: SQLite composition
 
-- [ ] Compose the read service from canonical SQLite data sources.
-- [ ] Expose a server factory that accepts an already-open database.
-- [ ] Ensure migrations run before composition in runtime adapters.
-- [ ] Add integration tests against the demo database.
-- [ ] Do not open stdio or HTTP listeners from the composition module.
+- [x] Compose the read service from canonical SQLite data sources.
+- [x] Expose a server factory that accepts an already-open database.
+- [x] Keep migration responsibility in the runtime adapter before composition.
+- [x] Specify integration behavior against the migrated demo database.
+- [x] Avoid opening stdio or HTTP listeners from the composition module.
+- [ ] Execute the SQLite-to-MCP protocol integration test.
 
 ## Task 5: Documentation and release gates
 
 - [ ] Update architecture, security, data model, testing, runbook and changelog.
 - [ ] Run package tests, typecheck, workspace check and production build in a dependency-complete environment.
-- [ ] Keep the PR draft until the protocol suite and workspace gates are observed.
+- [x] Keep the PR draft until the protocol suite and workspace gates are observed.
 - [ ] Create a separate authenticated Streamable HTTP plan before remote exposure.
+
+## Observed constraints
+
+- The current shell registry reports the scoped SDK as unavailable and direct public GitHub access fails DNS resolution.
+- Official v1.29.0 source and signatures were reviewed through the connected GitHub and Context7 sources.
+- The committed tests are executable specifications, not passage evidence, until the package can be installed and the output observed.
