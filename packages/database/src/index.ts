@@ -1,5 +1,6 @@
 export { createSqliteDatabase, migrate } from "./adapters/sqlite";
 export type { SqliteDatabase } from "./adapters/sqlite";
+export { SqliteAttentionCaptureRepository } from "./repositories/attention-capture-repository";
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
 export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
