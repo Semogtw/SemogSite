@@ -182,6 +182,8 @@ describe("SqliteCooperativeRunReadModel", () => {
           malformedJson: [],
         }),
       ],
+      checkpoints: [],
+      commands: [],
     });
     await expect(
       model.getRun("missing", "2026-08-01T21:00:00.000Z"),
