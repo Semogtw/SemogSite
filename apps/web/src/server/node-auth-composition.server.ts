@@ -1,4 +1,7 @@
-import { LocalAuthProvider } from "@semogtw/auth";
+import {
+  isEncodedPasswordHash,
+  LocalAuthProvider,
+} from "@semogtw/auth";
 import { parseRuntimeConfig } from "@semogtw/config";
 import {
   createSqliteDatabase,
@@ -26,6 +29,8 @@ async function configureNodeAuth(): Promise<boolean> {
 
   try {
     const config = parseRuntimeConfig(process.env);
+    if (!isEncodedPasswordHash(config.ownerPasswordHash)) return false;
+
     const database = createSqliteDatabase(
       ensureDatabaseDirectory(config.databaseUrl),
     );
@@ -51,6 +56,7 @@ async function configureNodeAuth(): Promise<boolean> {
     databaseInstance = database;
     return true;
   } catch {
+    databaseInstance?.$client.close();
     databaseInstance = null;
     return false;
   }
