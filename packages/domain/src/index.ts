@@ -22,6 +22,17 @@ export type {
   CapturedAttention,
   CaptureValidationError,
 } from "./capture/capture-service";
+export { EvidenceService } from "./evidence/evidence-service";
+export type {
+  AttachManualEvidenceInput,
+  AttachManualEvidenceResult,
+  EvidenceAuditEvent,
+  EvidenceContext,
+  EvidenceValidationError,
+  EvidenceWriteRepository,
+  ManualEvidenceKind,
+  RecordedEvidence,
+} from "./evidence/evidence-service";
 export { OverviewService } from "./overview/overview-service";
 export type {
   DevOSOverview,
