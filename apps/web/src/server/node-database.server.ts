@@ -20,16 +20,17 @@ function ensureDatabaseDirectory(databaseUrl: string): string {
 async function configureNodeDatabase(): Promise<SqliteDatabase | null> {
   if (databaseInstance !== null) return databaseInstance;
 
+  let candidate: SqliteDatabase | null = null;
   try {
     const config = parseDatabaseConfig(process.env);
-    const database = createSqliteDatabase(
+    candidate = createSqliteDatabase(
       ensureDatabaseDirectory(config.databaseUrl),
     );
-    migrate(database);
-    databaseInstance = database;
-    return database;
+    migrate(candidate);
+    databaseInstance = candidate;
+    return candidate;
   } catch {
-    databaseInstance?.$client.close();
+    candidate?.$client.close();
     databaseInstance = null;
     return null;
   }
