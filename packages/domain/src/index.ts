@@ -16,6 +16,10 @@ export type {
   OperationalRepositorySummary,
   ProjectDataSource,
   ProjectHub,
+  ProjectHubAttention,
+  ProjectHubEvidence,
+  ProjectHubSession,
+  ProjectHubStage,
 } from "./projects/project-service";
 export { RoadmapService } from "./roadmap/roadmap-service";
 export type {
