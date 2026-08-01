@@ -74,18 +74,20 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
     this.database.$client
       .prepare(
         `INSERT INTO sync_runs (
-          id, integration, scope, status, started_at, finished_at,
+          id, integration, scope, trigger, started_at, finished_at, status,
+          repositories_checked, changes_applied,
           created_count, updated_count, skipped_count, error_count,
           warnings_json, error_summary, cursor, rate_limit_remaining,
           rate_limit_reset_at, metadata_json
-        ) VALUES (?, ?, ?, ?, ?, NULL, 0, 0, 0, 0, '[]', NULL, NULL, NULL, NULL, '{}')`,
+        ) VALUES (?, ?, ?, 'manual', ?, NULL, ?, 0, 0, 0, 0, 0, 0,
+          '[]', NULL, NULL, NULL, NULL, '{}')`,
       )
       .run(
         run.id,
         run.integration,
         run.scope,
-        run.status,
         run.startedAt,
+        run.status,
       );
   }
 
@@ -149,6 +151,8 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
         `UPDATE sync_runs
          SET status = ?,
              finished_at = ?,
+             repositories_checked = ?,
+             changes_applied = ?,
              created_count = ?,
              updated_count = ?,
              skipped_count = ?,
@@ -163,6 +167,8 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
       .run(
         run.status,
         run.finishedAt,
+        run.processedTargets,
+        run.createdCount + run.updatedCount,
         run.createdCount,
         run.updatedCount,
         run.skippedCount,
