@@ -45,4 +45,29 @@ describe("SqliteProjectRepository", () => {
       dataSource: "seed_demo",
     });
   });
+
+  it("orders active projects by semantic priority before name", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    const repository = new SqliteProjectRepository(database);
+
+    await repository.insert({
+      ...seedProject,
+      id: "project-low",
+      slug: "project-low",
+      name: "A low project",
+      priority: "low",
+    });
+    await repository.insert({
+      ...seedProject,
+      id: "project-critical",
+      slug: "project-critical",
+      name: "Z critical project",
+      priority: "critical",
+    });
+
+    const active = await repository.listActive();
+    expect(active[0]?.slug).toBe("project-critical");
+    expect(active.at(-1)?.slug).toBe("project-low");
+  });
 });
