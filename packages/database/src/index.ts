@@ -21,6 +21,7 @@ export type {
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
 export { SqliteBranchRecommendationAcceptanceRepository } from "./repositories/branch-recommendation-acceptance-repository";
 export { SqliteCooperativeRunCheckpointRepository } from "./repositories/cooperative-run-checkpoint-repository";
+export { SqliteCooperativeRunCommandInboxRepository } from "./repositories/cooperative-run-command-inbox-repository";
 export { SqliteCooperativeRunCommandQueueRepository } from "./repositories/cooperative-run-command-queue-repository";
 export { SqliteCooperativeRunCommandTransitionRepository } from "./repositories/cooperative-run-command-transition-repository";
 export { SqliteCooperativeRunReadModel } from "./repositories/cooperative-run-read-model";
