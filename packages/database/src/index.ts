@@ -1,5 +1,13 @@
 export { createSqliteDatabase, migrate } from "./adapters/sqlite";
 export type { SqliteDatabase } from "./adapters/sqlite";
+export {
+  createVerifiedSqliteBackup,
+  verifySqliteBackup,
+} from "./backup/sqlite-backup";
+export type {
+  CreatedSqliteBackup,
+  SqliteBackupVerification,
+} from "./backup/sqlite-backup";
 export { SqliteAttentionCaptureRepository } from "./repositories/attention-capture-repository";
 export { SqliteAttentionLifecycleRepository } from "./repositories/attention-lifecycle-repository";
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
