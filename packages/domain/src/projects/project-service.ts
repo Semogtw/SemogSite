@@ -25,7 +25,13 @@ export type OperationalRepositorySummary = {
   id: string;
   projectId: string | null;
   fullName: string;
-  role: "product" | "core" | "integration" | "infrastructure" | "academic" | "experiment";
+  role:
+    | "product"
+    | "core"
+    | "integration"
+    | "infrastructure"
+    | "academic"
+    | "experiment";
   visibility: "public" | "private";
   status: "active" | "paused" | "historical" | "experiment";
   defaultBranch: string;
@@ -34,13 +40,69 @@ export type OperationalRepositorySummary = {
   lastSyncedAt: string | null;
 };
 
+export type ProjectHubStage = {
+  id: string;
+  orderIndex: number;
+  title: string;
+  area:
+    | "planning"
+    | "implementation"
+    | "integration"
+    | "validation"
+    | "release"
+    | "operation";
+  state: "backlog" | "next" | "in_progress" | "blocked" | "completed";
+  progress: number;
+  currentPosition: string;
+  nextStep: string | null;
+  blocker: string | null;
+  evidenceSummary: string | null;
+};
+
+export type ProjectHubAttention = {
+  id: string;
+  title: string;
+  status: "open" | "monitoring" | "resolved" | "dismissed";
+  impact: "high" | "medium" | "low";
+  owner: "owner" | "gpt" | "external_environment" | "shared";
+  nextAction: string;
+};
+
+export type ProjectHubEvidence = {
+  id: string;
+  kind:
+    | "commit"
+    | "pull_request"
+    | "issue"
+    | "workflow_run"
+    | "test"
+    | "document"
+    | "manual_note";
+  title: string;
+  url: string | null;
+  status: "observed" | "passed" | "failed" | "pending" | "superseded";
+  summary: string;
+  occurredAt: string;
+};
+
+export type ProjectHubSession = {
+  id: string;
+  title: string;
+  sessionDate: string;
+  completedSummary: string;
+  testsStatus: "not_run" | "partial" | "passed" | "failed" | "blocked";
+  testsSummary: string;
+  nextStep: string;
+  result: "significant" | "partial" | "maintenance" | "no_change" | "failed";
+};
+
 export type ProjectHub = {
   project: OperationalProjectSummary;
   repositories: readonly OperationalRepositorySummary[];
-  currentStages: readonly unknown[];
-  attention: readonly unknown[];
-  evidence: readonly unknown[];
-  recentSessions: readonly unknown[];
+  currentStages: readonly ProjectHubStage[];
+  attention: readonly ProjectHubAttention[];
+  evidence: readonly ProjectHubEvidence[];
+  recentSessions: readonly ProjectHubSession[];
   nextGate: string | null;
   safetyConstraint: string | null;
   dataSource: string;
