@@ -17,7 +17,7 @@ export class SqliteRepositoryTargetRegistrationRepository
   ): Promise<RepositorySyncTargetRegistrationStoreResult> {
     const transaction = this.database.$client.transaction(() => {
       const project = this.database.$client
-        .prepare("SELECT id FROM projects WHERE id = ?")
+        .prepare("SELECT id FROM projects WHERE id = ? AND status <> 'archived'")
         .get(target.projectId) as { id: string } | undefined;
       if (project === undefined) return "project_not_found";
 
