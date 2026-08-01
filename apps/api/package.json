@@ -9,10 +9,12 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/node.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.8",
     "@semogtw/auth": "workspace:*",
     "@semogtw/config": "workspace:*",
     "@semogtw/contracts": "workspace:*",
@@ -22,6 +24,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
   }
 }
