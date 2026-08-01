@@ -1,3 +1,14 @@
+export { AttentionLifecycleService } from "./attention/attention-lifecycle-service";
+export type {
+  AttentionLifecycleAuditEvent,
+  AttentionLifecycleContext,
+  AttentionLifecycleInput,
+  AttentionLifecycleRepository,
+  AttentionLifecycleResult,
+  AttentionLifecycleSnapshot,
+  AttentionLifecycleStatus,
+  AttentionLifecycleValidationError,
+} from "./attention/attention-lifecycle-service";
 export { AttentionCaptureService } from "./capture/capture-service";
 export type {
   AttentionCaptureRepository,
