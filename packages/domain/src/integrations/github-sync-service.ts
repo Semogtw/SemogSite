@@ -114,6 +114,15 @@ function lowerRateLimit(left: number | null, right: number | null): number | nul
   return Math.min(left, right);
 }
 
+function appendDistinct(target: string[], values: readonly string[]): void {
+  const existing = new Set(target);
+  for (const value of values) {
+    if (existing.has(value)) continue;
+    target.push(value);
+    existing.add(value);
+  }
+}
+
 export class GitHubSyncService {
   constructor(
     private readonly store: GitHubSyncStore,
@@ -175,17 +184,6 @@ export class GitHubSyncService {
         provider.rateLimitResetAt,
       );
 
-      if (provider.partial === true) {
-        errorCount += 1;
-        warnings.push(`${target.id}:PARTIAL_OBSERVATION`);
-      }
-      for (const warning of provider.warnings) {
-        warnings.push(`${target.id}:${warning}`);
-      }
-      if (provider.branchesTruncated) {
-        warnings.push(`${target.id}:BRANCH_LIST_BOUNDED`);
-      }
-
       const recommendation = recommendActiveBranch({
         defaultBranch: provider.defaultBranch,
         currentActiveBranch: target.currentActiveBranch,
@@ -195,6 +193,31 @@ export class GitHubSyncService {
           ? {}
           : { stabilityWindowHours: context.stabilityWindowHours }),
       });
+
+      const providerPartial = provider.partial === true;
+      const recommendationPartial = recommendation.warnings.length > 0;
+      const bounded = provider.branchesTruncated;
+      if (providerPartial || recommendationPartial || bounded) {
+        errorCount += 1;
+      }
+      if (providerPartial) {
+        warnings.push(`${target.id}:PARTIAL_OBSERVATION`);
+      }
+      if (recommendationPartial) {
+        warnings.push(`${target.id}:PARTIAL_RECOMMENDATION_EVIDENCE`);
+      }
+      appendDistinct(
+        warnings,
+        provider.warnings.map((warning) => `${target.id}:${warning}`),
+      );
+      appendDistinct(
+        warnings,
+        recommendation.warnings.map((warning) => `${target.id}:${warning}`),
+      );
+      if (bounded) {
+        appendDistinct(warnings, [`${target.id}:BRANCH_LIST_BOUNDED`]);
+      }
+
       const aggregate = this.buildAggregate(
         context.runId,
         target,
@@ -243,42 +266,45 @@ export class GitHubSyncService {
     const repositoryObservationId = this.identity.nextId(
       "github-repository-observation",
     );
+    const normalizedBranches = recommendation.evidence;
     const repositorySourceHash = this.identity.hash(
       JSON.stringify({
         repositoryId: target.id,
         githubNodeId: provider.githubNodeId,
         defaultBranch: provider.defaultBranch,
         providerUpdatedAt: provider.providerUpdatedAt,
-        branches: provider.branches.map((branch) => ({
+        branches: normalizedBranches.map((branch) => ({
           name: branch.name,
           headSha: branch.headSha,
           committedAt: branch.committedAt,
         })),
       }),
     );
-    const branches = provider.branches.map((branch) => ({
+    const branches = normalizedBranches.map((branch) => ({
       id: this.identity.nextId("github-branch-observation"),
       repositoryObservationId,
       repositoryId: target.id,
-      name: branch.name.trim(),
-      headSha: branch.headSha.trim().toLowerCase(),
-      committedAt: new Date(branch.committedAt).toISOString(),
+      name: branch.name,
+      headSha: branch.headSha,
+      committedAt: branch.committedAt,
       protected: branch.protected,
-      isDefault: branch.name.trim() === provider.defaultBranch.trim(),
+      isDefault: branch.isDefault,
       observedAt: provider.observedAt,
       sourceHash: this.identity.hash(
         JSON.stringify({
           repositoryId: target.id,
-          name: branch.name.trim(),
-          headSha: branch.headSha.trim().toLowerCase(),
-          committedAt: new Date(branch.committedAt).toISOString(),
+          name: branch.name,
+          headSha: branch.headSha,
+          committedAt: branch.committedAt,
         }),
       ),
     }));
     const combinedWarnings = [
-      ...provider.warnings,
-      ...(provider.branchesTruncated ? ["BRANCH_LIST_BOUNDED"] : []),
-      ...recommendation.warnings,
+      ...new Set([
+        ...provider.warnings,
+        ...(provider.branchesTruncated ? ["BRANCH_LIST_BOUNDED"] : []),
+        ...recommendation.warnings,
+      ]),
     ];
     const recommendedBranch =
       recommendation.status === "recommended" ? recommendation.branch : null;
