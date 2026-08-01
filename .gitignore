@@ -11,6 +11,9 @@ dist/
 coverage/
 playwright-report/
 test-results/
+backups/
+*.sqlite
+*.sqlite-*
 data/*.sqlite
 data/*.sqlite-*
 .worktrees/
