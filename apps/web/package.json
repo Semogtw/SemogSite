@@ -14,6 +14,7 @@
     "@semogtw/auth": "workspace:*",
     "@semogtw/config": "workspace:*",
     "@semogtw/database": "workspace:*",
+    "@semogtw/domain": "workspace:*",
     "@semogtw/ui": "workspace:*",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.168.32",
