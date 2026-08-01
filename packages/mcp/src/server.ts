@@ -9,6 +9,12 @@ import type {
   TodayQueue,
 } from "@semogtw/domain";
 import { z } from "zod";
+import {
+  SEMOGTW_MCP_MAX_JSON_BYTES,
+  SEMOGTW_MCP_READ_ANNOTATIONS,
+  SEMOGTW_MCP_RESOURCES,
+  SEMOGTW_MCP_TOOLS,
+} from "./catalog";
 
 export type SemogtwMcpReadService = {
   getOverview(): Promise<DevOSOverview>;
@@ -20,19 +26,10 @@ export type SemogtwMcpReadService = {
   ): Promise<DevOSReadResult<RoadmapResult>>;
 };
 
-const resourceUris = {
-  overview: "semogtw://devos/overview",
-  today: "semogtw://devos/today",
-  projects: "semogtw://devos/projects",
-  roadmap: "semogtw://devos/roadmap",
-} as const;
-
-const readOnlyAnnotations = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
+const [overviewTool, todayTool, projectsTool, projectTool, roadmapTool] =
+  SEMOGTW_MCP_TOOLS;
+const [overviewResource, todayResource, projectsResource, roadmapResource] =
+  SEMOGTW_MCP_RESOURCES;
 
 const stageStateSchema = z.enum([
   "backlog",
@@ -49,8 +46,6 @@ const roadmapAreaSchema = z.enum([
   "release",
   "operation",
 ]);
-
-const maxMcpJsonBytes = 256 * 1024;
 
 type StableErrorCode =
   | "DEVOS_READ_FAILED"
@@ -74,7 +69,9 @@ function errorPayload(code: StableErrorCode): JsonRecord {
 function serializePayload(payload: JsonRecord): SerializationResult {
   try {
     const text = JSON.stringify(payload);
-    if (new TextEncoder().encode(text).byteLength > maxMcpJsonBytes) {
+    if (
+      new TextEncoder().encode(text).byteLength > SEMOGTW_MCP_MAX_JSON_BYTES
+    ) {
       return { ok: false, code: "RESULT_TOO_LARGE" };
     }
     return { ok: true, text };
@@ -155,57 +152,57 @@ export function createSemogtwMcpServer(
   });
 
   server.registerTool(
-    "devos_get_overview",
+    overviewTool.name,
     {
-      title: "Read DevOS overview",
-      description:
-        "Read the private Semogtw DevOS overview without changing operational state.",
+      title: overviewTool.title,
+      description: overviewTool.description,
       outputSchema: { overview: z.unknown() },
-      annotations: readOnlyAnnotations,
-    },
-    async () =>
-      guardedTool(async () => toolSuccess("overview", await service.getOverview())),
-  );
-
-  server.registerTool(
-    "devos_get_today",
-    {
-      title: "Read today's DevOS queue",
-      description:
-        "Read current work, owner attention, external dependencies and recent activity.",
-      outputSchema: { today: z.unknown() },
-      annotations: readOnlyAnnotations,
-    },
-    async () =>
-      guardedTool(async () => toolSuccess("today", await service.getToday())),
-  );
-
-  server.registerTool(
-    "devos_list_projects",
-    {
-      title: "List operational projects",
-      description:
-        "Read the private operational project and repository catalog.",
-      outputSchema: { projects: z.unknown() },
-      annotations: readOnlyAnnotations,
+      annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async () =>
       guardedTool(async () =>
-        toolSuccess("projects", await service.listProjects()),
+        toolSuccess(overviewTool.structuredKey, await service.getOverview()),
       ),
   );
 
   server.registerTool(
-    "devos_get_project",
+    todayTool.name,
     {
-      title: "Read a project hub",
-      description:
-        "Read one private project hub by its canonical DevOS slug.",
+      title: todayTool.title,
+      description: todayTool.description,
+      outputSchema: { today: z.unknown() },
+      annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
+    },
+    async () =>
+      guardedTool(async () =>
+        toolSuccess(todayTool.structuredKey, await service.getToday()),
+      ),
+  );
+
+  server.registerTool(
+    projectsTool.name,
+    {
+      title: projectsTool.title,
+      description: projectsTool.description,
+      outputSchema: { projects: z.unknown() },
+      annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
+    },
+    async () =>
+      guardedTool(async () =>
+        toolSuccess(projectsTool.structuredKey, await service.listProjects()),
+      ),
+  );
+
+  server.registerTool(
+    projectTool.name,
+    {
+      title: projectTool.title,
+      description: projectTool.description,
       inputSchema: {
         slug: z.string().trim().min(1).max(120),
       },
       outputSchema: { project: z.unknown() },
-      annotations: readOnlyAnnotations,
+      annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async ({ slug }) => {
       try {
@@ -217,7 +214,7 @@ export function createSemogtwMcpServer(
               : "PROJECT_NOT_FOUND",
           );
         }
-        return toolSuccess("project", result.data);
+        return toolSuccess(projectTool.structuredKey, result.data);
       } catch {
         return toolFailure("DEVOS_READ_FAILED");
       }
@@ -225,11 +222,10 @@ export function createSemogtwMcpServer(
   );
 
   server.registerTool(
-    "devos_query_roadmap",
+    roadmapTool.name,
     {
-      title: "Query the operational roadmap",
-      description:
-        "Read roadmap items using bounded project, state and area filters.",
+      title: roadmapTool.title,
+      description: roadmapTool.description,
       inputSchema: {
         projectIds: z
           .array(z.string().trim().min(1).max(200))
@@ -240,7 +236,7 @@ export function createSemogtwMcpServer(
         includeCompleted: z.boolean().optional(),
       },
       outputSchema: { roadmap: z.unknown() },
-      annotations: readOnlyAnnotations,
+      annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async ({ projectIds, states, areas, includeCompleted }) => {
       try {
@@ -251,7 +247,7 @@ export function createSemogtwMcpServer(
           includeCompleted: includeCompleted ?? false,
         });
         if (!result.ok) return toolFailure("ROADMAP_INVALID_INPUT");
-        return toolSuccess("roadmap", result.data);
+        return toolSuccess(roadmapTool.structuredKey, result.data);
       } catch {
         return toolFailure("DEVOS_READ_FAILED");
       }
@@ -259,12 +255,12 @@ export function createSemogtwMcpServer(
   );
 
   server.registerResource(
-    "devos-overview",
-    resourceUris.overview,
+    overviewResource.name,
+    overviewResource.uri,
     {
-      title: "Semogtw DevOS overview",
-      description: "Current private operational overview.",
-      mimeType: "application/json",
+      title: overviewResource.title,
+      description: overviewResource.description,
+      mimeType: overviewResource.mimeType,
     },
     async (uri) =>
       resourceContents(uri.toString(), async () => ({
@@ -274,12 +270,12 @@ export function createSemogtwMcpServer(
   );
 
   server.registerResource(
-    "devos-today",
-    resourceUris.today,
+    todayResource.name,
+    todayResource.uri,
     {
-      title: "Semogtw DevOS today queue",
-      description: "Current private execution and attention queues.",
-      mimeType: "application/json",
+      title: todayResource.title,
+      description: todayResource.description,
+      mimeType: todayResource.mimeType,
     },
     async (uri) =>
       resourceContents(uri.toString(), async () => ({
@@ -289,12 +285,12 @@ export function createSemogtwMcpServer(
   );
 
   server.registerResource(
-    "devos-projects",
-    resourceUris.projects,
+    projectsResource.name,
+    projectsResource.uri,
     {
-      title: "Semogtw DevOS project catalog",
-      description: "Private operational project and repository catalog.",
-      mimeType: "application/json",
+      title: projectsResource.title,
+      description: projectsResource.description,
+      mimeType: projectsResource.mimeType,
     },
     async (uri) =>
       resourceContents(uri.toString(), async () => ({
@@ -304,12 +300,12 @@ export function createSemogtwMcpServer(
   );
 
   server.registerResource(
-    "devos-roadmap",
-    resourceUris.roadmap,
+    roadmapResource.name,
+    roadmapResource.uri,
     {
-      title: "Semogtw DevOS roadmap",
-      description: "Private active roadmap without completed items by default.",
-      mimeType: "application/json",
+      title: roadmapResource.title,
+      description: roadmapResource.description,
+      mimeType: roadmapResource.mimeType,
     },
     async (uri) =>
       resourceContents(uri.toString(), async () => {
