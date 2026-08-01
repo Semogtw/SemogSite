@@ -3,6 +3,7 @@ import type { Priority } from "../shared/types";
 export type TodayWorkItem = {
   stageId: string;
   projectId: string;
+  projectSlug: string;
   projectName: string;
   projectPriority: Priority;
   title: string;
