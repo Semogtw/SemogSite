@@ -21,7 +21,9 @@ const emptyOverview: PrivateOverviewQueries = {
 export function createPrivateOverviewRoutes(
   queries: PrivateOverviewQueries = emptyOverview,
 ) {
-  return new Hono<ApiEnvironment>().get("/", async (context) =>
-    context.json({ ok: true, data: await queries.getOverview() }),
+  return new Hono<ApiEnvironment>({ strict: false }).get(
+    "/",
+    async (context) =>
+      context.json({ ok: true, data: await queries.getOverview() }),
   );
 }
