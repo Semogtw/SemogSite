@@ -53,7 +53,7 @@ Publications follow `private_draft → review → scheduled/published`. Publishi
 
 ## Demo seed
 
-`packages/database/src/migrations/0001_seed_demo.sql` contains a single private record used to exercise migrations. It is marked `seed_demo`, has unknown health/confidence and no private repository metadata. It must never be described as live state.
+`packages/database/migrations/0002_seed_demo.sql` contains a single private record used to exercise migrations. It is marked `seed_demo`, has unknown health/confidence and no private repository metadata. It must never be described as live state.
 
 ## Public projection
 
