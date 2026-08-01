@@ -20,6 +20,7 @@ import {
   getWebSessionSecret,
 } from "./auth-runtime";
 import { resolveCurrentOwner } from "./current-owner.server";
+import { decideLogout } from "./logout-policy";
 import { ensureWebAuthConfigured } from "./node-auth-composition.server";
 
 export const SESSION_COOKIE = SESSION_COOKIE_NAME;
@@ -73,7 +74,7 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
       httpOnly: false,
       sameSite: "lax",
       secure: runtimeEnv === "production",
-      path: "/devos",
+      path: "/",
       maxAge: 60 * 60 * 24 * 14,
     });
 
@@ -92,29 +93,44 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
     const secret = getWebSessionSecret();
     const rawToken = getCookie(SESSION_COOKIE_NAME);
     const csrfCookie = getCookie(CSRF_COOKIE_NAME);
-    let revoked = false;
+    const owner =
+      provider !== null && rawToken !== undefined
+        ? await provider.resolveSession(rawToken)
+        : null;
+    const csrfValid =
+      owner !== null && secret !== null && csrfCookie !== undefined
+        ? await verifyCsrfToken(
+            secret,
+            owner.sessionId,
+            csrfCookie,
+            data.csrfToken,
+          )
+        : false;
+    const decision = decideLogout({
+      hasRawToken: rawToken !== undefined,
+      hasCsrfCookie: csrfCookie !== undefined,
+      ownerResolved: owner !== null,
+      csrfValid,
+    });
 
-    if (provider !== null && secret !== null && rawToken && csrfCookie) {
-      const owner = await provider.resolveSession(rawToken);
-      if (
-        owner !== null &&
-        (await verifyCsrfToken(
-          secret,
-          owner.sessionId,
-          csrfCookie,
-          data.csrfToken,
-        ))
-      ) {
-        await provider.revokeSession(owner.sessionId);
-        revoked = true;
-      }
+    if (!decision.allowed) {
+      return {
+        ok: false as const,
+        message: "Não foi possível validar esta sessão.",
+      };
     }
 
-    deleteCookie(SESSION_COOKIE_NAME, { path: "/" });
-    deleteCookie(CSRF_COOKIE_NAME, { path: "/devos" });
+    if (decision.revoke && provider !== null && owner !== null) {
+      await provider.revokeSession(owner.sessionId);
+    }
+    if (decision.clearCookies) {
+      deleteCookie(SESSION_COOKIE_NAME, { path: "/" });
+      deleteCookie(CSRF_COOKIE_NAME, { path: "/" });
+    }
+
     return {
       ok: true as const,
-      revoked,
+      revoked: decision.revoke,
       redirectTo: "/devos/login" as const,
     };
   });
