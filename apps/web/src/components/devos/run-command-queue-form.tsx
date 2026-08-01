@@ -168,6 +168,12 @@ export function RunCommandQueueForm({ runId }: { runId: string }) {
       : kind === "provide_context"
         ? "Contexto autorizado"
         : "Nota opcional";
+  const detailMaxLength =
+    kind === "provide_context"
+      ? 4_000
+      : kind === "pause" || kind === "cancel"
+        ? 2_000
+        : 1_000;
 
   return (
     <form className="run-command-form" onSubmit={queue}>
@@ -263,7 +269,7 @@ export function RunCommandQueueForm({ runId }: { runId: string }) {
           <textarea
             rows={4}
             required={detailRequired}
-            maxLength={kind === "provide_context" ? 4_000 : 2_000}
+            maxLength={detailMaxLength}
             value={detail}
             disabled={pending}
             placeholder={
