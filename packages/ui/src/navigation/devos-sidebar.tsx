@@ -3,6 +3,7 @@ import {
   FolderKanban,
   Gauge,
   ListChecks,
+  ScrollText,
   Settings,
   Workflow,
 } from "lucide-react";
@@ -13,6 +14,7 @@ const items = [
   { href: "/devos/projects", label: "Projetos", icon: FolderKanban },
   { href: "/devos/roadmap", label: "Roadmap", icon: ListChecks },
   { href: "/devos/operations", label: "Operação", icon: Workflow },
+  { href: "/devos/audit", label: "Auditoria", icon: ScrollText },
   { href: "/devos/settings", label: "Configurações", icon: Settings },
 ] as const;
 
