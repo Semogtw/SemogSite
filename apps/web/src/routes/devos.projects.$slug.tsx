@@ -1,6 +1,7 @@
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { EvidenceCaptureForm } from "../components/devos/evidence-capture-form";
 import { getProjectHubFn } from "../server/devos-projects";
 import { requireOwner } from "../server/require-owner";
 
@@ -122,14 +123,28 @@ function ProjectHubPage() {
           )}
         </Surface>
         <Surface>
-          <h2>Evidências recentes</h2>
+          <div className="surface-heading-row">
+            <div>
+              <h2>Evidências recentes</h2>
+              <p className="muted-copy">
+                Registros manuais preservam o estado observado e geram auditoria.
+              </p>
+            </div>
+          </div>
+          <EvidenceCaptureForm
+            projectId={hub.project.id}
+            stages={hub.currentStages.map((stage) => ({
+              id: stage.id,
+              title: stage.title,
+            }))}
+          />
           {hub.evidence.length === 0 ? (
             <EmptyState
               title="Nenhuma evidência capturada"
               description="Conclusões não serão inferidas sem commits, testes, documentos ou notas observadas."
             />
           ) : (
-            <div className="devos-record-list">
+            <div className="devos-record-list evidence-record-list">
               {hub.evidence.map((item) => (
                 <article key={item.id} className="devos-record">
                   <div>
