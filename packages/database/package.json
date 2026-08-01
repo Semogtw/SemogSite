@@ -1,0 +1,23 @@
+{
+  "name": "@semogtw/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@semogtw/auth": "workspace:*",
+    "@semogtw/domain": "workspace:*",
+    "better-sqlite3": "^11.8.0",
+    "drizzle-orm": "^0.39.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12"
+  }
+}
