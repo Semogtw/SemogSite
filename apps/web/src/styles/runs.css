@@ -83,7 +83,8 @@
   gap: 0.75rem;
 }
 
-.run-command-form {
+.run-command-form,
+.run-registration-form {
   display: grid;
   gap: 1rem;
   margin: 1rem 0 1.25rem;
@@ -94,7 +95,8 @@
 }
 
 .run-command-form label,
-.run-command-form fieldset {
+.run-command-form fieldset,
+.run-registration-form label {
   display: grid;
   gap: 0.45rem;
   min-width: 0;
@@ -102,12 +104,16 @@
 
 .run-command-form input:not([type="checkbox"]),
 .run-command-form select,
-.run-command-form textarea {
+.run-command-form textarea,
+.run-registration-form input:not([type="checkbox"]),
+.run-registration-form select,
+.run-registration-form textarea {
   width: 100%;
   min-height: var(--semog-touch);
 }
 
-.run-command-form__grid {
+.run-command-form__grid,
+.run-registration-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
@@ -205,7 +211,8 @@
   .run-detail-summary-grid,
   .run-event-snapshots,
   .run-command-form__grid,
-  .run-command-form__checks {
+  .run-command-form__checks,
+  .run-registration-form__grid {
     grid-template-columns: 1fr;
   }
 }
@@ -219,7 +226,8 @@
   .run-detail-section,
   .run-timeline__item,
   .run-command,
-  .run-command-form {
+  .run-command-form,
+  .run-registration-form {
     padding: 0.875rem;
   }
 }
