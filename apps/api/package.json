@@ -12,6 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@semogtw/auth": "workspace:*",
+    "@semogtw/contracts": "workspace:*",
     "hono": "^4.7.0",
     "zod": "^3.24.0"
   }
