@@ -29,6 +29,14 @@ function parseFullName(fullName: string): { owner: string; name: string } {
   };
 }
 
+function errorSummary(run: GitHubSyncRunFinish): string | null {
+  if (run.errorCount === 0) return null;
+  if (run.warnings.includes("NO_SYNC_TARGETS")) {
+    return "Nenhum alvo de sincronização estava habilitado.";
+  }
+  return `${run.errorCount} alvo(s) com falha ou observação parcial.`;
+}
+
 export class SqliteGitHubSyncStore implements GitHubSyncStore {
   constructor(private readonly database: SqliteDatabase) {}
 
@@ -174,9 +182,7 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
         run.skippedCount,
         run.errorCount,
         JSON.stringify(run.warnings),
-        run.errorCount > 0
-          ? `${run.errorCount} alvo(s) com falha ou observação parcial.`
-          : null,
+        errorSummary(run),
         run.rateLimitRemaining,
         run.rateLimitResetAt,
         JSON.stringify({ processedTargets: run.processedTargets }),
