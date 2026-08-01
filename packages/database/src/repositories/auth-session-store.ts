@@ -13,26 +13,51 @@ export class SqliteAuthSessionStore implements AuthSessionStore {
     now: Date;
   }): void {
     const timestamp = input.now.toISOString();
-    this.database
-      .insert(ownerAccounts)
-      .values({
-        id: input.id,
-        displayName: input.displayName,
-        passwordHash: input.passwordHash,
-        active: true,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
-      .onConflictDoUpdate({
-        target: ownerAccounts.id,
-        set: {
+
+    this.database.transaction((transaction) => {
+      const existing = transaction
+        .select({ passwordHash: ownerAccounts.passwordHash })
+        .from(ownerAccounts)
+        .where(eq(ownerAccounts.id, input.id))
+        .get();
+
+      transaction
+        .insert(ownerAccounts)
+        .values({
+          id: input.id,
           displayName: input.displayName,
           passwordHash: input.passwordHash,
           active: true,
+          createdAt: timestamp,
           updatedAt: timestamp,
-        },
-      })
-      .run();
+        })
+        .onConflictDoUpdate({
+          target: ownerAccounts.id,
+          set: {
+            displayName: input.displayName,
+            passwordHash: input.passwordHash,
+            active: true,
+            updatedAt: timestamp,
+          },
+        })
+        .run();
+
+      if (
+        existing !== undefined &&
+        existing.passwordHash !== input.passwordHash
+      ) {
+        transaction
+          .update(authSessions)
+          .set({ revokedAt: timestamp })
+          .where(
+            and(
+              eq(authSessions.ownerId, input.id),
+              isNull(authSessions.revokedAt),
+            ),
+          )
+          .run();
+      }
+    });
   }
 
   async insert(record: AuthSessionRecord): Promise<void> {
