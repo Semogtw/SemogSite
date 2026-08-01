@@ -7,7 +7,7 @@
 3. run `pnpm install --frozen-lockfile=false`;
 4. run `pnpm check:upstream-clean` and `pnpm check:boundaries` separately;
 5. run package tests/typechecks to isolate the first failing workspace;
-6. consult current official documentation before changing TanStack Start, Hono, Drizzle or GitHub REST APIs;
+6. consult current official documentation before changing TanStack Start, Hono, Drizzle, GitHub REST or MCP SDK APIs;
 7. record the exact failure and fix in `CHANGELOG.md`.
 
 Do not use GitHub Actions as the default substitute for a local dependency environment.
@@ -25,6 +25,91 @@ Check, without printing values:
 - session has not expired or been revoked.
 
 Missing configuration should keep failing closed.
+
+## Verify the in-process MCP read adapter
+
+The current MCP implementation is a server factory, not a deployed endpoint.
+
+After installing dependencies, run:
+
+```bash
+pnpm --filter @semogtw/domain test
+pnpm --filter @semogtw/database test
+pnpm --filter @semogtw/mcp test
+pnpm --filter @semogtw/mcp-app test
+pnpm --filter @semogtw/mcp typecheck
+pnpm --filter @semogtw/mcp-app typecheck
+```
+
+The expected catalog is:
+
+```text
+Resources
+semogtw://devos/overview
+semogtw://devos/today
+semogtw://devos/projects
+semogtw://devos/roadmap
+
+Tools
+devos_get_overview
+devos_get_today
+devos_list_projects
+devos_get_project
+devos_query_roadmap
+```
+
+Every tool must remain read-only, non-destructive, idempotent and closed-world. No create/update/delete/accept/complete tool should be discoverable.
+
+The integration test creates an in-memory SQLite database, applies migrations, constructs `createSqliteSemogtwMcpServer(database)` and connects the official MCP client with `InMemoryTransport`. It does not open a port or stdio stream.
+
+## MCP read adapter fails to install or typecheck
+
+1. confirm the resolved `@modelcontextprotocol/sdk` version is on the reviewed stable v1.x line;
+2. confirm Zod satisfies the SDK peer range;
+3. keep the deep imports with `.js` suffixes:
+   - `@modelcontextprotocol/sdk/server/mcp.js`;
+   - `@modelcontextprotocol/sdk/client/index.js`;
+   - `@modelcontextprotocol/sdk/inMemory.js`;
+4. verify `packages/mcp` declares `@semogtw/domain` and the SDK;
+5. verify `apps/mcp` declares `@semogtw/database` and `@semogtw/mcp`;
+6. run package typechecks before the whole workspace;
+7. consult the exact installed SDK tag before changing callback or schema shapes;
+8. record the installed version and observed error in `CHANGELOG.md`.
+
+Do not switch to a v2 alpha merely to silence a v1 type error. First determine whether the code or dependency resolution is wrong.
+
+## MCP tool/resource returns `DEVOS_READ_FAILED`
+
+The adapter intentionally hides the thrown exception.
+
+1. reproduce through the same canonical service directly in a private development environment;
+2. verify the SQLite database is open and migrations `0001`–`0004` were applied;
+3. run the corresponding read-model test for Overview, Today, Projects or Roadmap;
+4. inspect private server logs only for the sanitized correlation/error code configured by the future transport;
+5. never change the protocol response to include the original exception, SQL, path, token or database content;
+6. repair the underlying data-source or composition problem and rerun the protocol test.
+
+`PROJECT_NOT_FOUND`, `PROJECT_INVALID_INPUT` and `ROADMAP_INVALID_INPUT` are expected stable tool errors, not infrastructure failures.
+
+## Do not expose MCP remotely yet
+
+The current code contains no transport listener. Do not add a route, stdio launcher or public command ad hoc.
+
+Before a Streamable HTTP endpoint is created, a dedicated plan must define and verify:
+
+- owner authentication and revocation;
+- authorization before server connection;
+- per-session isolation;
+- TLS, canonical host and Origin handling;
+- DNS rebinding protections when applicable;
+- request/body limits, timeouts and cancellation;
+- shared rate limiting for multi-instance deployment;
+- private/no-store cache behavior;
+- structured sanitized logging and correlation IDs;
+- deployment rollback and secret rotation;
+- ChatGPT/MCP client compatibility in the selected host.
+
+Passing the in-memory protocol suite is necessary but insufficient for remote exposure.
 
 ## Configure GitHub read synchronization
 
@@ -119,7 +204,7 @@ New GitHub runs populate both field generations. Legacy rows receive `integratio
 3. restart/redeploy;
 4. revoke the previous token;
 5. run one controlled read;
-6. verify no token appears in HTML, logs, database fields or audit snapshots;
+6. verify no token appears in HTML, logs, database fields, MCP payloads or audit snapshots;
 7. rerun anonymous confidentiality checks.
 
 ## Create a verified database backup
@@ -148,7 +233,8 @@ Restore rehearsal:
 3. copy it to a new temporary path;
 4. start the application against that path;
 5. run authenticated reads, Operations checks and confidentiality scanners;
-6. replace production only after a fresh pre-restore backup and successful rehearsal.
+6. construct the in-process MCP server against the restored database and run read-only smoke calls;
+7. replace production only after a fresh pre-restore backup and successful rehearsal.
 
 Do not restore across an unreviewed migration mismatch.
 
@@ -156,14 +242,14 @@ Do not restore across an unreviewed migration mismatch.
 
 1. stop public deployment or restrict access immediately;
 2. preserve the offending response privately as evidence;
-3. inspect HTML, loader/API payloads, metadata, sitemap, robots, caches and logs;
+3. inspect HTML, loader/API payloads, MCP transport responses, metadata, sitemap, robots, caches and logs;
 4. revoke exposed credentials;
-5. repair the query/DTO boundary rather than hiding fields client-side;
+5. repair the query/DTO/transport authorization boundary rather than hiding fields client-side;
 6. add a synthetic regression marker;
 7. rerun all anonymous confidentiality gates;
 8. document the incident and remediation.
 
-Repository targets, names, URLs, branches, recommendations and run metadata are private operational data.
+Repository targets, names, URLs, branches, recommendations, run metadata and MCP payloads are private operational data.
 
 ## Session secret rotation
 
@@ -179,3 +265,5 @@ Repository targets, names, URLs, branches, recommendations and run metadata are 
 Use the commit/version and schema backup recorded in `DEPLOYMENT.md`. Never roll code back across an incompatible migration. Prefer feature disablement and a forward repair migration when schema rollback is unsafe.
 
 To disable GitHub reads without deleting evidence, remove `SEMOGTW_GITHUB_TOKEN` and restart. Existing targets, observations, recommendations, branch decisions and audits remain private historical state.
+
+The current MCP adapter has no enabled transport to disable. If a future transport is deployed, its adapter must provide an independent feature-disable/rollback mechanism without deleting the canonical read services or data.
