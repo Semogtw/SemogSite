@@ -6,7 +6,26 @@ export type {
   OverviewProject,
   OverviewStage,
 } from "./overview/overview-service";
+export { buildAgentContext } from "./projects/agent-context";
+export type { AgentContextInput } from "./projects/agent-context";
 export type { ProjectSnapshot } from "./projects/project";
+export { ProjectService } from "./projects/project-service";
+export type {
+  OperationalPortfolio,
+  OperationalProjectSummary,
+  OperationalRepositorySummary,
+  ProjectDataSource,
+  ProjectHub,
+} from "./projects/project-service";
+export { RoadmapService } from "./roadmap/roadmap-service";
+export type {
+  RoadmapArea,
+  RoadmapBoard,
+  RoadmapDataSource,
+  RoadmapFilters,
+  RoadmapItem,
+  RoadmapResult,
+} from "./roadmap/roadmap-service";
 export type {
   DomainValidationResult,
   EvidenceStatus,
