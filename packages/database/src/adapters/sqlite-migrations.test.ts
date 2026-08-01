@@ -42,20 +42,18 @@ describe("SQLite migrations", () => {
         .all()
         .map((row) => (row as { name: string }).name),
     );
-    expect(syncRunColumns).toEqual(
-      expect.objectContaining(
-        new Set([
-          "integration",
-          "created_count",
-          "updated_count",
-          "skipped_count",
-          "error_count",
-          "rate_limit_remaining",
-          "rate_limit_reset_at",
-          "metadata_json",
-        ]),
-      ),
-    );
+    for (const column of [
+      "integration",
+      "created_count",
+      "updated_count",
+      "skipped_count",
+      "error_count",
+      "rate_limit_remaining",
+      "rate_limit_reset_at",
+      "metadata_json",
+    ]) {
+      expect(syncRunColumns.has(column)).toBe(true);
+    }
 
     database.$client.close();
   });
