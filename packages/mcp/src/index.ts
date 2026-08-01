@@ -1,2 +1,12 @@
+export {
+  SEMOGTW_MCP_MAX_JSON_BYTES,
+  SEMOGTW_MCP_READ_ANNOTATIONS,
+  SEMOGTW_MCP_RESOURCES,
+  SEMOGTW_MCP_TOOLS,
+} from "./catalog";
+export type {
+  SemogtwMcpResourceUri,
+  SemogtwMcpToolName,
+} from "./catalog";
 export { createSemogtwMcpServer } from "./server";
 export type { SemogtwMcpReadService } from "./server";
