@@ -31,6 +31,16 @@ describe("node auth composition", () => {
     await expect(getNodeDatabase()).resolves.toBeNull();
   });
 
+  it("fails closed when the configured password hash is malformed", async () => {
+    process.env.SEMOGTW_SESSION_SECRET = "s".repeat(32);
+    process.env.SEMOGTW_OWNER_PASSWORD_HASH = "not-a-valid-hash";
+    process.env.SEMOGTW_DATABASE_URL = ":memory:";
+
+    await expect(ensureWebAuthConfigured()).resolves.toBe(false);
+    expect(getWebAuthProvider()).toBeNull();
+    await expect(getNodeDatabase()).resolves.toBeNull();
+  });
+
   it("configures a revocable fourteen-day local session", async () => {
     process.env.SEMOGTW_SESSION_SECRET = "s".repeat(32);
     process.env.SEMOGTW_OWNER_PASSWORD_HASH =
