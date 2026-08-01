@@ -74,6 +74,12 @@
 .catalog-disclosure .sem-state { margin: 0 24px 24px; }
 .roadmap-board { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 10px; }
 .roadmap-column { min-width: 240px; }
+.more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.more-link { display: block; text-decoration: none; }
+.more-link .sem-surface { height: 100%; transition: border-color 160ms ease, transform 160ms ease; }
+.more-link h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.more-link p { margin: 0; color: var(--color-muted); line-height: 1.6; }
+.more-link:hover .sem-surface { border-color: var(--color-primary); transform: translateY(-2px); }
 
 @media (max-width: 760px) {
   .editorial-page-header { padding-block: 72px; }
@@ -81,8 +87,13 @@
   .devos-layout { display: block; }
   .devos-main { padding: 24px 16px 92px; }
   .devos-page-header { display: grid; }
-  .metric-grid, .devos-section-grid { grid-template-columns: 1fr; }
+  .metric-grid, .devos-section-grid, .more-grid { grid-template-columns: 1fr; }
   .devos-section-grid > :first-child { grid-column: auto; }
   .roadmap-board { display: grid; grid-template-columns: 1fr; overflow: visible; }
   .roadmap-column { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-link .sem-surface { transition: none; }
+  .more-link:hover .sem-surface { transform: none; }
 }
