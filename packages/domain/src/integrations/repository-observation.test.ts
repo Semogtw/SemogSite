@@ -82,4 +82,47 @@ describe("recommendActiveBranch", () => {
       confidence: "medium",
     });
   });
+
+  it("excludes malformed observations and reports warnings", () => {
+    const result = recommendActiveBranch({
+      defaultBranch: "main",
+      currentActiveBranch: null,
+      branches: [
+        branch(" main ", " ABCDEF1 ", "2026-08-01T17:00:00.000Z"),
+        branch("broken-date", "1234567", "ontem"),
+        branch(" ", "7654321", "2026-08-01T17:30:00.000Z"),
+        branch("missing-sha", " ", "2026-08-01T17:30:00.000Z"),
+      ],
+      observedAt: now,
+    });
+
+    expect(result).toMatchObject({
+      status: "recommended",
+      branch: "main",
+      warnings: [
+        "INVALID_COMMITTED_AT:broken-date",
+        "INVALID_BRANCH_NAME",
+        "INVALID_HEAD_SHA:missing-sha",
+      ],
+      evidence: [{ name: "main", headSha: "abcdef1" }],
+    });
+  });
+
+  it("uses the default branch for an exact timestamp tie", () => {
+    const result = recommendActiveBranch({
+      defaultBranch: "main",
+      currentActiveBranch: null,
+      branches: [
+        branch("feature", "2222222", "2026-08-01T17:00:00.000Z"),
+        branch("main", "1111111", "2026-08-01T17:00:00.000Z"),
+      ],
+      observedAt: now,
+    });
+
+    expect(result).toMatchObject({
+      status: "recommended",
+      branch: "main",
+      confidence: "low",
+    });
+  });
 });
