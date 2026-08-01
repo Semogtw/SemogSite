@@ -99,6 +99,7 @@ export const queueCooperativeRunCommandFn = createServerFn({ method: "POST" })
     const repository = new SqliteCooperativeRunCommandQueueRepository(database);
     const service = new CooperativeRunCommandQueueService(repository);
     const now = new Date().toISOString();
+    const stableKey = data.idempotencyKey;
 
     try {
       const result = await service.queue(
@@ -111,10 +112,10 @@ export const queueCooperativeRunCommandFn = createServerFn({ method: "POST" })
         },
         {
           actorId: owner.id,
-          commandId: `run-command-${crypto.randomUUID()}`,
-          eventId: `run-event-${crypto.randomUUID()}`,
-          idempotencyKey: `owner-command-${data.idempotencyKey}`,
-          correlationId: `correlation-${crypto.randomUUID()}`,
+          commandId: `run-command-${stableKey}`,
+          eventId: `run-event-owner-command-${stableKey}`,
+          idempotencyKey: `owner-command-${stableKey}`,
+          correlationId: `correlation-owner-command-${stableKey}`,
           source: "manual",
           now,
         },
