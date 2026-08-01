@@ -6,5 +6,11 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  optimizeDeps: {
+    exclude: ["better-sqlite3"],
+  },
+  ssr: {
+    external: ["better-sqlite3"],
+  },
   plugins: [tanstackStart(), react()],
 });
