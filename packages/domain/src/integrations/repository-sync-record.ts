@@ -63,6 +63,8 @@ export interface RepositoryObservationStore {
 }
 
 export type LatestRepositoryRecommendation = {
+  id: string;
+  repositoryObservationId: string;
   repositoryId: string;
   fullName: string;
   observedAt: string;
