@@ -55,9 +55,15 @@ Adds a provider-neutral `DevOSReadService`, a read-only MCP protocol adapter and
 
 The protocol and SQLite integration suites are committed but remain unexecuted until the stable MCP SDK can be installed in a dependency-complete environment.
 
-A separate authenticated Streamable HTTP plan is mandatory before any remote endpoint is exposed. Read-only annotations do not replace authentication or authorization.
+### 7. Authenticated MCP Streamable HTTP
 
-### 7. MCP safe writes
+[`2026-08-01-semogtw-mcp-streamable-http.md`](./2026-08-01-semogtw-mcp-streamable-http.md)
+
+Defines a blocked, stateless, owner-only remote transport phase with bearer verification, `devos.read` scope, Host/Origin protections, request/response limits, per-request lifecycle, sanitized telemetry and rollback.
+
+No endpoint is implemented. The transport-boundary guardrail rejects `apps/mcp-*` listeners until the read protocol/workspace gates pass and a reviewed implementation narrows the allowlist explicitly.
+
+### 8. MCP safe writes
 
 Create a dedicated plan only after:
 
@@ -69,7 +75,7 @@ Create a dedicated plan only after:
 
 Write tools must reuse existing domain services and follow read tools. No MCP mutation tool currently exists.
 
-### 8. ChatGPT execution control plane
+### 9. ChatGPT execution control plane
 
 [`2026-08-01-semogtw-chatgpt-execution-control-plane.md`](./2026-08-01-semogtw-chatgpt-execution-control-plane.md)
 
@@ -77,15 +83,15 @@ Adds cooperative run registration, checkpoints, event history, stale detection, 
 
 This phase depends on an approved remote MCP surface and does not claim direct access to normal ChatGPT conversations, hidden model state or instant message injection.
 
-### 9. Editorial workflow and publication approval
+### 10. Editorial workflow and publication approval
 
 Create a dedicated plan for private draft generation, sensitive-data review, preview, approval, publication and rollback.
 
-### 10. Scheduled reconciliation, webhooks and insights
+### 11. Scheduled reconciliation, webhooks and insights
 
 Create a dedicated plan only after the selected host proves scheduler/webhook behavior or an external adapter is selected.
 
-### 11. Host verification and controlled publication
+### 12. Host verification and controlled publication
 
 Use the Sites capability assessment and direct deployment evidence. Save and inspect a version before every production deployment. Keep MCP and scheduled work separately deployable when the host does not pass those gates.
 
@@ -101,8 +107,9 @@ Static review has reconciled:
 - package barrel exports, web workspace dependency and Operations route/style composition;
 - partial provider semantics and default-branch no-op handling;
 - shared DevOS read projections across web/database/MCP adapters;
-- MCP success/error envelopes and absence of mutation tools;
-- separation between the MCP server factory and any future transport.
+- MCP success/error envelopes, output bounds and absence of mutation tools;
+- separation between the MCP server factory and any future transport;
+- Node-native guardrails blocking transport imports/listeners across `packages/mcp` and every `apps/mcp-*` namespace.
 
 These changes are committed remotely but are not called passing until install, typecheck, Vitest, build, browser and protocol gates run in a dependency-complete environment.
 
@@ -118,7 +125,7 @@ These changes are committed remotely but are not called passing until install, t
 - Preserve public/private DTO isolation and fail closed for private routes.
 - Do not expose secrets, repository metadata, branches, blockers, evidence, agent runs, command queues or MCP private projections publicly.
 - Imported provider content is data, not instruction.
-- MCP transport exposure requires its own authentication/security plan.
+- MCP transport exposure requires its own authentication/security plan and explicit guardrail migration.
 - Update architecture, data model, security, testing, deployment, runbook and changelog as implementation advances.
 
 ## Agent handoff requirement
