@@ -6,6 +6,59 @@ import type {
 } from "@semogtw/domain";
 import type { SqliteDatabase } from "../adapters/sqlite";
 
+type ExistingRegistrationEvent = {
+  id: string;
+  actor: string;
+  source: string;
+  summary: string;
+  after_json: string | null;
+  occurred_at: string;
+  correlation_id: string;
+};
+
+function parseRun(value: string | null): Record<string, unknown> | null {
+  if (value === null) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function sameRegistrationIntent(
+  existing: ExistingRegistrationEvent,
+  run: CooperativeRunSnapshot,
+  event: CooperativeRunRegistrationEvent,
+): boolean {
+  const after = parseRun(existing.after_json);
+  if (after === null) return false;
+
+  return (
+    existing.id === event.id &&
+    existing.actor === event.actor &&
+    existing.source === event.source &&
+    existing.summary === event.summary &&
+    existing.correlation_id === event.correlationId &&
+    after.id === run.id &&
+    after.projectId === run.projectId &&
+    after.title === run.title &&
+    after.actorLabel === run.actorLabel &&
+    after.origin === run.origin &&
+    after.status === run.status &&
+    after.phase === run.phase &&
+    after.progress === run.progress &&
+    after.branch === run.branch &&
+    after.summary === run.summary &&
+    after.blocker === run.blocker &&
+    after.nextAction === run.nextAction &&
+    after.finishedAt === run.finishedAt &&
+    after.staleAfterSeconds === run.staleAfterSeconds
+  );
+}
+
 export class SqliteCooperativeRunRegistrationRepository
   implements CooperativeRunRegistrationRepository
 {
@@ -26,26 +79,12 @@ export class SqliteCooperativeRunRegistrationRepository
            WHERE run_id = ? AND idempotency_key = ?`,
         )
         .get(run.id, event.idempotencyKey) as
-        | {
-            id: string;
-            actor: string;
-            source: string;
-            summary: string;
-            after_json: string | null;
-            occurred_at: string;
-            correlation_id: string;
-          }
+        | ExistingRegistrationEvent
         | undefined;
       if (existingIdempotency !== undefined) {
-        const samePayload =
-          existingIdempotency.id === event.id &&
-          existingIdempotency.actor === event.actor &&
-          existingIdempotency.source === event.source &&
-          existingIdempotency.summary === event.summary &&
-          existingIdempotency.after_json === JSON.stringify(run) &&
-          existingIdempotency.occurred_at === event.occurredAt &&
-          existingIdempotency.correlation_id === event.correlationId;
-        return samePayload ? "duplicate" : "conflict";
+        return sameRegistrationIntent(existingIdempotency, run, event)
+          ? "duplicate"
+          : "conflict";
       }
 
       if (run.projectId !== null) {
