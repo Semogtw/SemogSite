@@ -68,8 +68,9 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
     const provider = getWebAuthProvider();
     const secret = getWebSessionSecret();
     const rateKey = getRequestHeader("x-forwarded-for") ?? "unknown-client";
+    const rateLimit = loginLimiter.consume(rateKey);
 
-    if (provider === null || secret === null || !loginLimiter.consume(rateKey)) {
+    if (provider === null || secret === null || !rateLimit.allowed) {
       return { ok: false as const, message: "Não foi possível autenticar." };
     }
 
@@ -80,12 +81,12 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
 
     loginLimiter.reset(rateKey);
     const csrf = await issueCsrfToken(secret, result.session.id);
-    const production = import.meta.env.PROD;
-    setCookie(SESSION_COOKIE, result.rawToken, sessionCookieOptions(production));
+    const runtimeEnv = import.meta.env.PROD ? "production" : "development";
+    setCookie(SESSION_COOKIE, result.rawToken, sessionCookieOptions(runtimeEnv));
     setCookie(CSRF_COOKIE, csrf, {
       httpOnly: false,
       sameSite: "lax",
-      secure: production,
+      secure: runtimeEnv === "production",
       path: "/devos",
       maxAge: 60 * 60 * 24 * 14,
     });
