@@ -18,6 +18,11 @@ export const Route = createFileRoute("/devos/more")({
 
 const destinations = [
   {
+    to: "/devos/runs",
+    title: "Execuções",
+    description: "Relatos cooperativos, checkpoints e comandos enfileirados.",
+  },
+  {
     to: "/devos/insights",
     title: "Insights",
     description: "Padrões e decisões derivados de evidência.",
