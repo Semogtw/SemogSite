@@ -13,6 +13,8 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:public-confidentiality": "node scripts/check-public-confidentiality.mjs",
     "dev": "pnpm --filter @semogtw/web dev",
+    "dev:api": "pnpm --filter @semogtw/api dev",
+    "dev:all": "pnpm --parallel --filter @semogtw/web --filter @semogtw/api dev",
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "pnpm -r test",
     "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs",
