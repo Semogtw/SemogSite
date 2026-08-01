@@ -8,13 +8,20 @@ import type {
   RoadmapResult,
   TodayQueue,
 } from "@semogtw/domain";
-import { z } from "zod";
+import { z, type ZodType } from "zod";
 import {
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
   SEMOGTW_MCP_RESOURCES,
   SEMOGTW_MCP_TOOLS,
 } from "./catalog";
+import {
+  devosOverviewOutputSchema,
+  devosProjectOutputSchema,
+  devosProjectsOutputSchema,
+  devosRoadmapOutputSchema,
+  devosTodayOutputSchema,
+} from "./output-schemas";
 
 export type SemogtwMcpReadService = {
   getOverview(): Promise<DevOSOverview>;
@@ -61,9 +68,22 @@ type ResourceReadResult =
 type SerializationResult =
   | { ok: true; text: string }
   | { ok: false; code: "DEVOS_READ_FAILED" | "RESULT_TOO_LARGE" };
+type OutputValidationResult =
+  | { ok: true; data: unknown }
+  | { ok: false };
 
 function errorPayload(code: StableErrorCode): JsonRecord {
   return { ok: false, error: { code } };
+}
+
+function validateOutput(
+  schema: ZodType<unknown>,
+  value: unknown,
+): OutputValidationResult {
+  const parsed = schema.safeParse(value);
+  return parsed.success
+    ? { ok: true, data: parsed.data }
+    : { ok: false };
 }
 
 function serializePayload(payload: JsonRecord): SerializationResult {
@@ -92,8 +112,15 @@ function toolFailure(code: StableErrorCode) {
   };
 }
 
-function toolSuccess(key: string, value: unknown) {
-  const structuredContent: JsonRecord = { [key]: value };
+function toolSuccess(
+  key: string,
+  value: unknown,
+  schema: ZodType<unknown>,
+) {
+  const validated = validateOutput(schema, value);
+  if (!validated.ok) return toolFailure("DEVOS_READ_FAILED");
+
+  const structuredContent: JsonRecord = { [key]: validated.data };
   const serialized = serializePayload(structuredContent);
   if (!serialized.ok) return toolFailure(serialized.code);
 
@@ -105,14 +132,20 @@ function toolSuccess(key: string, value: unknown) {
 
 async function resourceContents(
   uri: string,
+  schema: ZodType<unknown>,
   read: () => Promise<ResourceReadResult>,
 ) {
   let payload: JsonRecord;
   try {
     const result = await read();
-    payload = result.ok
-      ? { ok: true, data: result.data }
-      : errorPayload(result.code);
+    if (!result.ok) {
+      payload = errorPayload(result.code);
+    } else {
+      const validated = validateOutput(schema, result.data);
+      payload = validated.ok
+        ? { ok: true, data: validated.data }
+        : errorPayload("DEVOS_READ_FAILED");
+    }
   } catch {
     payload = errorPayload("DEVOS_READ_FAILED");
   }
@@ -156,12 +189,16 @@ export function createSemogtwMcpServer(
     {
       title: overviewTool.title,
       description: overviewTool.description,
-      outputSchema: { overview: z.unknown() },
+      outputSchema: { overview: devosOverviewOutputSchema },
       annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async () =>
       guardedTool(async () =>
-        toolSuccess(overviewTool.structuredKey, await service.getOverview()),
+        toolSuccess(
+          overviewTool.structuredKey,
+          await service.getOverview(),
+          devosOverviewOutputSchema,
+        ),
       ),
   );
 
@@ -170,12 +207,16 @@ export function createSemogtwMcpServer(
     {
       title: todayTool.title,
       description: todayTool.description,
-      outputSchema: { today: z.unknown() },
+      outputSchema: { today: devosTodayOutputSchema },
       annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async () =>
       guardedTool(async () =>
-        toolSuccess(todayTool.structuredKey, await service.getToday()),
+        toolSuccess(
+          todayTool.structuredKey,
+          await service.getToday(),
+          devosTodayOutputSchema,
+        ),
       ),
   );
 
@@ -184,12 +225,16 @@ export function createSemogtwMcpServer(
     {
       title: projectsTool.title,
       description: projectsTool.description,
-      outputSchema: { projects: z.unknown() },
+      outputSchema: { projects: devosProjectsOutputSchema },
       annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async () =>
       guardedTool(async () =>
-        toolSuccess(projectsTool.structuredKey, await service.listProjects()),
+        toolSuccess(
+          projectsTool.structuredKey,
+          await service.listProjects(),
+          devosProjectsOutputSchema,
+        ),
       ),
   );
 
@@ -201,7 +246,7 @@ export function createSemogtwMcpServer(
       inputSchema: {
         slug: z.string().trim().min(1).max(120),
       },
-      outputSchema: { project: z.unknown() },
+      outputSchema: { project: devosProjectOutputSchema },
       annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async ({ slug }) => {
@@ -214,7 +259,11 @@ export function createSemogtwMcpServer(
               : "PROJECT_NOT_FOUND",
           );
         }
-        return toolSuccess(projectTool.structuredKey, result.data);
+        return toolSuccess(
+          projectTool.structuredKey,
+          result.data,
+          devosProjectOutputSchema,
+        );
       } catch {
         return toolFailure("DEVOS_READ_FAILED");
       }
@@ -235,7 +284,7 @@ export function createSemogtwMcpServer(
         areas: z.array(roadmapAreaSchema).max(6).optional(),
         includeCompleted: z.boolean().optional(),
       },
-      outputSchema: { roadmap: z.unknown() },
+      outputSchema: { roadmap: devosRoadmapOutputSchema },
       annotations: SEMOGTW_MCP_READ_ANNOTATIONS,
     },
     async ({ projectIds, states, areas, includeCompleted }) => {
@@ -247,7 +296,11 @@ export function createSemogtwMcpServer(
           includeCompleted: includeCompleted ?? false,
         });
         if (!result.ok) return toolFailure("ROADMAP_INVALID_INPUT");
-        return toolSuccess(roadmapTool.structuredKey, result.data);
+        return toolSuccess(
+          roadmapTool.structuredKey,
+          result.data,
+          devosRoadmapOutputSchema,
+        );
       } catch {
         return toolFailure("DEVOS_READ_FAILED");
       }
@@ -263,10 +316,14 @@ export function createSemogtwMcpServer(
       mimeType: overviewResource.mimeType,
     },
     async (uri) =>
-      resourceContents(uri.toString(), async () => ({
-        ok: true,
-        data: await service.getOverview(),
-      })),
+      resourceContents(
+        uri.toString(),
+        devosOverviewOutputSchema,
+        async () => ({
+          ok: true,
+          data: await service.getOverview(),
+        }),
+      ),
   );
 
   server.registerResource(
@@ -278,7 +335,7 @@ export function createSemogtwMcpServer(
       mimeType: todayResource.mimeType,
     },
     async (uri) =>
-      resourceContents(uri.toString(), async () => ({
+      resourceContents(uri.toString(), devosTodayOutputSchema, async () => ({
         ok: true,
         data: await service.getToday(),
       })),
@@ -293,10 +350,14 @@ export function createSemogtwMcpServer(
       mimeType: projectsResource.mimeType,
     },
     async (uri) =>
-      resourceContents(uri.toString(), async () => ({
-        ok: true,
-        data: await service.listProjects(),
-      })),
+      resourceContents(
+        uri.toString(),
+        devosProjectsOutputSchema,
+        async () => ({
+          ok: true,
+          data: await service.listProjects(),
+        }),
+      ),
   );
 
   server.registerResource(
@@ -308,17 +369,21 @@ export function createSemogtwMcpServer(
       mimeType: roadmapResource.mimeType,
     },
     async (uri) =>
-      resourceContents(uri.toString(), async () => {
-        const result = await service.queryRoadmap({
-          projectIds: [],
-          states: [],
-          areas: [],
-          includeCompleted: false,
-        });
-        return result.ok
-          ? { ok: true, data: result.data }
-          : { ok: false, code: "ROADMAP_INVALID_INPUT" };
-      }),
+      resourceContents(
+        uri.toString(),
+        devosRoadmapOutputSchema,
+        async () => {
+          const result = await service.queryRoadmap({
+            projectIds: [],
+            states: [],
+            areas: [],
+            includeCompleted: false,
+          });
+          return result.ok
+            ? { ok: true, data: result.data }
+            : { ok: false, code: "ROADMAP_INVALID_INPUT" };
+        },
+      ),
   );
 
   return server;
