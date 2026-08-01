@@ -13,7 +13,7 @@ const attention: CapturedAttention = {
   status: "open",
   impact: "high",
   title: "Executar build integral",
-  owner: "owner",
+  owner: "external_environment",
   nextAction: "Rodar pnpm check em ambiente com registry completo.",
   source: "manual",
   createdAt: "2026-08-01T13:30:00.000Z",
@@ -51,6 +51,7 @@ describe("SqliteAttentionCaptureRepository", () => {
       id: "attention-1",
       status: "open",
       type: "local_test",
+      owner: "external_environment",
       data_source: "manual",
     });
     expect(
