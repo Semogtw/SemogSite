@@ -5,6 +5,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import { triggerGitHubSyncFn } from "../../server/devos-github-sync";
+import { BranchRecommendationAcceptanceForm } from "./branch-recommendation-acceptance-form";
+import { RepositoryTargetLifecycleForm } from "./repository-target-lifecycle-form";
 
 const timestampFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Bahia",
@@ -52,7 +54,7 @@ export function GitHubSyncPanel({
 
   async function synchronize(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !configured) return;
+    if (pending || !configured || dashboard.configuredTargets === 0) return;
     if (!confirmed) {
       setMessage("Confirme conscientemente a leitura do GitHub.");
       return;
@@ -103,7 +105,7 @@ export function GitHubSyncPanel({
 
         <dl className="github-sync-summary-grid">
           <div>
-            <dt>Alvos ativos</dt>
+            <dt>Alvos habilitados</dt>
             <dd>{dashboard.configuredTargets}</dd>
           </div>
           <div>
@@ -125,7 +127,9 @@ export function GitHubSyncPanel({
             <input
               type="checkbox"
               checked={confirmed}
-              disabled={!configured || pending}
+              disabled={
+                !configured || pending || dashboard.configuredTargets === 0
+              }
               onChange={(event) => setConfirmed(event.target.checked)}
             />
             <span>
@@ -136,7 +140,12 @@ export function GitHubSyncPanel({
           <Button
             type="submit"
             tone="primary"
-            disabled={!configured || !confirmed || pending}
+            disabled={
+              !configured ||
+              dashboard.configuredTargets === 0 ||
+              !confirmed ||
+              pending
+            }
           >
             {pending ? "Observando…" : "Sincronizar observações"}
           </Button>
@@ -186,6 +195,12 @@ export function GitHubSyncPanel({
               {dashboard.lastRun.skippedCount} · falhas/parciais:{" "}
               {dashboard.lastRun.errorCount}
             </p>
+            {dashboard.lastRun.processedTargets !== null ? (
+              <p>Alvos processados: {dashboard.lastRun.processedTargets}</p>
+            ) : null}
+            {dashboard.lastRun.errorSummary ? (
+              <p className="audit-warning">{dashboard.lastRun.errorSummary}</p>
+            ) : null}
             {dashboard.lastRun.warnings.length > 0 ? (
               <details>
                 <summary>Ver avisos normalizados</summary>
@@ -215,53 +230,82 @@ export function GitHubSyncPanel({
         </div>
         {dashboard.repositories.length === 0 ? (
           <EmptyState
-            title="Nenhum repositório habilitado"
-            description="Somente repositórios ativos com sincronização explicitamente habilitada entram na rodada."
+            title="Nenhum repositório cadastrado"
+            description="Cadastre um alvo privado acima para habilitar futuras rodadas de observação."
           />
         ) : (
           <div className="github-repository-grid">
-            {dashboard.repositories.map((repository) => (
-              <Surface key={repository.id} className="github-repository-card">
-                <div className="github-repository-card__heading">
-                  <div>
-                    <h3>{repository.fullName}</h3>
-                    <p>
-                      Última leitura: {formatTimestamp(repository.lastSyncedAt)}
-                    </p>
+            {dashboard.repositories.map((repository) => {
+              const recommendation = repository.recommendation;
+              const effectiveActiveBranch =
+                repository.activeBranch ?? repository.defaultBranch;
+              const canAccept =
+                recommendation?.status === "recommended" &&
+                recommendation.branch !== null &&
+                recommendation.branch !== effectiveActiveBranch;
+
+              return (
+                <Surface key={repository.id} className="github-repository-card">
+                  <div className="github-repository-card__heading">
+                    <div>
+                      <h3>{repository.fullName}</h3>
+                      <p>
+                        Última leitura: {formatTimestamp(repository.lastSyncedAt)}
+                      </p>
+                    </div>
+                    <div className="github-repository-card__statuses">
+                      <Status tone={repository.syncEnabled ? "success" : "warning"}>
+                        {repository.syncEnabled ? "habilitado" : "pausado"}
+                      </Status>
+                      <Status tone="neutral">{repository.status}</Status>
+                    </div>
                   </div>
-                  <Status tone="neutral">{repository.status}</Status>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Branch ativa persistida</dt>
-                    <dd>{repository.activeBranch ?? repository.defaultBranch}</dd>
-                  </div>
-                  <div>
-                    <dt>Recomendação observada</dt>
-                    <dd>
-                      {repository.recommendation?.branch ?? "indisponível"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Confiança</dt>
-                    <dd>{repository.recommendation?.confidence ?? "baixa"}</dd>
-                  </div>
-                </dl>
-                {repository.recommendation ? (
-                  <details className="github-recommendation-details">
-                    <summary>Por que esta recomendação?</summary>
-                    <p>{repository.recommendation.reason}</p>
-                    {repository.recommendation.warnings.length > 0 ? (
-                      <ul>
-                        {repository.recommendation.warnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </details>
-                ) : null}
-              </Surface>
-            ))}
+                  <dl>
+                    <div>
+                      <dt>Branch ativa persistida</dt>
+                      <dd>{effectiveActiveBranch}</dd>
+                    </div>
+                    <div>
+                      <dt>Recomendação observada</dt>
+                      <dd>{recommendation?.branch ?? "indisponível"}</dd>
+                    </div>
+                    <div>
+                      <dt>Confiança</dt>
+                      <dd>{recommendation?.confidence ?? "baixa"}</dd>
+                    </div>
+                  </dl>
+                  {recommendation ? (
+                    <details className="github-recommendation-details">
+                      <summary>Por que esta recomendação?</summary>
+                      <p>{recommendation.reason}</p>
+                      {recommendation.warnings.length > 0 ? (
+                        <ul>
+                          {recommendation.warnings.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </details>
+                  ) : null}
+                  {canAccept && recommendation ? (
+                    <BranchRecommendationAcceptanceForm
+                      repositoryId={repository.id}
+                      recommendationId={recommendation.id}
+                      expectedActiveBranch={repository.activeBranch}
+                      recommendedBranch={recommendation.branch!}
+                    />
+                  ) : recommendation?.branch === effectiveActiveBranch ? (
+                    <Status tone="success">recomendação já ativa</Status>
+                  ) : null}
+                  <RepositoryTargetLifecycleForm
+                    repositoryId={repository.id}
+                    fullName={repository.fullName}
+                    syncEnabled={repository.syncEnabled}
+                    updatedAt={repository.updatedAt}
+                  />
+                </Surface>
+              );
+            })}
           </div>
         )}
       </section>
