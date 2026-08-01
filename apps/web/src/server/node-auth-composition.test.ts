@@ -10,6 +10,7 @@ import {
 } from "./node-auth-composition.server";
 
 const originalEnv = { ...process.env };
+const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
 
 afterEach(() => {
   process.env = { ...originalEnv };
@@ -28,14 +29,28 @@ describe("node auth composition", () => {
     expect(getWebSessionSecret()).toBeNull();
   });
 
-  it("configures the provider and secret from the local runtime", async () => {
+  it("configures a revocable fourteen-day local session", async () => {
     process.env.SEMOGTW_SESSION_SECRET = "s".repeat(32);
     process.env.SEMOGTW_OWNER_PASSWORD_HASH =
-      "pbkdf2_sha256$210000$dGVzdC1zYWx0$0evN7aRhEyVdT8+qN/98kUsRZoU7wE8uI5eTfg4+nbQ=";
+      "pbkdf2-sha256$310000$AQIDBAUGBwgJCgsMDQ4PEA$XIN4Q-dDSXIV3hDVJdpOvUlb3nFS3GXS-g7wNMNsdis";
     process.env.SEMOGTW_DATABASE_URL = ":memory:";
 
     await expect(ensureWebAuthConfigured()).resolves.toBe(true);
-    expect(getWebAuthProvider()).not.toBeNull();
     expect(getWebSessionSecret()).toBe("s".repeat(32));
+
+    const provider = getWebAuthProvider();
+    expect(provider).not.toBeNull();
+    if (provider === null) throw new Error("expected configured auth provider");
+
+    const startedAt = Date.now();
+    const result = await provider.authenticate({
+      password: "correct horse battery staple",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected successful authentication");
+
+    const lifetime = Date.parse(result.session.expiresAt) - startedAt;
+    expect(lifetime).toBeGreaterThanOrEqual(fourteenDaysMs - 5_000);
+    expect(lifetime).toBeLessThanOrEqual(fourteenDaysMs + 5_000);
   });
 });
