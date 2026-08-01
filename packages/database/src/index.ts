@@ -8,6 +8,7 @@ export type {
   CreatedSqliteBackup,
   SqliteBackupVerification,
 } from "./backup/sqlite-backup";
+export { createSqliteDevOSReadService } from "./composition/devos-read-service";
 export { SqliteAttentionCaptureRepository } from "./repositories/attention-capture-repository";
 export { SqliteAttentionLifecycleRepository } from "./repositories/attention-lifecycle-repository";
 export { SqliteAuditDataSource } from "./repositories/audit-data-source";
