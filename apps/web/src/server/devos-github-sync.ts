@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getNodeGitHubSyncService } from "./github-sync.server";
@@ -34,7 +33,7 @@ export const triggerGitHubSyncFn = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     try {
       const summary = await service.synchronize({
-        runId: `github-sync-${randomUUID()}`,
+        runId: `github-sync-${crypto.randomUUID()}`,
         now,
         maxTargets: 25,
         maxBranches: 25,
