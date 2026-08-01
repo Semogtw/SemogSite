@@ -10,7 +10,14 @@ const RegisterRepositoryTargetSchema = z.object({
   projectId: z.string().trim().min(1).max(200),
   fullName: z.string().trim().min(3).max(140),
   defaultBranch: z.string().trim().min(1).max(255),
-  role: z.enum(["primary", "secondary"]),
+  role: z.enum([
+    "product",
+    "core",
+    "integration",
+    "infrastructure",
+    "academic",
+    "experiment",
+  ]),
   reason: z.string().trim().min(1).max(500),
   confirmed: z.literal(true),
 });
