@@ -28,6 +28,8 @@ pnpm --filter @semogtw/web test
 - Today ordering and project-slug continuity;
 - Roadmap filtering/grouping;
 - agent-context sanitization and size cap;
+- attention capture validation, normalization and external-environment ownership;
+- attention lifecycle validation, final-state protection and optimistic-conflict reporting;
 - public DTO allowlists;
 - password hashing and verification;
 - session digest, expiry and revocation;
@@ -40,6 +42,8 @@ pnpm --filter @semogtw/web test
 ### Integration
 
 - SQLite migrations and repository contracts;
+- attention capture column/type mapping and transaction rollback;
+- attention lifecycle read mapping, optimistic update and audit transaction;
 - semantic project-priority ordering;
 - SQLite Overview, Today, Projects/hub and Roadmap data sources;
 - Hono public/private isolation;
@@ -56,6 +60,9 @@ pnpm --filter @semogtw/web test
 - anonymous public routes at 360 × 800 and desktop;
 - `/devos` redirect and login;
 - authenticated Overview, Hoje, Projetos, hub and Roadmap with SQLite data;
+- capture an owner item and an external-environment item with audit records;
+- resolve and dismiss attention items from Hoje with reason and confirmation;
+- reject stale concurrent attention transitions without writing audit events;
 - all secondary private routes protected;
 - logout, CSRF rejection and revoked-session denial;
 - password rotation invalidating existing sessions;
@@ -66,7 +73,7 @@ pnpm --filter @semogtw/web test
 
 ## Evidence from this implementation environment
 
-The connected environment provides Node.js `v22.16.0`, but its internal npm registry returned HTTP 404 for required packages and the private repository could not be cloned from the network. Therefore the full workspace install, typecheck, Vitest suite and Vite build are **not claimed as executed**.
+The connected environment provides Node.js `v22.16.0`, but its internal npm registry previously returned HTTP 404 for required packages and the private repository could not be cloned from the network. A new probe on 2026-08-01 also failed DNS resolution for `registry.npmjs.org`. Therefore the full workspace install, typecheck, Vitest suite and Vite build are **not claimed as executed**.
 
 Equivalent pure behavior was exercised with Node's native facilities where possible:
 
@@ -78,6 +85,8 @@ Equivalent pure behavior was exercised with Node's native facilities where possi
 
 The committed Vitest suites additionally specify the expected behavior for:
 
+- attention capture mapping, classification and rollback;
+- attention lifecycle validation, canonical type mapping, audit and concurrency conflicts;
 - runtime auth composition;
 - project priority ordering;
 - credential-rotation revocation;
