@@ -20,6 +20,8 @@ const transportImportPattern =
   /@modelcontextprotocol\/sdk\/server\/(?:stdio|streamableHttp|sse)(?:\.js)?|\b(?:StdioServerTransport|StreamableHTTPServerTransport|SSEServerTransport)\b/u;
 const networkImportPattern =
   /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:(?:node:)?(?:http|https|net|tls)|express|hono|@hono\/[^"']+)["']/u;
+const crossSurfaceImportPattern =
+  /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["'](?:@semogtw\/mcp(?:\/[^"']*)?|@modelcontextprotocol\/sdk(?:\/[^"']*)?|(?:\.\.\/)+(?:packages\/mcp|apps\/mcp|mcp)(?:\/[^"']*)?)["']/u;
 const listenerPattern = /\.listen\s*\(|\bserve\s*\(/u;
 
 function collectSourceFiles(directory) {
@@ -47,6 +49,10 @@ function mcpSourceRoots(absoluteRoot) {
     if (statSync(absolute).isDirectory()) roots.push(absolute);
   }
   return roots;
+}
+
+function crossSurfaceRoots(absoluteRoot) {
+  return [join(absoluteRoot, "apps/web"), join(absoluteRoot, "apps/api")];
 }
 
 export function scanMcpTransportBoundary(root = process.cwd()) {
@@ -79,7 +85,25 @@ export function scanMcpTransportBoundary(root = process.cwd()) {
     }
   }
 
-  return violations.sort((left, right) => left.path.localeCompare(right.path));
+  for (const sourceRoot of crossSurfaceRoots(absoluteRoot)) {
+    for (const absolutePath of collectSourceFiles(sourceRoot)) {
+      const content = readFileSync(absolutePath, "utf8");
+      if (!crossSurfaceImportPattern.test(content)) continue;
+
+      const path = relative(absoluteRoot, absolutePath).replaceAll("\\", "/");
+      violations.push({
+        code: "MCP_CROSS_SURFACE_IMPORT",
+        path,
+        message:
+          "Web and API surfaces must not import MCP packages or SDK code before an authenticated transport adapter is approved.",
+      });
+    }
+  }
+
+  return violations.sort(
+    (left, right) =>
+      left.path.localeCompare(right.path) || left.code.localeCompare(right.code),
+  );
 }
 
 const executedPath = process.argv[1] ? resolve(process.argv[1]) : null;
