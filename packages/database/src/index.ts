@@ -3,6 +3,7 @@ export type { SqliteDatabase } from "./adapters/sqlite";
 export { SqliteAttentionCaptureRepository } from "./repositories/attention-capture-repository";
 export { SqliteAttentionLifecycleRepository } from "./repositories/attention-lifecycle-repository";
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
+export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
