@@ -96,9 +96,9 @@ export type RepositoryTargetRegistrationResult =
       code: "PROJECT_NOT_FOUND" | "DUPLICATE_REPOSITORY" | "CONFLICT";
     };
 
-const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u;
+const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/u;
 const repositoryPattern = /^[A-Za-z0-9._-]{1,100}$/u;
-const branchPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
+const branchCharacterPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
 const roles = new Set<RepositorySyncTargetRole>([
   "product",
   "core",
@@ -108,6 +108,21 @@ const roles = new Set<RepositorySyncTargetRole>([
   "experiment",
 ]);
 
+function isSafeBranchName(name: string): boolean {
+  return (
+    branchCharacterPattern.test(name) &&
+    !/[~^:?*[\\]/u.test(name) &&
+    !name.startsWith("/") &&
+    !name.endsWith("/") &&
+    !name.startsWith(".") &&
+    !name.endsWith(".") &&
+    !name.endsWith(".lock") &&
+    !name.includes("..") &&
+    !name.includes("@{") &&
+    !name.includes("//")
+  );
+}
+
 function parseFullName(value: string):
   | { owner: string; name: string; fullName: string }
   | null {
@@ -115,7 +130,7 @@ function parseFullName(value: string):
   const parts = fullName.split("/");
   if (parts.length !== 2) return null;
   const [owner, name] = parts;
-  if (!owner || !name) return null;
+  if (!owner || !name || name === "." || name === "..") return null;
   if (!ownerPattern.test(owner) || !repositoryPattern.test(name)) return null;
   return { owner, name, fullName: `${owner}/${name}` };
 }
@@ -138,7 +153,7 @@ export class RepositoryTargetRegistrationService {
     if (!input.confirmed) errors.push("CONFIRMATION_REQUIRED");
     if (projectId.length === 0) errors.push("PROJECT_ID_REQUIRED");
     if (identity === null) errors.push("FULL_NAME_INVALID");
-    if (!branchPattern.test(defaultBranch)) {
+    if (!isSafeBranchName(defaultBranch)) {
       errors.push("DEFAULT_BRANCH_INVALID");
     }
     if (!roles.has(input.role)) errors.push("ROLE_INVALID");
