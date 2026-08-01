@@ -162,7 +162,9 @@ export class BranchRecommendationAcceptanceService {
       return { ok: false, code: "STALE_ACTIVE_BRANCH" };
     }
     const recommendedBranch = normalizeBranch(before.recommendation.branch)!;
-    if (currentActiveBranch === recommendedBranch) {
+    const effectiveActiveBranch =
+      currentActiveBranch ?? normalizeBranch(before.repository.defaultBranch);
+    if (effectiveActiveBranch === recommendedBranch) {
       return { ok: false, code: "ALREADY_ACTIVE" };
     }
 
