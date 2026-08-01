@@ -73,7 +73,8 @@ Every tool advertises read-only, non-destructive, idempotent and closed-world an
 
 - [x] Update architecture, security, data model, testing, deployment, runbook, changelog, README and `MCP.md`.
 - [x] Add a Node-native guardrail rejecting MCP transport imports and network listeners.
-- [x] Execute the guardrail fixture suite and allowed-tree scan.
+- [x] Execute the guardrail fixture suite and representative allowed-tree scan.
+- [x] Inspect the remote PR diff for forbidden transport/listener references and confirm production MCP files contain none.
 - [ ] Run package tests, typecheck, workspace check and production build in a dependency-complete environment.
 - [x] Keep the PR draft until the protocol suite and workspace gates are observed.
 - [ ] Create a separate authenticated Streamable HTTP plan before remote exposure.
@@ -86,7 +87,7 @@ On 2026-08-01, the exact Node-native transport-boundary guardrail was executed w
 - a forbidden stdio transport fixture;
 - a forbidden Streamable HTTP transport fixture;
 - a forbidden Node HTTP listener fixture;
-- an allowed production-tree scan.
+- a representative allowed source tree.
 
 Observed output:
 
@@ -94,6 +95,8 @@ Observed output:
 MCP transport boundary guardrail fixtures passed.
 MCP transport boundary passed.
 ```
+
+The remote PR patch was inspected separately. Forbidden transport names occur in the guardrail regex and rejection fixtures, not in the production MCP server or SQLite composition files.
 
 ## Observed constraints
 
