@@ -39,7 +39,15 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
          FROM repositories
          WHERE sync_enabled = 1 AND status = 'active'
          ORDER BY
-           CASE role WHEN 'primary' THEN 0 WHEN 'secondary' THEN 1 ELSE 2 END,
+           CASE role
+             WHEN 'product' THEN 0
+             WHEN 'core' THEN 1
+             WHEN 'integration' THEN 2
+             WHEN 'infrastructure' THEN 3
+             WHEN 'academic' THEN 4
+             WHEN 'experiment' THEN 5
+             ELSE 6
+           END,
            full_name ASC
          LIMIT ?`,
       )
@@ -105,10 +113,9 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
                owner = ?,
                name = ?,
                full_name = ?,
-               html_url = ?,
+               github_url = ?,
                visibility = ?,
                default_branch = ?,
-               status = CASE WHEN ? = 1 THEN 'archived' ELSE status END,
                last_synced_at = ?,
                data_source = 'github',
                updated_at = ?
@@ -122,7 +129,6 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
           observation.repository.htmlUrl,
           observation.repository.visibility,
           observation.repository.defaultBranch,
-          observation.repository.archived ? 1 : 0,
           observation.repository.observedAt,
           observation.repository.observedAt,
           observation.repository.repositoryId,
@@ -134,7 +140,7 @@ export class SqliteGitHubSyncStore implements GitHubSyncStore {
       return result;
     });
 
-    return transaction();
+    return transaction.immediate();
   }
 
   async finishRun(run: GitHubSyncRunFinish): Promise<void> {
