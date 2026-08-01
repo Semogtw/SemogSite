@@ -97,7 +97,15 @@ export class SqliteGitHubSyncReadModel {
          FROM repositories
          WHERE status = 'active'
          ORDER BY
-           CASE role WHEN 'primary' THEN 0 WHEN 'secondary' THEN 1 ELSE 2 END,
+           CASE role
+             WHEN 'product' THEN 0
+             WHEN 'core' THEN 1
+             WHEN 'integration' THEN 2
+             WHEN 'infrastructure' THEN 3
+             WHEN 'academic' THEN 4
+             WHEN 'experiment' THEN 5
+             ELSE 6
+           END,
            full_name ASC`,
       )
       .all() as Array<{
