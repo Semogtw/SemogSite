@@ -23,8 +23,13 @@ export { SqliteBranchRecommendationAcceptanceRepository } from "./repositories/b
 export { SqliteCooperativeRunCheckpointRepository } from "./repositories/cooperative-run-checkpoint-repository";
 export { SqliteCooperativeRunReadModel } from "./repositories/cooperative-run-read-model";
 export type {
+  CooperativeRunCheckpointView,
+  CooperativeRunCommandKind,
+  CooperativeRunCommandStatus,
+  CooperativeRunCommandView,
   CooperativeRunDetail,
   CooperativeRunHistoryEvent,
+  CooperativeRunHistoryEventKind,
   CooperativeRunListItem,
 } from "./repositories/cooperative-run-read-model";
 export { SqliteCooperativeRunRegistrationRepository } from "./repositories/cooperative-run-registration-repository";
