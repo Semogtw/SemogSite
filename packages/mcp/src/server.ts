@@ -15,6 +15,7 @@ import {
   SEMOGTW_MCP_RESOURCES,
   SEMOGTW_MCP_SERVER_INFO,
   SEMOGTW_MCP_TOOLS,
+  type SemogtwMcpErrorCode,
 } from "./catalog";
 import {
   devosOverviewOutputSchema,
@@ -55,25 +56,24 @@ const roadmapAreaSchema = z.enum([
   "operation",
 ]);
 
-type StableErrorCode =
-  | "DEVOS_READ_FAILED"
-  | "PROJECT_INVALID_INPUT"
-  | "PROJECT_NOT_FOUND"
-  | "ROADMAP_INVALID_INPUT"
-  | "RESULT_TOO_LARGE";
-
 type JsonRecord = Record<string, unknown>;
 type ResourceReadResult =
   | { ok: true; data: unknown }
-  | { ok: false; code: StableErrorCode };
+  | { ok: false; code: SemogtwMcpErrorCode };
 type SerializationResult =
   | { ok: true; text: string }
-  | { ok: false; code: "DEVOS_READ_FAILED" | "RESULT_TOO_LARGE" };
+  | {
+      ok: false;
+      code: Extract<
+        SemogtwMcpErrorCode,
+        "DEVOS_READ_FAILED" | "RESULT_TOO_LARGE"
+      >;
+    };
 type OutputValidationResult =
   | { ok: true; data: unknown }
   | { ok: false };
 
-function errorPayload(code: StableErrorCode): JsonRecord {
+function errorPayload(code: SemogtwMcpErrorCode): JsonRecord {
   return { ok: false, error: { code } };
 }
 
@@ -101,7 +101,7 @@ function serializePayload(payload: JsonRecord): SerializationResult {
   }
 }
 
-function toolFailure(code: StableErrorCode) {
+function toolFailure(code: SemogtwMcpErrorCode) {
   return {
     content: [
       {
@@ -180,7 +180,7 @@ async function guardedTool(
 export function createSemogtwMcpServer(
   service: SemogtwMcpReadService,
 ): McpServer {
-  const server = new McpServer(SEMOGTW_MCP_SERVER_INFO);
+  const server = new McpServer({ ...SEMOGTW_MCP_SERVER_INFO });
 
   server.registerTool(
     overviewTool.name,
