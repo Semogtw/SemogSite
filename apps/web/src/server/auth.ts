@@ -17,7 +17,7 @@ import {
   getWebAuthProvider,
   getWebSessionSecret,
 } from "./auth-runtime";
-import { ensureWebAuthConfigured } from "./node-auth-composition";
+import { ensureWebAuthConfigured } from "./node-auth-composition.server";
 
 export const SESSION_COOKIE = "semogtw_session";
 export const CSRF_COOKIE = "semogtw_csrf";
