@@ -1,15 +1,25 @@
 import { EmptyState, Status, Surface } from "@semogtw/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
 import type { StatusTone } from "@semogtw/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { getCooperativeRunsFn } from "../server/devos-runs";
+import { RunRegistrationForm } from "../components/devos/run-registration-form";
+import {
+  getCooperativeRunRegistrationOptionsFn,
+  getCooperativeRunsFn,
+} from "../server/devos-runs";
 import { requireOwner } from "../server/require-owner";
 
 export const Route = createFileRoute("/devos/runs/")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: () => getCooperativeRunsFn({ data: { limit: 100 } }),
+  loader: async () => {
+    const [runs, projects] = await Promise.all([
+      getCooperativeRunsFn({ data: { limit: 100 } }),
+      getCooperativeRunRegistrationOptionsFn(),
+    ]);
+    return { runs, projects };
+  },
   head: () => ({
     meta: [
       { title: "Execuções — Semogtw DevOS" },
@@ -48,7 +58,7 @@ function statusTone(status: keyof typeof statusLabels): StatusTone {
 }
 
 function CooperativeRunsPage() {
-  const runs = Route.useLoaderData();
+  const { runs, projects } = Route.useLoaderData();
   const staleCount = runs.filter((run) => run.freshness === "stale").length;
 
   return (
@@ -66,6 +76,20 @@ function CooperativeRunsPage() {
           {runs.length} registros · {staleCount} possivelmente inativos
         </Status>
       </header>
+
+      <Surface className="run-detail-section">
+        <div className="surface-heading-row">
+          <div>
+            <p className="eyebrow">Registro explícito</p>
+            <h2>Nova execução cooperativa</h2>
+            <p className="muted-copy">
+              Criar o registro não inicia um agente. Use-o somente para um
+              participante que concordou em publicar checkpoints.
+            </p>
+          </div>
+        </div>
+        <RunRegistrationForm projects={projects} />
+      </Surface>
 
       {runs.length === 0 ? (
         <EmptyState
