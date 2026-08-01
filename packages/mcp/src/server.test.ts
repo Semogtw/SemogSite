@@ -152,7 +152,11 @@ describe("Semogtw MCP read adapter", () => {
       "semogtw://devos/projects",
       "semogtw://devos/roadmap",
     ]);
-    expect(resources.resources.every((resource) => resource.mimeType === "application/json")).toBe(true);
+    expect(
+      resources.resources.every(
+        (resource) => resource.mimeType === "application/json",
+      ),
+    ).toBe(true);
   });
 
   it("returns text and structured content for successful tools", async () => {
@@ -226,11 +230,15 @@ describe("Semogtw MCP read adapter", () => {
     });
 
     expect(result.contents).toHaveLength(1);
-    expect(result.contents[0]).toMatchObject({
+    const content = result.contents[0];
+    expect(content).toMatchObject({
       uri: "semogtw://devos/projects",
       mimeType: "application/json",
     });
-    expect(JSON.parse(result.contents[0]!.text!)).toMatchObject({
+    if (content === undefined || !("text" in content)) {
+      throw new Error("EXPECTED_TEXT_RESOURCE");
+    }
+    expect(JSON.parse(content.text)).toMatchObject({
       ok: true,
       data: { activeProjects: [{ slug: "semog-site" }] },
     });
@@ -263,7 +271,11 @@ describe("Semogtw MCP read adapter", () => {
       uri: "semogtw://devos/overview",
     });
     expect(JSON.stringify(resource)).not.toContain("do-not-expose");
-    expect(JSON.parse(resource.contents[0]!.text!)).toEqual({
+    const content = resource.contents[0];
+    if (content === undefined || !("text" in content)) {
+      throw new Error("EXPECTED_TEXT_RESOURCE");
+    }
+    expect(JSON.parse(content.text)).toEqual({
       ok: false,
       error: { code: "DEVOS_READ_FAILED" },
     });
