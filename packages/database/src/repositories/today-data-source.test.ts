@@ -12,6 +12,7 @@ describe("SqliteTodayDataSource", () => {
       {
         stageId: "demo-stage-database",
         projectId: "demo-project-platform",
+        projectSlug: "semogtw-platform-demo",
         projectPriority: "medium",
         partiallyBlocked: false,
       },
