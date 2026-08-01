@@ -4,6 +4,13 @@ const recordSchema = z.record(z.unknown());
 const recordListSchema = z.array(recordSchema);
 const nullableTimestampSchema = z.string().datetime().nullable();
 const nullableTextSchema = z.string().nullable();
+const dataSourceSchema = z.enum([
+  "manual",
+  "github",
+  "mcp",
+  "migration",
+  "seed_demo",
+]);
 
 export const devosOverviewOutputSchema = z
   .object({
@@ -45,7 +52,7 @@ export const devosProjectOutputSchema = z
     recentSessions: recordListSchema,
     nextGate: nullableTextSchema,
     safetyConstraint: nullableTextSchema,
-    dataSource: z.string().trim().min(1).max(50),
+    dataSource: dataSourceSchema,
     updatedAt: z.string().datetime(),
   })
   .passthrough();
