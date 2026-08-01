@@ -5,4 +5,5 @@ export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqliteStageRepository } from "./repositories/stage-repository";
+export { SqliteTodayDataSource } from "./repositories/today-data-source";
 export * as schema from "./schema";
