@@ -1,7 +1,7 @@
 .devos-page-intro {
   max-width: 72ch;
   margin: 0.5rem 0 0;
-  color: var(--sem-color-text-muted);
+  color: var(--semog-muted);
 }
 
 .run-card-grid {
@@ -47,7 +47,7 @@
 }
 
 .run-card__metadata dt {
-  color: var(--sem-color-text-muted);
+  color: var(--semog-muted);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -61,9 +61,9 @@
 
 .run-card__blocker {
   padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--sem-color-danger) 45%, transparent);
-  border-radius: var(--sem-radius-md);
-  background: color-mix(in srgb, var(--sem-color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--semog-danger) 45%, transparent);
+  border-radius: var(--semog-radius-md);
+  background: color-mix(in srgb, var(--semog-danger) 8%, transparent);
 }
 
 .run-detail-summary-grid {
@@ -86,9 +86,9 @@
 .run-timeline__item,
 .run-command {
   padding: 1rem;
-  border: 1px solid var(--sem-color-border);
-  border-radius: var(--sem-radius-md);
-  background: color-mix(in srgb, var(--sem-color-surface-raised) 72%, transparent);
+  border: 1px solid var(--semog-border);
+  border-radius: var(--semog-radius-md);
+  background: color-mix(in srgb, var(--semog-surface-2) 72%, transparent);
 }
 
 .run-timeline__item details,
@@ -119,8 +119,8 @@
   max-height: 24rem;
   overflow: auto;
   padding: 0.75rem;
-  border-radius: var(--sem-radius-sm);
-  background: var(--sem-color-code-surface, rgba(0, 0, 0, 0.08));
+  border-radius: var(--semog-radius-sm);
+  background: var(--semog-surface-1);
   font-size: 0.78rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
