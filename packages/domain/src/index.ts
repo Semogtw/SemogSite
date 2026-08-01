@@ -1,3 +1,11 @@
+export { OverviewService } from "./overview/overview-service";
+export type {
+  DevOSOverview,
+  OverviewAttention,
+  OverviewDataSource,
+  OverviewProject,
+  OverviewStage,
+} from "./overview/overview-service";
 export type { ProjectSnapshot } from "./projects/project";
 export type {
   DomainValidationResult,
@@ -8,6 +16,14 @@ export type {
   StageValidationError,
 } from "./roadmap/stage";
 export { validateStage } from "./roadmap/stage";
+export { TodayService } from "./today/today-service";
+export type {
+  TodayActivityItem,
+  TodayAttentionItem,
+  TodayDataSource,
+  TodayQueue,
+  TodayWorkItem,
+} from "./today/today-service";
 export type {
   EvidenceRepository,
   EvidenceSnapshot,
