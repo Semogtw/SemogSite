@@ -34,6 +34,49 @@ Missing configuration should keep failing closed.
 4. verify rate limit has expired or use a fresh controlled client;
 5. never compare or log the raw password.
 
+## Create a verified database backup
+
+Choose source and destination explicitly. The destination must not exist; the command refuses overwrite.
+
+```bash
+pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw-2026-08-01.sqlite
+```
+
+A successful command prints JSON containing:
+
+- destination path;
+- SQLite `integrity_check` result;
+- zero foreign-key violations;
+- applied migration names;
+- file size and backup page counts.
+
+The backup is local only. The command does not upload, encrypt, rotate or delete files. Store the resulting file in owner-controlled encrypted storage and apply a retention policy outside the repository. Never commit database or backup files.
+
+## Verify or restore a database backup
+
+Verify the file by itself:
+
+```bash
+pnpm verify:backup -- ./backups/semogtw-2026-08-01.sqlite
+```
+
+Compare its migration state with the current source database:
+
+```bash
+pnpm verify:backup -- ./backups/semogtw-2026-08-01.sqlite ./data/semogtw.sqlite
+```
+
+For a restore rehearsal:
+
+1. stop writes to the target environment;
+2. verify the backup with the command above;
+3. copy it to a new temporary path rather than overwriting the live database;
+4. start the application against the temporary path;
+5. run authenticated read checks and the confidentiality scanners;
+6. only replace the production path after the rehearsal succeeds and a fresh pre-restore backup exists.
+
+Do not restore across an unreviewed migration mismatch. The CLI removes a newly created backup when post-backup verification fails, but it never deletes an existing source or verified destination.
+
 ## Public data leak suspected
 
 1. stop public deployment or restrict access immediately;
