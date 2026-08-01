@@ -74,12 +74,7 @@ function RoadmapPage() {
                         >
                           {item.progress}%
                         </Status>
-                        <Link
-                          to="/devos/projects"
-                          search={{}}
-                        >
-                          Projetos
-                        </Link>
+                        <Link to="/devos/projects">Projetos</Link>
                       </div>
                     </article>
                   ))}
