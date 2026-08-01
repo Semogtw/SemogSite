@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSqliteDatabase, migrate } from "../adapters/sqlite";
@@ -32,6 +38,7 @@ describe("SQLite backup", () => {
     const destination = join(temporaryDirectory(), "nested", "backup.sqlite");
 
     const result = await createVerifiedSqliteBackup(database, destination);
+    database.$client.close();
 
     expect(existsSync(destination)).toBe(true);
     expect(result).toMatchObject({
@@ -50,6 +57,14 @@ describe("SQLite backup", () => {
       foreignKeyViolations: 0,
       migrations: result.migrations,
     });
+
+    const restored = createSqliteDatabase(destination);
+    expect(
+      restored.$client
+        .prepare("SELECT focus FROM projects WHERE id = ?")
+        .get("demo-project-platform"),
+    ).toEqual({ focus: "Estado alterado antes do backup." });
+    restored.$client.close();
   });
 
   it("refuses to overwrite an existing destination", async () => {
@@ -62,10 +77,12 @@ describe("SQLite backup", () => {
       createVerifiedSqliteBackup(database, destination),
     ).rejects.toThrow("BACKUP_DESTINATION_EXISTS");
     expect(readFileSync(destination, "utf8")).toBe("sentinel");
+    database.$client.close();
   });
 
   it("rejects a backup whose migration state differs from the expectation", () => {
-    const database = createSqliteDatabase(join(temporaryDirectory(), "other.sqlite"));
+    const path = join(temporaryDirectory(), "other.sqlite");
+    const database = createSqliteDatabase(path);
     migrate(database);
     database.$client
       .prepare("DELETE FROM _semogtw_migrations WHERE name = ?")
@@ -73,7 +90,7 @@ describe("SQLite backup", () => {
     database.$client.close();
 
     expect(() =>
-      verifySqliteBackup(database.$client.name, [
+      verifySqliteBackup(path, [
         "0001_foundation.sql",
         "0002_seed_demo.sql",
       ]),
