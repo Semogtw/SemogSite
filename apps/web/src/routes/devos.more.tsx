@@ -17,11 +17,36 @@ export const Route = createFileRoute("/devos/more")({
 });
 
 const destinations = [
-  { to: "/devos/insights", title: "Insights", description: "Padrões e decisões derivados de evidência." },
-  { to: "/devos/capture", title: "Capturar", description: "Entrada manual rápida com origem explícita." },
-  { to: "/devos/search", title: "Busca", description: "Pesquisa privada sobre conteúdo autorizado." },
-  { to: "/devos/content", title: "Conteúdo", description: "Fluxo editorial privado antes da publicação." },
-  { to: "/devos/settings", title: "Configurações", description: "Conta, integrações e preferências." },
+  {
+    to: "/devos/insights",
+    title: "Insights",
+    description: "Padrões e decisões derivados de evidência.",
+  },
+  {
+    to: "/devos/capture",
+    title: "Capturar",
+    description: "Atenções e handoffs manuais com confirmação e auditoria.",
+  },
+  {
+    to: "/devos/audit",
+    title: "Auditoria",
+    description: "Histórico privado de mutações, motivos e correlações.",
+  },
+  {
+    to: "/devos/search",
+    title: "Busca",
+    description: "Pesquisa privada sobre conteúdo autorizado.",
+  },
+  {
+    to: "/devos/content",
+    title: "Conteúdo",
+    description: "Fluxo editorial privado antes da publicação.",
+  },
+  {
+    to: "/devos/settings",
+    title: "Configurações",
+    description: "Conta, integrações e preferências.",
+  },
 ] as const;
 
 function MorePage() {
