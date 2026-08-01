@@ -33,6 +33,14 @@ export type {
   ManualEvidenceKind,
   RecordedEvidence,
 } from "./evidence/evidence-service";
+export { recommendActiveBranch } from "./integrations/repository-observation";
+export type {
+  BranchObservation,
+  BranchRecommendation,
+  BranchRecommendationEvidence,
+  BranchRecommendationInput,
+  ObservationConfidence,
+} from "./integrations/repository-observation";
 export { OverviewService } from "./overview/overview-service";
 export type {
   DevOSOverview,
