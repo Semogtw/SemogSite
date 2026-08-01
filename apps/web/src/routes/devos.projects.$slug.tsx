@@ -2,6 +2,7 @@ import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { EvidenceCaptureForm } from "../components/devos/evidence-capture-form";
+import { StageCompletionForm } from "../components/devos/stage-completion-form";
 import { getProjectHubFn } from "../server/devos-projects";
 import { requireOwner } from "../server/require-owner";
 
@@ -80,16 +81,22 @@ function ProjectHubPage() {
           ) : (
             <div className="devos-record-list">
               {hub.currentStages.map((stage) => (
-                <article key={stage.id} className="devos-record">
-                  <div>
-                    <h3>{stage.title}</h3>
-                    <p>{stage.nextStep ?? stage.currentPosition}</p>
+                <article
+                  key={stage.id}
+                  className="devos-record devos-record--stacked"
+                >
+                  <div className="devos-record__main">
+                    <div>
+                      <h3>{stage.title}</h3>
+                      <p>{stage.nextStep ?? stage.currentPosition}</p>
+                    </div>
+                    <Status
+                      tone={stage.state === "blocked" ? "danger" : "info"}
+                    >
+                      {stage.progress}% · {stage.state}
+                    </Status>
                   </div>
-                  <Status
-                    tone={stage.state === "blocked" ? "danger" : "info"}
-                  >
-                    {stage.progress}% · {stage.state}
-                  </Status>
+                  <StageCompletionForm stageId={stage.id} />
                 </article>
               ))}
             </div>
