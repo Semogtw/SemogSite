@@ -1,3 +1,4 @@
+export { CSRF_COOKIE_NAME, SESSION_COOKIE_NAME } from "./cookie-names";
 export {
   issueCsrfToken,
   sessionCookieOptions,
