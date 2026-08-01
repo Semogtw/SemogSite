@@ -25,7 +25,9 @@ export type GitHubRepositorySyncView = {
   activeBranch: string | null;
   defaultBranch: string;
   lastSyncedAt: string | null;
-  status: "active" | "historical" | "archived";
+  status: "active" | "paused" | "historical" | "experiment";
+  syncEnabled: boolean;
+  updatedAt: string;
   recommendation: LatestRepositoryRecommendation | null;
 };
 
@@ -90,9 +92,10 @@ export class SqliteGitHubSyncReadModel {
   async getDashboard(): Promise<GitHubSyncDashboard> {
     const repositories = this.database.$client
       .prepare(
-        `SELECT id, full_name, active_branch, default_branch, last_synced_at, status
+        `SELECT id, full_name, active_branch, default_branch, last_synced_at,
+                status, sync_enabled, updated_at
          FROM repositories
-         WHERE sync_enabled = 1 AND status = 'active'
+         WHERE status = 'active'
          ORDER BY
            CASE role WHEN 'primary' THEN 0 WHEN 'secondary' THEN 1 ELSE 2 END,
            full_name ASC`,
@@ -103,7 +106,9 @@ export class SqliteGitHubSyncReadModel {
       active_branch: string | null;
       default_branch: string;
       last_synced_at: string | null;
-      status: "active" | "historical" | "archived";
+      status: "active" | "paused" | "historical" | "experiment";
+      sync_enabled: number;
+      updated_at: string;
     }>;
 
     const observationRepository = new SqliteGitHubObservationRepository(
@@ -118,6 +123,8 @@ export class SqliteGitHubSyncReadModel {
         defaultBranch: repository.default_branch,
         lastSyncedAt: repository.last_synced_at,
         status: repository.status,
+        syncEnabled: repository.sync_enabled === 1,
+        updatedAt: repository.updated_at,
         recommendation: await observationRepository.latestRecommendation(
           repository.id,
         ),
@@ -178,7 +185,9 @@ export class SqliteGitHubSyncReadModel {
     }
 
     return {
-      configuredTargets: repositories.length,
+      configuredTargets: repositories.filter(
+        (repository) => repository.sync_enabled === 1,
+      ).length,
       lastRun,
       repositories: repositoryViews,
     };
