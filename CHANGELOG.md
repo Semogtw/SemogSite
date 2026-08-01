@@ -2,7 +2,7 @@
 
 All notable changes to Semogtw Platform are recorded here. Dates use `America/Bahia` for presentation; commits remain UTC in Git.
 
-## Unreleased — Foundation, operational writes and GitHub operations
+## Unreleased — Foundation, operational writes, GitHub operations and MCP reads
 
 ### Added
 
@@ -28,7 +28,17 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - private repository-target registration without SQL or browser-supplied tokens;
 - audited pause/reactivation of repository observation targets while retaining historical evidence;
 - migration `0004_github_sync_runs.sql`, extending the legacy `sync_runs` table without deleting its original fields;
-- empty `SEMOGTW_GITHUB_TOKEN` declaration in `.env.example` for server-side configuration.
+- empty `SEMOGTW_GITHUB_TOKEN` declaration in `.env.example` for server-side configuration;
+- provider-neutral `DevOSReadService` delegating to canonical Overview, Today, Project and Roadmap services;
+- bounded project-slug and roadmap-filter validation before MCP/read-adapter access;
+- `@semogtw/mcp` adapter using the stable MCP v1.x contract with four static resources and five read tools;
+- read-only, non-destructive, idempotent and closed-world annotations for every MCP tool;
+- MCP success responses with textual JSON plus `structuredContent`;
+- stable sanitized MCP errors without thrown exception text;
+- `apps/mcp` SQLite composition returning an `McpServer` without opening stdio or HTTP listeners;
+- protocol specifications using the official client and `InMemoryTransport`;
+- SQLite-to-MCP integration specification against the migrated demo database;
+- dedicated MCP implementation plan and security/runbook boundaries for future remote transport.
 
 ### Fixed during review
 
@@ -59,7 +69,9 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - GitHub synchronization overwriting manual target state beyond provider metadata;
 - GitHub run inserts omitting the legacy required `trigger`, `repositories_checked` and `changes_applied` fields;
 - backup and migration gates stopping at `0003` after the sync-run migration was added;
-- SQLite tests using stale repository columns, roles and incomplete sync-run fixtures.
+- SQLite tests using stale repository columns, roles and incomplete sync-run fixtures;
+- MCP roadmap resource validation failure being nested inside a false success envelope;
+- MCP test resource assertions accessing text without narrowing blob/text content.
 
 ### Verified in the current environment
 
@@ -68,7 +80,10 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - public confidentiality scanner behavior;
 - upstream and domain-boundary guardrail behavior;
 - Node.js 22 availability;
-- connector-visible branch and PR state after each remote commit.
+- connector-visible branch and PR state after each remote commit;
+- official MCP SDK v1.29.0 source signatures reviewed through connected official sources.
+
+The SDK source review verifies static API alignment only; it is not a passing runtime or typecheck gate.
 
 ### Specified by committed tests but not yet executed here
 
@@ -88,23 +103,34 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - target pause/reactivation concurrency and audit rollback;
 - latest-recommendation acceptance, default-branch no-op and stale-state rejection;
 - private Operations dashboard empty, configured, partial and paused-target states;
-- anonymous confidentiality for repository identities, branches and sync metadata.
+- anonymous confidentiality for repository identities, branches and sync metadata;
+- DevOS read-service delegation, slug validation and roadmap-filter normalization;
+- MCP catalog discovery and read-only annotations;
+- MCP structured tool results and static JSON resources;
+- MCP project not-found/invalid-input mapping;
+- sanitization of unexpected MCP tool/resource failures;
+- SQLite-to-MCP reads through the official in-memory protocol transport;
+- absence of mutation tools from the MCP catalog.
 
 ### Not yet verified
 
 - dependency installation and generated `pnpm-lock.yaml`;
 - full TypeScript workspace check;
 - Vitest workspace execution;
+- MCP SDK package installation and protocol suite execution;
 - TanStack Start production build;
 - authenticated browser checks for operational writes and Operations controls;
 - GitHub token permissions and live provider behavior from the application runtime;
 - backup CLI execution against a real file-backed database after migration `0004`;
 - browser E2E, keyboard and 360 px responsive visual review;
+- authenticated MCP transport, remote client compatibility and host behavior;
 - production host composition, deployment and rollback.
 
 ### Constraints
 
-- the current runtime cannot resolve `registry.npmjs.org`, so committed tests remain specifications rather than passage evidence;
+- the current shell registry reports the scoped MCP SDK as unavailable and direct public GitHub access fails DNS, so the new package cannot be installed or executed here;
+- committed tests remain specifications rather than passage evidence until observed in a dependency-complete environment;
 - connected Figma access is view-only, so editable design frames are not claimed as complete;
-- no Notion migration, GitHub write, MCP exposure or public deployment has been performed;
-- no recommendation acceptance or repository-target mutation has been exercised through a built browser session.
+- no Notion migration, GitHub write, MCP remote exposure or public deployment has been performed;
+- no recommendation acceptance or repository-target mutation has been exercised through a built browser session;
+- the MCP server factory intentionally opens no listener and must not be described as a deployed endpoint.
