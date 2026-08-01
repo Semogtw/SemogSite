@@ -63,6 +63,18 @@ export type {
   StageValidationError,
 } from "./roadmap/stage";
 export { validateStage } from "./roadmap/stage";
+export { SessionHandoffService } from "./sessions/session-handoff-service";
+export type {
+  RecordedDevelopmentSession,
+  RecordSessionHandoffInput,
+  SessionHandoffAuditEvent,
+  SessionHandoffContext,
+  SessionHandoffRepository,
+  SessionHandoffResult,
+  SessionHandoffValidationError,
+  SessionResult,
+  SessionTestsStatus,
+} from "./sessions/session-handoff-service";
 export { TodayService } from "./today/today-service";
 export type {
   TodayActivityItem,
