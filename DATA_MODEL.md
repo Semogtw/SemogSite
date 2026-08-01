@@ -7,7 +7,9 @@
 - visibility is explicit: `private`, `unlisted`, or `public`;
 - imported/demo origin is explicit in `source` or `updated_from`;
 - manual locks prevent synchronization from overwriting owner decisions;
-- public projections are independent DTOs.
+- public projections are independent DTOs;
+- sensitive manual mutations require a reason, confirmation and append-only audit event;
+- entity mutation and corresponding audit insertion share one database transaction.
 
 ## Main entities
 
@@ -31,6 +33,8 @@ Mandatory stage invariants:
 
 These rules live in `packages/domain/src/roadmap/stage.ts`, not in UI or SQL handlers.
 
+Manual completion uses a dedicated service and repository. The service reloads the stage with its evidence, creates the proposed completed snapshot, runs the invariants, and only then requests an optimistic transaction. A successful completion sets `state = completed`, `progress = 100`, `done = true`, clears `next_step` and `blocker`, sets `manual_lock = true`, records `updated_from = manual`, and inserts a `stage.complete` audit event in the same transaction.
+
 ### Attention, sessions and evidence
 
 - `attention_items`: risks, blockers, decisions and external dependencies;
@@ -39,6 +43,12 @@ These rules live in `packages/domain/src/roadmap/stage.ts`, not in UI or SQL han
 
 Failed, pending or superseded evidence cannot satisfy completion.
 
+Manual attention capture maps the domain type `critical_test` to the canonical persisted type `local_test`. `external_dependency` and `critical_test` are assigned to `external_environment`; other currently supported capture types are assigned to `owner`. Resolution and dismissal are optimistic transitions from an active state and store before/after snapshots in audit.
+
+Manual development-session handoffs preserve the explicitly reported test status. Commit SHAs are normalized and deduplicated, but commit presence never promotes tests to `passed`. Browser-created sessions use the authenticated owner as actor and server time as the session timestamp.
+
+Manual evidence accepts only the canonical evidence kinds and statuses. Optional links must be HTTPS and cannot include URL credentials. The selected status is preserved exactly; a failed or pending result is never promoted by the service.
+
 ### Publications, timeline and media
 
 Publications follow `private_draft → review → scheduled/published`. Publishing requires owner approval. Timeline and media have their own visibility and cannot inherit project visibility implicitly.
@@ -46,6 +56,17 @@ Publications follow `private_draft → review → scheduled/published`. Publishi
 ### Sync and audit
 
 `sync_runs` records conservative reconciliations. `audit_events` is append-only for sensitive mutations and records actor, action, before/after, reason, confirmation and correlation ID.
+
+Current manual audit actions include:
+
+- `attention.create`;
+- `attention.resolve`;
+- `attention.dismiss`;
+- `development_session.create`;
+- `evidence.create`;
+- `stage.complete`.
+
+Optimistic attention and stage transitions match the expected current state and `updated_at`. A stale write returns a conflict and must not create an audit row.
 
 ### Authentication
 
@@ -72,4 +93,4 @@ type PublicProjectDto = {
 };
 ```
 
-A private project or a project without an approved public summary cannot be serialized.
+A private project or a project without an approved public summary cannot be serialized. Attention, sessions, evidence, stages and audit events are not part of this projection.
