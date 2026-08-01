@@ -54,6 +54,8 @@
 
 .devos-layout { min-height: 100dvh; display: flex; background: var(--color-bg); }
 .devos-main { width: 100%; min-width: 0; padding: clamp(24px, 5vw, 64px); }
+.devos-session-actions { min-height: 44px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 20px; }
+.devos-session-message { margin: 0; color: var(--color-danger); font-size: .8125rem; }
 .devos-page-header {
   display: flex;
   align-items: flex-start;
@@ -85,7 +87,8 @@
   .editorial-page-header { padding-block: 72px; }
   .public-main > .sem-state { margin-bottom: 64px; }
   .devos-layout { display: block; }
-  .devos-main { padding: 24px 16px 92px; }
+  .devos-main { padding: 16px 16px 92px; }
+  .devos-session-actions { margin-bottom: 12px; }
   .devos-page-header { display: grid; }
   .metric-grid, .devos-section-grid, .more-grid { grid-template-columns: 1fr; }
   .devos-section-grid > :first-child { grid-column: auto; }
