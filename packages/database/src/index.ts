@@ -4,6 +4,7 @@ export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
 export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
+export { SqlitePublicProjectSource } from "./repositories/public-project-source";
 export { SqliteRoadmapDataSource } from "./repositories/roadmap-data-source";
 export { SqliteStageRepository } from "./repositories/stage-repository";
 export { SqliteTodayDataSource } from "./repositories/today-data-source";
