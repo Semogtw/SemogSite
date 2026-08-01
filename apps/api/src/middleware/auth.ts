@@ -1,9 +1,10 @@
-import type { AuthProvider } from "@semogtw/auth";
+import {
+  SESSION_COOKIE_NAME,
+  type AuthProvider,
+} from "@semogtw/auth";
 import { getCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import type { ApiEnvironment } from "./request-context";
-
-const SESSION_COOKIE = "semogtw_session";
 
 export function createPrivateAuthMiddleware(authProvider?: AuthProvider) {
   return createMiddleware<ApiEnvironment>(async (context, next) => {
@@ -23,7 +24,7 @@ export function createPrivateAuthMiddleware(authProvider?: AuthProvider) {
       );
     }
 
-    const rawToken = getCookie(context, SESSION_COOKIE);
+    const rawToken = getCookie(context, SESSION_COOKIE_NAME);
     const owner =
       rawToken === undefined
         ? null
