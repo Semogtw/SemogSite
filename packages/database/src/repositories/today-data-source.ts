@@ -25,6 +25,7 @@ export class SqliteTodayDataSource implements TodayDataSource {
       .select({
         stageId: stages.id,
         projectId: projects.id,
+        projectSlug: projects.slug,
         projectName: projects.name,
         projectPriority: projects.priority,
         title: stages.title,
@@ -62,6 +63,7 @@ export class SqliteTodayDataSource implements TodayDataSource {
       return {
         stageId: row.stageId,
         projectId: row.projectId,
+        projectSlug: row.projectSlug,
         projectName: row.projectName,
         projectPriority: row.projectPriority,
         title: row.title,
@@ -101,7 +103,7 @@ export class SqliteTodayDataSource implements TodayDataSource {
       .where(
         and(
           inArray(attentionItems.status, ["open", "monitoring"]),
-          inArray(attentionItems.owner, owners),
+          inArray(attentionItems.owner, [...owners]),
         ),
       )
       .orderBy(desc(attentionItems.updatedAt))
