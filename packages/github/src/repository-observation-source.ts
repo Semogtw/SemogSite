@@ -33,7 +33,7 @@ export interface GitHubReadClient {
 
 export type ObservationClock = () => string | Promise<string>;
 
-const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u;
+const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/u;
 const repositoryPattern = /^[A-Za-z0-9._-]{1,100}$/u;
 const branchPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
 const headShaPattern = /^[0-9a-f]{7,64}$/u;
@@ -105,10 +105,18 @@ function normalizedClockValue(value: string): string {
   return new Date(epoch).toISOString();
 }
 
-function hasSafeRepositoryMetadata(repository: GitHubRepository): boolean {
+function hasSafeRepositoryMetadata(
+  repository: GitHubRepository,
+  target: RepositorySyncTarget,
+): boolean {
   if (!ownerPattern.test(repository.owner)) return false;
   if (!repositoryPattern.test(repository.name)) return false;
+  if (repository.name === "." || repository.name === "..") return false;
   if (repository.fullName !== `${repository.owner}/${repository.name}`) {
+    return false;
+  }
+  const requestedIdentity = `${target.owner.trim()}/${target.name.trim()}`;
+  if (repository.fullName.toLowerCase() !== requestedIdentity.toLowerCase()) {
     return false;
   }
   if (!isSafeBranchName(repository.defaultBranch)) return false;
@@ -118,10 +126,14 @@ function hasSafeRepositoryMetadata(repository: GitHubRepository): boolean {
 
   try {
     const url = new URL(repository.htmlUrl);
+    const expectedPath = `/${repository.owner}/${repository.name}`.toLowerCase();
     return (
       url.protocol === "https:" &&
       url.username.length === 0 &&
-      url.password.length === 0
+      url.password.length === 0 &&
+      url.search.length === 0 &&
+      url.hash.length === 0 &&
+      url.pathname.replace(/\/$/u, "").toLowerCase().endsWith(expectedPath)
     );
   } catch {
     return false;
@@ -161,7 +173,7 @@ export class GitHubRepositoryObservationSource
     }
     if (
       repositoryResult.status !== "ok" ||
-      !hasSafeRepositoryMetadata(repositoryResult.data)
+      !hasSafeRepositoryMetadata(repositoryResult.data, target)
     ) {
       return {
         ok: false,
