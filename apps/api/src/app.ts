@@ -22,7 +22,7 @@ export type ApiDependencies = {
 };
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
-  const api = new Hono<ApiEnvironment>();
+  const api = new Hono<ApiEnvironment>({ strict: false });
 
   api.use("*", requestContext);
   api.onError(sanitizedErrorHandler);
