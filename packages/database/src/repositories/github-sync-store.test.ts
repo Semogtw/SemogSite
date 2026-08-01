@@ -219,11 +219,15 @@ describe("SqliteGitHubSyncStore", () => {
     expect(
       database.$client
         .prepare(
-          "SELECT status, created_count, updated_count, skipped_count, error_count, warnings_json, rate_limit_remaining, rate_limit_reset_at, metadata_json FROM sync_runs WHERE id = ?",
+          "SELECT integration, trigger, status, repositories_checked, changes_applied, created_count, updated_count, skipped_count, error_count, warnings_json, rate_limit_remaining, rate_limit_reset_at, metadata_json FROM sync_runs WHERE id = ?",
         )
         .get("sync-run-1"),
     ).toEqual({
+      integration: "github",
+      trigger: "manual",
       status: "success",
+      repositories_checked: 1,
+      changes_applied: 1,
       created_count: 1,
       updated_count: 0,
       skipped_count: 0,
@@ -271,11 +275,13 @@ describe("SqliteGitHubSyncStore", () => {
     database.$client
       .prepare(
         `INSERT INTO sync_runs (
-          id, integration, scope, status, started_at, finished_at,
+          id, integration, scope, trigger, started_at, finished_at, status,
+          repositories_checked, changes_applied,
           created_count, updated_count, skipped_count, error_count,
           warnings_json, error_summary, cursor, rate_limit_remaining,
           rate_limit_reset_at, metadata_json
-        ) VALUES (?, 'github', 'repositories', 'running', ?, NULL, 0, 0, 0, 0, '[]', NULL, NULL, NULL, NULL, '{}')`,
+        ) VALUES (?, 'github', 'repositories', 'manual', ?, NULL, 'running',
+          0, 0, 0, 0, 0, 0, '[]', NULL, NULL, NULL, NULL, '{}')`,
       )
       .run("sync-run-1", observedAt);
     const store = new SqliteGitHubSyncStore(database);
