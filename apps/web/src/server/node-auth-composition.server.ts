@@ -4,6 +4,7 @@ import {
   createSqliteDatabase,
   migrate,
   SqliteAuthSessionStore,
+  type SqliteDatabase,
 } from "@semogtw/database";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -11,6 +12,7 @@ import { configureWebAuth, getWebAuthProvider } from "./auth-runtime";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 let configurationAttempt: Promise<boolean> | null = null;
+let databaseInstance: SqliteDatabase | null = null;
 
 function ensureDatabaseDirectory(databaseUrl: string): string {
   if (databaseUrl === ":memory:") return databaseUrl;
@@ -20,7 +22,7 @@ function ensureDatabaseDirectory(databaseUrl: string): string {
 }
 
 async function configureNodeAuth(): Promise<boolean> {
-  if (getWebAuthProvider() !== null) return true;
+  if (getWebAuthProvider() !== null && databaseInstance !== null) return true;
 
   try {
     const config = parseRuntimeConfig(process.env);
@@ -46,8 +48,10 @@ async function configureNodeAuth(): Promise<boolean> {
       }),
       sessionSecret: config.sessionSecret,
     });
+    databaseInstance = database;
     return true;
   } catch {
+    databaseInstance = null;
     return false;
   }
 }
@@ -57,6 +61,13 @@ export async function ensureWebAuthConfigured(): Promise<boolean> {
   return configurationAttempt;
 }
 
+export async function getNodeDatabase(): Promise<SqliteDatabase | null> {
+  if (!(await ensureWebAuthConfigured())) return null;
+  return databaseInstance;
+}
+
 export function resetNodeAuthCompositionForTests(): void {
+  databaseInstance?.$client.close();
+  databaseInstance = null;
   configurationAttempt = null;
 }
