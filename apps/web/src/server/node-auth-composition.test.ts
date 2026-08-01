@@ -7,7 +7,7 @@ import {
 import {
   ensureWebAuthConfigured,
   resetNodeAuthCompositionForTests,
-} from "./node-auth-composition";
+} from "./node-auth-composition.server";
 
 const originalEnv = { ...process.env };
 
