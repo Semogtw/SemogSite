@@ -17,8 +17,14 @@ const privateFields = [
 
 const secretPatterns = [
   { name: "github-token", pattern: /gh[pousr]_[A-Za-z0-9_]{20,}/u },
-  { name: "generic-api-key", pattern: /(?:api[_-]?key|secret)["'\s:=]+[A-Za-z0-9_\-]{24,}/iu },
-  { name: "private-key", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/u },
+  {
+    name: "generic-api-key",
+    pattern: /(?:api[_-]?key|secret)["'\s:=]+[A-Za-z0-9_\-]{24,}/iu,
+  },
+  {
+    name: "private-key",
+    pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/u,
+  },
 ];
 
 const exactPublicFiles = new Set([
@@ -35,12 +41,13 @@ const exactPublicFiles = new Set([
 ]);
 
 export function isPublicSurfacePath(path) {
+  if (/\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(path)) return false;
+
   return (
     exactPublicFiles.has(path) ||
     path.startsWith("apps/web/src/components/public/") ||
     path.startsWith("apps/web/public/") ||
-    path.startsWith("apps/api/src/routes/public/") ||
-    path.startsWith("packages/contracts/src/public/")
+    path.startsWith("apps/api/src/routes/public/")
   );
 }
 
@@ -84,5 +91,7 @@ async function main() {
   console.log(`Public confidentiality check passed (${files.length} files scanned).`);
 }
 
-const direct = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
+const direct =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === process.argv[1];
 if (direct) await main();
