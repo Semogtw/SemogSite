@@ -1,4 +1,5 @@
 import {
+  Activity,
   CalendarCheck2,
   FolderKanban,
   Gauge,
@@ -14,6 +15,7 @@ const items = [
   { href: "/devos/projects", label: "Projetos", icon: FolderKanban },
   { href: "/devos/roadmap", label: "Roadmap", icon: ListChecks },
   { href: "/devos/operations", label: "Operação", icon: Workflow },
+  { href: "/devos/runs", label: "Execuções", icon: Activity },
   { href: "/devos/audit", label: "Auditoria", icon: ScrollText },
   { href: "/devos/settings", label: "Configurações", icon: Settings },
 ] as const;
