@@ -17,6 +17,7 @@ import publicProjectsCss from "../styles/public-projects.css?url";
 import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
 import repositoryTargetCss from "../styles/repository-target.css?url";
 import roadmapCss from "../styles/roadmap.css?url";
+import runsCss from "../styles/runs.css?url";
 import stageCompletionCss from "../styles/stage-completion.css?url";
 import surfacesCss from "../styles/surfaces.css?url";
 
@@ -48,6 +49,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: repositoryTargetCss },
       { rel: "stylesheet", href: repositoryTargetLifecycleCss },
       { rel: "stylesheet", href: roadmapCss },
+      { rel: "stylesheet", href: runsCss },
       { rel: "stylesheet", href: publicProjectsCss },
     ],
   }),
