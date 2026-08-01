@@ -230,6 +230,13 @@ export type {
   CooperativeRunCommandTransitionStoreResult,
   CooperativeRunCommandTransitionValidationError,
 } from "./runs/run-command-transition-service";
+export { CooperativeRunCommandInboxService } from "./runs/run-command-inbox-service";
+export type {
+  CooperativeRunCommandInboxInput,
+  CooperativeRunCommandInboxRepository,
+  CooperativeRunCommandInboxResult,
+  CooperativeRunCommandInboxValidationError,
+} from "./runs/run-command-inbox-service";
 export { SessionHandoffService } from "./sessions/session-handoff-service";
 export type {
   RecordedDevelopmentSession,
