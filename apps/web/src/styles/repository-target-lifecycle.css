@@ -1,0 +1,90 @@
+.github-repository-card__statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.repository-target-lifecycle {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 8px;
+}
+
+.repository-target-lifecycle > summary {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-weight: 750;
+}
+
+.repository-target-lifecycle__form {
+  display: grid;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.repository-target-lifecycle__form > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
+.repository-target-lifecycle__form > label:not(.capture-confirmation) {
+  display: grid;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.repository-target-lifecycle__form textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.repository-target-lifecycle__form textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.repository-target-lifecycle__form .sem-button {
+  width: fit-content;
+}
+
+.repository-target-lifecycle__feedback {
+  margin: 0;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.repository-target-lifecycle__feedback--success {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.repository-target-lifecycle__feedback--error {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+@media (max-width: 560px) {
+  .github-repository-card__statuses {
+    justify-content: flex-start;
+  }
+
+  .repository-target-lifecycle__form .sem-button {
+    width: 100%;
+  }
+}
