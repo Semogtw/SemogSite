@@ -1,0 +1,87 @@
+.operations-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.repository-target-panel .surface-heading-row {
+  margin-bottom: 20px;
+}
+
+.repository-target-form {
+  display: grid;
+  gap: 14px;
+}
+
+.repository-target-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.repository-target-form label:not(.capture-confirmation) {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.repository-target-form input,
+.repository-target-form select,
+.repository-target-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.repository-target-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.repository-target-form input:focus-visible,
+.repository-target-form select:focus-visible,
+.repository-target-form textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.repository-target-form > .sem-button {
+  width: fit-content;
+  min-width: 210px;
+}
+
+.repository-target-form__feedback {
+  margin: 0;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.repository-target-form__feedback--success {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.repository-target-form__feedback--error {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+@media (max-width: 640px) {
+  .repository-target-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .repository-target-form > .sem-button {
+    width: 100%;
+  }
+}
