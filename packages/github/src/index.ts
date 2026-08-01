@@ -14,3 +14,8 @@ export type {
   GitHubRestClientOptions,
   GitHubResult,
 } from "./github-rest-client";
+export { GitHubRepositoryObservationSource } from "./repository-observation-source";
+export type {
+  GitHubReadClient,
+  ObservationClock,
+} from "./repository-observation-source";
