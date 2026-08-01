@@ -71,6 +71,13 @@
 .devos-section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .devos-section-grid > :first-child { grid-column: 1 / -1; }
 .devos-section-grid h2, .roadmap-column h2 { margin: 0 0 20px; font-size: 1rem; }
+.devos-record-list { display: grid; }
+.devos-record { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--color-border); padding-block: 14px; }
+.devos-record:last-child { border-bottom: 1px solid var(--color-border); }
+.devos-record h3 { margin: 0; font-size: .975rem; }
+.devos-record p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.5; }
+.devos-record-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.devos-record-actions a { min-height: 44px; display: inline-flex; align-items: center; color: var(--color-primary); font-weight: 700; }
 .catalog-disclosure { margin-top: 16px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface-1); }
 .catalog-disclosure summary { min-height: 52px; display: flex; align-items: center; padding: 0 24px; cursor: pointer; font-weight: 700; }
 .catalog-disclosure .sem-state { margin: 0 24px 24px; }
@@ -92,6 +99,8 @@
   .devos-page-header { display: grid; }
   .metric-grid, .devos-section-grid, .more-grid { grid-template-columns: 1fr; }
   .devos-section-grid > :first-child { grid-column: auto; }
+  .devos-record { align-items: flex-start; flex-direction: column; }
+  .devos-record-actions { width: 100%; justify-content: space-between; }
   .roadmap-board { display: grid; grid-template-columns: 1fr; overflow: visible; }
   .roadmap-column { min-width: 0; }
 }
