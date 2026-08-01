@@ -1,0 +1,14 @@
+@import "./tokens.css";
+
+* { box-sizing: border-box; }
+html { color-scheme: dark; background: var(--semog-bg); }
+body { margin: 0; background: var(--semog-bg); color: var(--semog-text); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+a { color: inherit; }
+button, input, textarea, select { font: inherit; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--semog-primary) 70%, white); outline-offset: 3px; }
+[data-tabular] { font-variant-numeric: tabular-nums; }
+.sem-touch-target { min-width: var(--semog-touch); min-height: var(--semog-touch); }
+.sem-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
