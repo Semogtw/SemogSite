@@ -9,7 +9,7 @@ function seedTarget(database: ReturnType<typeof createSqliteDatabase>): void {
   database.$client
     .prepare(
       `INSERT INTO repositories (
-        id, project_id, github_node_id, owner, name, full_name, html_url,
+        id, project_id, github_node_id, owner, name, full_name, github_url,
         visibility, default_branch, active_branch, role, sync_enabled, status,
         last_synced_at, data_source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -25,7 +25,7 @@ function seedTarget(database: ReturnType<typeof createSqliteDatabase>): void {
       "private",
       "main",
       "develop/foundation-bootstrap",
-      "primary",
+      "product",
       1,
       "active",
       null,
@@ -36,29 +36,22 @@ function seedTarget(database: ReturnType<typeof createSqliteDatabase>): void {
   database.$client
     .prepare(
       `INSERT INTO sync_runs (
-        id, integration, scope, status, started_at, finished_at,
+        id, integration, scope, trigger, started_at, finished_at, status,
+        repositories_checked, changes_applied,
         created_count, updated_count, skipped_count, error_count,
         warnings_json, error_summary, cursor, rate_limit_remaining,
         rate_limit_reset_at, metadata_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, 'manual', ?, NULL, ?, 0, 0, 0, 0, 0, 0,
+        '[]', NULL, NULL, ?, ?, '{}')`,
     )
     .run(
       "sync-run-1",
       "github",
       "repositories",
-      "running",
       observedAt,
-      null,
-      0,
-      0,
-      0,
-      0,
-      "[]",
-      null,
-      null,
+      "running",
       4990,
       "2026-08-01T19:00:00.000Z",
-      "{}",
     );
 }
 
@@ -123,6 +116,8 @@ describe("SqliteGitHubObservationRepository", () => {
 
     await expect(repository.insertObservation(aggregate())).resolves.toBe("inserted");
     await expect(repository.latestRecommendation("repository-1")).resolves.toMatchObject({
+      id: "recommendation-1",
+      repositoryObservationId: "repository-observation-1",
       repositoryId: "repository-1",
       fullName: "Semogtw/SemogSite",
       status: "recommended",
@@ -132,6 +127,7 @@ describe("SqliteGitHubObservationRepository", () => {
       evidence: [{ name: "develop/foundation-bootstrap", headSha: "abcdef1234567" }],
       malformedJson: [],
     });
+    database.$client.close();
   });
 
   it("treats a repeated repository source hash as an idempotent duplicate", async () => {
@@ -149,6 +145,7 @@ describe("SqliteGitHubObservationRepository", () => {
     expect(
       database.$client.prepare("SELECT COUNT(*) AS count FROM github_branch_observations").get(),
     ).toEqual({ count: 1 });
+    database.$client.close();
   });
 
   it("rolls back the parent when a child source hash conflicts", async () => {
@@ -166,6 +163,7 @@ describe("SqliteGitHubObservationRepository", () => {
         .prepare("SELECT id FROM github_repository_observations WHERE id = ?")
         .get("repository-observation-2"),
     ).toBeUndefined();
+    database.$client.close();
   });
 
   it("sanitizes malformed historical recommendation JSON", async () => {
@@ -185,5 +183,6 @@ describe("SqliteGitHubObservationRepository", () => {
       evidence: [],
       malformedJson: ["warnings"],
     });
+    database.$client.close();
   });
 });
