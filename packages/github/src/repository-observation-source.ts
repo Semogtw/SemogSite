@@ -1,4 +1,5 @@
 import type {
+  BranchObservation,
   GitHubObservationSource,
   RepositoryObservationFailure,
   RepositoryObservationResult,
@@ -10,7 +11,6 @@ import {
   type GitHubBranchPage,
   type GitHubCommitObservation,
   type GitHubRepository,
-  type GitHubResponseMeta,
   type GitHubResult,
 } from "./github-rest-client";
 
@@ -33,6 +33,10 @@ export interface GitHubReadClient {
 
 export type ObservationClock = () => string | Promise<string>;
 
+const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u;
+const repositoryPattern = /^[A-Za-z0-9._-]{1,100}$/u;
+const branchPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
+
 function lowerRemaining(left: number | null, right: number | null): number | null {
   if (left === null) return right;
   if (right === null) return left;
@@ -42,7 +46,11 @@ function lowerRemaining(left: number | null, right: number | null): number | nul
 function laterReset(left: string | null, right: string | null): string | null {
   if (left === null) return right;
   if (right === null) return left;
-  return Date.parse(right) > Date.parse(left) ? right : left;
+  const leftEpoch = Date.parse(left);
+  const rightEpoch = Date.parse(right);
+  if (Number.isNaN(rightEpoch)) return left;
+  if (Number.isNaN(leftEpoch)) return right;
+  return rightEpoch > leftEpoch ? right : left;
 }
 
 function mapFailure(
@@ -81,6 +89,29 @@ function normalizedClockValue(value: string): string {
   return new Date(epoch).toISOString();
 }
 
+function hasSafeRepositoryMetadata(repository: GitHubRepository): boolean {
+  if (!ownerPattern.test(repository.owner)) return false;
+  if (!repositoryPattern.test(repository.name)) return false;
+  if (repository.fullName !== `${repository.owner}/${repository.name}`) {
+    return false;
+  }
+  if (!branchPattern.test(repository.defaultBranch)) return false;
+  if (repository.nodeId.length === 0 || repository.nodeId.length > 500) {
+    return false;
+  }
+
+  try {
+    const url = new URL(repository.htmlUrl);
+    return (
+      url.protocol === "https:" &&
+      url.username.length === 0 &&
+      url.password.length === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
 export class GitHubRepositoryObservationSource
   implements GitHubObservationSource
 {
@@ -112,7 +143,10 @@ export class GitHubRepositoryObservationSource
     } catch (error) {
       return { ok: false, failure: mapFailure(error, observedAt) };
     }
-    if (repositoryResult.status !== "ok") {
+    if (
+      repositoryResult.status !== "ok" ||
+      !hasSafeRepositoryMetadata(repositoryResult.data)
+    ) {
       return {
         ok: false,
         failure: { code: "INVALID_RESPONSE", retryAt: null },
@@ -145,7 +179,7 @@ export class GitHubRepositoryObservationSource
       branchResult.meta.rateLimit.resetAt,
     );
     const warnings: string[] = [];
-    const branches = [];
+    const branches: BranchObservation[] = [];
     let partial = false;
 
     for (const branch of branchResult.data.branches) {
