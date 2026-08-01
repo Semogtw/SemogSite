@@ -1,5 +1,6 @@
 import type {
   Confidence,
+  DataSource,
   Priority,
   ProjectHealth,
   ProjectStatus,
@@ -105,7 +106,7 @@ export type ProjectHub = {
   recentSessions: readonly ProjectHubSession[];
   nextGate: string | null;
   safetyConstraint: string | null;
-  dataSource: string;
+  dataSource: DataSource;
   updatedAt: string;
 };
 
