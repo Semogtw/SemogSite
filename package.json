@@ -7,8 +7,18 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "build": "pnpm -r build",
+    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm -r typecheck && pnpm -r test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "test:guardrails": "node scripts/check-upstream-clean.test.mjs"
+    "dev": "pnpm --filter @semogtw/web dev",
+    "test": "pnpm -r test",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   }
 }
