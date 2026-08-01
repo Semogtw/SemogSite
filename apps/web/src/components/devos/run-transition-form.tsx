@@ -8,7 +8,6 @@ import { transitionCooperativeRunFn } from "../../server/devos-run-transitions";
 
 type TransitionKind =
   | "heartbeat"
-  | "checkpoint"
   | "block"
   | "resume"
   | "complete"
@@ -19,7 +18,6 @@ type TransitionOption = { value: TransitionKind; label: string };
 
 const runningOptions: readonly TransitionOption[] = [
   { value: "heartbeat", label: "Atualizar heartbeat" },
-  { value: "checkpoint", label: "Registrar checkpoint" },
   { value: "block", label: "Marcar bloqueio" },
   { value: "complete", label: "Concluir" },
   { value: "fail", label: "Marcar falha" },
@@ -27,7 +25,6 @@ const runningOptions: readonly TransitionOption[] = [
 ];
 const blockedOptions: readonly TransitionOption[] = [
   { value: "heartbeat", label: "Atualizar heartbeat" },
-  { value: "checkpoint", label: "Registrar checkpoint" },
   { value: "resume", label: "Retomar" },
   { value: "fail", label: "Marcar falha" },
   { value: "cancel", label: "Cancelar" },
@@ -106,69 +103,57 @@ export function RunTransitionForm({
                   nextAction.trim().length === 0 ? null : nextAction.trim(),
               },
             })
-          : kind === "checkpoint"
+          : kind === "block"
             ? await transitionCooperativeRunFn({
                 data: {
                   ...common,
                   kind,
                   progress,
-                  summary: summary.trim(),
-                  phase: phase.trim().length === 0 ? null : phase.trim(),
-                  branch: branch.trim().length === 0 ? null : branch.trim(),
+                  blocker: blocker.trim(),
                   nextAction: nextAction.trim(),
+                  summary:
+                    summary.trim().length === 0 ? null : summary.trim(),
                 },
               })
-            : kind === "block"
+            : kind === "resume"
               ? await transitionCooperativeRunFn({
                   data: {
                     ...common,
                     kind,
                     progress,
-                    blocker: blocker.trim(),
+                    summary: summary.trim(),
+                    phase: phase.trim().length === 0 ? null : phase.trim(),
+                    branch: branch.trim().length === 0 ? null : branch.trim(),
                     nextAction: nextAction.trim(),
-                    summary:
-                      summary.trim().length === 0 ? null : summary.trim(),
                   },
                 })
-              : kind === "resume"
+              : kind === "complete"
                 ? await transitionCooperativeRunFn({
                     data: {
                       ...common,
                       kind,
-                      progress,
+                      progress: 100,
                       summary: summary.trim(),
-                      phase: phase.trim().length === 0 ? null : phase.trim(),
-                      branch: branch.trim().length === 0 ? null : branch.trim(),
-                      nextAction: nextAction.trim(),
                     },
                   })
-                : kind === "complete"
+                : kind === "fail"
                   ? await transitionCooperativeRunFn({
                       data: {
                         ...common,
                         kind,
-                        progress: 100,
+                        reason: reason.trim(),
                         summary: summary.trim(),
                       },
                     })
-                  : kind === "fail"
-                    ? await transitionCooperativeRunFn({
-                        data: {
-                          ...common,
-                          kind,
-                          reason: reason.trim(),
-                          summary: summary.trim(),
-                        },
-                      })
-                    : await transitionCooperativeRunFn({
-                        data: {
-                          ...common,
-                          kind,
-                          reason: reason.trim(),
-                          summary:
-                            summary.trim().length === 0 ? null : summary.trim(),
-                        },
-                      });
+                  : await transitionCooperativeRunFn({
+                      data: {
+                        ...common,
+                        kind,
+                        reason: reason.trim(),
+                        summary:
+                          summary.trim().length === 0 ? null : summary.trim(),
+                      },
+                    });
 
       setFeedback({ message: response.message, success: response.ok });
       if (!response.ok) return;
@@ -190,14 +175,11 @@ export function RunTransitionForm({
     }
   }
 
-  const needsProgress = kind === "checkpoint" || kind === "block" || kind === "resume";
+  const needsProgress = kind === "block" || kind === "resume";
   const needsSummary =
-    kind === "checkpoint" ||
-    kind === "resume" ||
-    kind === "complete" ||
-    kind === "fail";
-  const needsNextAction = kind === "checkpoint" || kind === "block" || kind === "resume";
-  const showsPhase = kind === "heartbeat" || kind === "checkpoint" || kind === "resume";
+    kind === "resume" || kind === "complete" || kind === "fail";
+  const needsNextAction = kind === "block" || kind === "resume";
+  const showsPhase = kind === "heartbeat" || kind === "resume";
   const destructive = kind === "complete" || kind === "fail" || kind === "cancel";
 
   return (
