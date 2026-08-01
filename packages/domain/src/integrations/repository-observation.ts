@@ -160,7 +160,7 @@ export function recommendActiveBranch(
         ? "A branch padrão compartilha o mesmo head mais recente com outras branches; não há evidência de uma linha de desenvolvimento distinta."
         : "Várias branches compartilham o mesmo head mais recente; a recomendação não representa uma linha de desenvolvimento distinta.",
       warnings: normalized.warnings,
-      evidence: toEvidence([selected]),
+      evidence: toEvidence(normalized.branches),
     };
   }
 
