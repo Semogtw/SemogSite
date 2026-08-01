@@ -119,7 +119,7 @@ describe("SqliteCooperativeRunRegistrationRepository", () => {
     database.$client.close();
   });
 
-  it("returns duplicate idempotently without writing another row", async () => {
+  it("deduplicates the same intent even when a retry receives a later server timestamp", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     const repository = new SqliteCooperativeRunRegistrationRepository(database);
@@ -130,6 +130,24 @@ describe("SqliteCooperativeRunRegistrationRepository", () => {
     await expect(repository.register(value, registered)).resolves.toBe(
       "duplicate",
     );
+
+    const later = "2026-08-01T20:05:00.000Z";
+    const retry = {
+      ...value,
+      startedAt: later,
+      lastHeartbeatAt: later,
+      updatedAt: later,
+    };
+    await expect(
+      repository.register(retry, event(retry, { occurredAt: later })),
+    ).resolves.toBe("duplicate");
+    await expect(
+      repository.register(
+        { ...retry, title: "Different run intent" },
+        event(retry, { occurredAt: later }),
+      ),
+    ).resolves.toBe("conflict");
+
     expect(
       database.$client
         .prepare("SELECT COUNT(*) AS count FROM cooperative_runs")
