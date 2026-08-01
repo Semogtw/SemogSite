@@ -2,6 +2,7 @@ import { EmptyState, Status, Surface } from "@semogtw/ui";
 import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { RunCommandQueueForm } from "../components/devos/run-command-queue-form";
 import { getCooperativeRunDetailFn } from "../server/devos-runs";
 import { requireOwner } from "../server/require-owner";
 
@@ -98,6 +99,7 @@ function CooperativeRunDetailPage() {
   }
 
   const { run, events, checkpoints, commands } = detail;
+  const acceptsCommands = run.status === "running" || run.status === "blocked";
 
   return (
     <DevOSShell activePath="/devos/runs">
@@ -239,6 +241,15 @@ function CooperativeRunDetailPage() {
           </div>
           <Status tone="neutral">{commands.length}</Status>
         </div>
+
+        {acceptsCommands ? (
+          <RunCommandQueueForm runId={run.id} />
+        ) : (
+          <p className="muted-copy">
+            A execução está em estado terminal e não aceita novos comandos.
+          </p>
+        )}
+
         {commands.length === 0 ? (
           <EmptyState
             title="Nenhum comando enfileirado"
