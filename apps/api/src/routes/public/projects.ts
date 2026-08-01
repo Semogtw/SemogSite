@@ -15,6 +15,9 @@ const emptyQueries: PublicProjectQueries = {
   findBySlug: async () => null,
 };
 
+const canPublish = (source: PublishableProjectSource): boolean =>
+  source.visibility !== "private" && source.publicSummary !== null;
+
 export function createPublicProjectRoutes(
   queries: PublicProjectQueries = emptyQueries,
 ) {
@@ -22,15 +25,23 @@ export function createPublicProjectRoutes(
     .get("/", async (context) => {
       const sources = await queries.list();
       const data = sources
-        .filter((source) => source.visibility === "public")
+        .filter(
+          (source) => source.visibility === "public" && canPublish(source),
+        )
         .map(toPublicProjectDto);
       return context.json({ ok: true, data });
     })
     .get("/:slug", async (context) => {
       const source = await queries.findBySlug(context.req.param("slug"));
-      if (source === null || source.visibility === "private") {
+      if (source === null || !canPublish(source)) {
         return context.json(
-          { ok: false, error: { code: "NOT_FOUND", message: "Projeto não encontrado." } },
+          {
+            ok: false,
+            error: {
+              code: "NOT_FOUND",
+              message: "Projeto não encontrado.",
+            },
+          },
           404,
         );
       }
