@@ -84,7 +84,27 @@ function toSnapshot(row: RunRow): CooperativeRunSnapshot {
   };
 }
 
-function sameCommandPayload(
+function parseObject(value: string | null): Record<string, unknown> | null {
+  if (value === null) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function sameSerializedPayload(left: string, right: unknown): boolean {
+  try {
+    return left === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+}
+
+function sameCommandIntent(
   existing: ExistingCommandRow,
   command: CooperativeRunCommand,
 ): boolean {
@@ -94,23 +114,24 @@ function sameCommandPayload(
     existing.kind === command.kind &&
     existing.status === command.status &&
     existing.summary === command.summary &&
-    existing.payload_json === JSON.stringify(command.payload) &&
+    sameSerializedPayload(existing.payload_json, command.payload) &&
     existing.reason === command.reason &&
     existing.queued_by === command.queuedBy &&
     existing.correlation_id === command.correlationId &&
-    existing.queued_at === command.queuedAt &&
     existing.acknowledged_at === command.acknowledgedAt &&
     existing.completed_at === command.completedAt &&
-    existing.expires_at === command.expiresAt &&
-    existing.updated_at === command.updatedAt
+    existing.expires_at === command.expiresAt
   );
 }
 
-function sameEventPayload(
+function sameEventIntent(
   existing: ExistingEventRow,
   command: CooperativeRunCommand,
   event: CooperativeRunCommandQueuedEvent,
 ): boolean {
+  const after = parseObject(existing.after_json);
+  if (after === null) return false;
+
   return (
     existing.id === event.id &&
     existing.kind === event.kind &&
@@ -118,9 +139,20 @@ function sameEventPayload(
     existing.source === event.source &&
     existing.summary === event.summary &&
     existing.before_json === null &&
-    existing.after_json === JSON.stringify(command) &&
-    existing.occurred_at === event.occurredAt &&
-    existing.correlation_id === event.correlationId
+    existing.correlation_id === event.correlationId &&
+    after.id === command.id &&
+    after.runId === command.runId &&
+    after.kind === command.kind &&
+    after.status === command.status &&
+    after.summary === command.summary &&
+    JSON.stringify(after.payload) === JSON.stringify(command.payload) &&
+    after.reason === command.reason &&
+    after.queuedBy === command.queuedBy &&
+    after.idempotencyKey === command.idempotencyKey &&
+    after.correlationId === command.correlationId &&
+    after.acknowledgedAt === command.acknowledgedAt &&
+    after.completedAt === command.completedAt &&
+    after.expiresAt === command.expiresAt
   );
 }
 
@@ -183,8 +215,8 @@ export class SqliteCooperativeRunCommandQueueRepository
       if (existingCommand !== undefined || existingEvent !== undefined) {
         return existingCommand !== undefined &&
           existingEvent !== undefined &&
-          sameCommandPayload(existingCommand, command) &&
-          sameEventPayload(existingEvent, command, event)
+          sameCommandIntent(existingCommand, command) &&
+          sameEventIntent(existingEvent, command, event)
           ? ("duplicate" as const)
           : ("conflict" as const);
       }
