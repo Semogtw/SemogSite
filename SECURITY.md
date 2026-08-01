@@ -20,16 +20,21 @@ The platform must protect:
 
 ## Authentication controls
 
-- missing auth configuration denies access;
+Implemented in the local Node/SQLite adapter:
+
+- missing or invalid auth configuration denies access;
 - owner password is stored as a salted PBKDF2-SHA256 hash;
 - password hashing enforces a minimum length and random salt;
 - sessions use at least 32 random bytes;
 - only token digests are persisted;
-- sessions have absolute expiry and revocation;
-- cookies are `HttpOnly`, `SameSite=Lax`, path-scoped and `Secure` in production;
+- sessions have 14-day absolute expiry and explicit revocation;
+- changing the configured password hash revokes active sessions transactionally;
+- session cookies are `HttpOnly`, `SameSite=Lax`, path `/` and `Secure` in production;
+- the readable CSRF cookie is `SameSite=Lax`, path `/` and contains a session-bound signed token;
+- logout refuses an active-session request with invalid CSRF;
 - login failures are generic;
 - login attempts are rate-limited;
-- private mutations require a session-bound CSRF token.
+- every private data server function resolves the owner again, independently of route UI protection.
 
 The local rate limiter is suitable only for a single-process baseline. Multi-instance deployment requires a shared limiter adapter.
 
@@ -41,10 +46,31 @@ Public routes and endpoints:
 - build DTOs with allowlisted fields;
 - never spread a private entity and delete fields;
 - never use private records as fallback for missing public content;
+- omit records without approved editorial summaries;
 - mark unknown dynamic public routes `noindex`;
 - exclude private/unlisted content from future sitemap and structured data.
 
-Automated gates must search anonymous HTML, loader data, API output, metadata, sitemap, robots and logs for known private markers.
+Current automated static gates cover:
+
+- public route/component source;
+- public API route source;
+- public assets such as `robots.txt`;
+- known token and private-field markers;
+- residual upstream identity/template content;
+- forbidden framework imports inside the domain package.
+
+Runtime anonymous HTML, generated loader payloads, metadata and sitemap still require browser/build verification before release.
+
+## Private response caching
+
+`/api/v1/private/*` applies these headers before authentication:
+
+```text
+Cache-Control: no-store, private
+Pragma: no-cache
+```
+
+Private TanStack loaders are protected by server functions and route-level authorization. Host-specific CDN/cache behavior must still be verified on the selected deployment target.
 
 ## Prompt injection and imported content
 
@@ -72,16 +98,16 @@ Never log request bodies, cookies, raw tokens, password values, complete externa
 
 ## Secrets
 
-Use runtime secret storage. `.env`, `.dev.vars`, database files, backups and local worktrees are ignored. Rotation procedures must revoke existing sessions and update integration diagnostics without displaying secret values.
+Use runtime secret storage. `.env`, `.dev.vars`, database files, backups and local worktrees are ignored. `.env.example` intentionally leaves password hash and session secret empty. Rotation procedures revoke existing sessions and must not display secret values.
 
 ## Publication preflight
 
 A public deployment must be blocked when scanners find:
 
 - private repository URLs/names;
-- branch or blocker markers in public files;
+- branch or blocker markers in public output surfaces;
 - token/key patterns;
-- `private` records in public payload fixtures;
+- private records in anonymous payload fixtures;
 - unapproved publications;
 - upstream personal content or template branding.
 
@@ -89,6 +115,7 @@ A public deployment must be blocked when scanners find:
 
 - full dependency installation/build has not yet run in this connector-only environment;
 - the in-memory rate limiter is not distributed;
-- production auth/database composition is intentionally absent until a host is selected;
-- CSP, security headers and deployment-specific cookie domain policy must be finalized with the host adapter;
+- Node/SQLite composition is implemented, but production host composition is not selected;
+- CSP and deployment security headers must be finalized with the host adapter;
+- browser-level confidentiality, cookie and cache behavior has not yet been observed in a built deployment;
 - no public deployment is authorized at this stage.
