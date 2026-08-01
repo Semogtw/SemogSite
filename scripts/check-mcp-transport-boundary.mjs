@@ -7,7 +7,6 @@ import {
 import { fileURLToPath } from "node:url";
 import { join, relative, resolve } from "node:path";
 
-const sourceRoots = ["packages/mcp", "apps/mcp"];
 const sourceExtension = /\.(?:c|m)?(?:j|t)sx?$/u;
 const ignoredDirectories = new Set([
   "node_modules",
@@ -37,12 +36,25 @@ function collectSourceFiles(directory) {
   return files;
 }
 
+function mcpSourceRoots(absoluteRoot) {
+  const roots = [join(absoluteRoot, "packages/mcp")];
+  const appsRoot = join(absoluteRoot, "apps");
+  if (!existsSync(appsRoot)) return roots;
+
+  for (const entry of readdirSync(appsRoot)) {
+    if (entry !== "mcp" && !entry.startsWith("mcp-")) continue;
+    const absolute = join(appsRoot, entry);
+    if (statSync(absolute).isDirectory()) roots.push(absolute);
+  }
+  return roots;
+}
+
 export function scanMcpTransportBoundary(root = process.cwd()) {
   const absoluteRoot = resolve(root);
   const violations = [];
 
-  for (const sourceRoot of sourceRoots) {
-    for (const absolutePath of collectSourceFiles(join(absoluteRoot, sourceRoot))) {
+  for (const sourceRoot of mcpSourceRoots(absoluteRoot)) {
+    for (const absolutePath of collectSourceFiles(sourceRoot)) {
       const content = readFileSync(absolutePath, "utf8");
       const path = relative(absoluteRoot, absolutePath).replaceAll("\\", "/");
 
