@@ -14,6 +14,7 @@ export class SqliteRepositoryTargetOptions {
       .prepare(
         `SELECT id, name, slug
          FROM projects
+         WHERE status <> 'archived'
          ORDER BY name COLLATE NOCASE ASC, id ASC`,
       )
       .all() as RepositoryTargetProjectOption[];
