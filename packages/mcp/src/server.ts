@@ -50,27 +50,37 @@ const roadmapAreaSchema = z.enum([
   "operation",
 ]);
 
+const maxMcpJsonBytes = 256 * 1024;
+
 type StableErrorCode =
   | "DEVOS_READ_FAILED"
   | "PROJECT_INVALID_INPUT"
   | "PROJECT_NOT_FOUND"
-  | "ROADMAP_INVALID_INPUT";
+  | "ROADMAP_INVALID_INPUT"
+  | "RESULT_TOO_LARGE";
 
 type JsonRecord = Record<string, unknown>;
 type ResourceReadResult =
   | { ok: true; data: unknown }
   | { ok: false; code: StableErrorCode };
+type SerializationResult =
+  | { ok: true; text: string }
+  | { ok: false; code: "DEVOS_READ_FAILED" | "RESULT_TOO_LARGE" };
 
 function errorPayload(code: StableErrorCode): JsonRecord {
   return { ok: false, error: { code } };
 }
 
-function toolSuccess(key: string, value: unknown) {
-  const structuredContent: JsonRecord = { [key]: value };
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(structuredContent) }],
-    structuredContent,
-  };
+function serializePayload(payload: JsonRecord): SerializationResult {
+  try {
+    const text = JSON.stringify(payload);
+    if (new TextEncoder().encode(text).byteLength > maxMcpJsonBytes) {
+      return { ok: false, code: "RESULT_TOO_LARGE" };
+    }
+    return { ok: true, text };
+  } catch {
+    return { ok: false, code: "DEVOS_READ_FAILED" };
+  }
 }
 
 function toolFailure(code: StableErrorCode) {
@@ -82,6 +92,17 @@ function toolFailure(code: StableErrorCode) {
       },
     ],
     isError: true,
+  };
+}
+
+function toolSuccess(key: string, value: unknown) {
+  const structuredContent: JsonRecord = { [key]: value };
+  const serialized = serializePayload(structuredContent);
+  if (!serialized.ok) return toolFailure(serialized.code);
+
+  return {
+    content: [{ type: "text" as const, text: serialized.text }],
+    structuredContent,
   };
 }
 
@@ -99,12 +120,17 @@ async function resourceContents(
     payload = errorPayload("DEVOS_READ_FAILED");
   }
 
+  const serialized = serializePayload(payload);
+  const text = serialized.ok
+    ? serialized.text
+    : JSON.stringify(errorPayload(serialized.code));
+
   return {
     contents: [
       {
         uri,
         mimeType: "application/json",
-        text: JSON.stringify(payload),
+        text,
       },
     ],
   };
