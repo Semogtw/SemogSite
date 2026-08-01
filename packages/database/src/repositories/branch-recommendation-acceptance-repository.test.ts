@@ -13,7 +13,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
   database.$client
     .prepare(
       `INSERT INTO repositories (
-        id, project_id, github_node_id, owner, name, full_name, html_url,
+        id, project_id, github_node_id, owner, name, full_name, github_url,
         visibility, default_branch, active_branch, role, sync_enabled, status,
         last_synced_at, data_source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -29,7 +29,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
       "private",
       "main",
       "main",
-      "primary",
+      "product",
       1,
       "active",
       observedAt,
@@ -50,11 +50,14 @@ function seedRecommendation(
   database.$client
     .prepare(
       `INSERT INTO sync_runs (
-        id, integration, scope, status, started_at, finished_at,
+        id, integration, scope, trigger, started_at, finished_at, status,
+        repositories_checked, changes_applied,
         created_count, updated_count, skipped_count, error_count,
         warnings_json, error_summary, cursor, rate_limit_remaining,
         rate_limit_reset_at, metadata_json
-      ) VALUES (?, 'github', 'repositories', 'success', ?, ?, 1, 0, 0, 0, '[]', NULL, NULL, 4900, NULL, '{}')`,
+      ) VALUES (?, 'github', 'repositories', 'manual', ?, ?, 'success',
+        1, 1, 1, 0, 0, 0, '[]', NULL, NULL, 4900, NULL,
+        '{"processedTargets":1}')`,
     )
     .run(`sync-${input.suffix}`, input.observedAt, input.observedAt);
   database.$client
@@ -164,6 +167,7 @@ describe("SqliteBranchRecommendationAcceptanceRepository", () => {
         observedAt,
       },
     });
+    database.$client.close();
   });
 
   it("updates only active branch metadata and inserts audit atomically", async () => {
@@ -189,13 +193,16 @@ describe("SqliteBranchRecommendationAcceptanceRepository", () => {
     expect(
       database.$client
         .prepare(
-          "SELECT active_branch, default_branch, github_node_id, data_source, updated_at FROM repositories WHERE id = ?",
+          "SELECT active_branch, default_branch, github_node_id, role, sync_enabled, status, data_source, updated_at FROM repositories WHERE id = ?",
         )
         .get("repository-1"),
     ).toEqual({
       active_branch: "develop/foundation-bootstrap",
       default_branch: "main",
       github_node_id: "R_repo",
+      role: "product",
+      sync_enabled: 1,
+      status: "active",
       data_source: "github",
       updated_at: acceptedAt,
     });
@@ -208,6 +215,7 @@ describe("SqliteBranchRecommendationAcceptanceRepository", () => {
       before_json: JSON.stringify(before),
       after_json: JSON.stringify(after),
     });
+    database.$client.close();
   });
 
   it("rejects a stale recommendation and writes no audit", async () => {
@@ -239,6 +247,7 @@ describe("SqliteBranchRecommendationAcceptanceRepository", () => {
         .prepare("SELECT id FROM audit_events WHERE id = ?")
         .get(audit.id),
     ).toBeUndefined();
+    database.$client.close();
   });
 
   it("rejects stale repository state and rolls back on audit failure", async () => {
@@ -304,5 +313,6 @@ describe("SqliteBranchRecommendationAcceptanceRepository", () => {
       active_branch: "main",
       updated_at: before.repository.updatedAt,
     });
+    database.$client.close();
   });
 });
