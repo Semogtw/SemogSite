@@ -6,7 +6,9 @@ The platform must protect:
 
 - private repository names and URLs;
 - branches, blockers, evidence and session history;
+- audit before/after snapshots and correlation IDs;
 - authentication tokens, password hashes and CSRF secrets;
+- database and backup files;
 - unpublished drafts and internal project summaries;
 - imported GitHub/Notion content that may contain untrusted instructions.
 
@@ -37,6 +39,23 @@ Implemented in the local Node/SQLite adapter:
 - every private data server function resolves the owner again, independently of route UI protection.
 
 The local rate limiter is suitable only for a single-process baseline. Multi-instance deployment requires a shared limiter adapter.
+
+## Operational mutation controls
+
+Current private writes use the following baseline:
+
+- owner session is revalidated in the server function;
+- browser requests require the session-bound CSRF token;
+- the actor and server timestamp are not accepted from form fields;
+- sensitive writes require an explicit reason and confirmation;
+- domain services normalize and validate before persistence;
+- entity mutation and audit insertion share a transaction;
+- optimistic state transitions reject stale snapshots and write no audit event;
+- stage completion reloads evidence and executes canonical invariants server-side;
+- manual evidence preserves the selected status and accepts only HTTPS URLs without embedded credentials;
+- UI success is not inferred before the server returns a committed result.
+
+These controls are prerequisites for future MCP writes. MCP tools must not bypass the same domain services, repository transactions, confirmation/idempotency rules or audit events.
 
 ## Public/private isolation
 
@@ -94,11 +113,22 @@ Allowed structured fields:
 - integration name and rate-limit state;
 - sanitized error code.
 
-Never log request bodies, cookies, raw tokens, password values, complete external URLs or private source content.
+Never log request bodies, cookies, raw tokens, password values, complete external URLs, audit snapshots or private source content.
 
-## Secrets
+## Secrets and backups
 
 Use runtime secret storage. `.env`, `.dev.vars`, database files, backups and local worktrees are ignored. `.env.example` intentionally leaves password hash and session secret empty. Rotation procedures revoke existing sessions and must not display secret values.
+
+The backup commands:
+
+- operate only on explicitly supplied local paths;
+- refuse to overwrite an existing destination;
+- use SQLite's online backup API;
+- verify integrity, foreign keys and migration state;
+- delete only the newly created destination when verification fails;
+- never upload, encrypt, rotate or commit a backup automatically.
+
+The owner is responsible for encrypted storage, filesystem permissions, off-device copies and retention. A verified SQLite file still contains private operational data and authentication digests; treat it as a protected asset. Do not place backups under the public web root or in repository history.
 
 ## Publication preflight
 
@@ -118,4 +148,5 @@ A public deployment must be blocked when scanners find:
 - Node/SQLite composition is implemented, but production host composition is not selected;
 - CSP and deployment security headers must be finalized with the host adapter;
 - browser-level confidentiality, cookie and cache behavior has not yet been observed in a built deployment;
+- backup encryption and retention are operational responsibilities, not application features;
 - no public deployment is authorized at this stage.
