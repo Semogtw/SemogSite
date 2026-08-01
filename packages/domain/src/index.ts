@@ -7,6 +7,7 @@ export type {
   AttentionLifecycleResult,
   AttentionLifecycleSnapshot,
   AttentionLifecycleStatus,
+  AttentionLifecycleType,
   AttentionLifecycleValidationError,
 } from "./attention/attention-lifecycle-service";
 export { AttentionCaptureService } from "./capture/capture-service";
