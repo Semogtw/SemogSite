@@ -12,6 +12,14 @@ export const SEMOGTW_MCP_READ_ANNOTATIONS = {
   openWorldHint: false,
 } as const;
 
+export const SEMOGTW_MCP_ERROR_CODES = [
+  "DEVOS_READ_FAILED",
+  "PROJECT_INVALID_INPUT",
+  "PROJECT_NOT_FOUND",
+  "ROADMAP_INVALID_INPUT",
+  "RESULT_TOO_LARGE",
+] as const;
+
 export const SEMOGTW_MCP_TOOLS = [
   {
     name: "devos_get_overview",
@@ -78,6 +86,8 @@ export const SEMOGTW_MCP_RESOURCES = [
   },
 ] as const;
 
+export type SemogtwMcpErrorCode =
+  (typeof SEMOGTW_MCP_ERROR_CODES)[number];
 export type SemogtwMcpToolName = (typeof SEMOGTW_MCP_TOOLS)[number]["name"];
 export type SemogtwMcpResourceUri =
   (typeof SEMOGTW_MCP_RESOURCES)[number]["uri"];
