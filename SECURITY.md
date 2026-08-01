@@ -7,6 +7,7 @@ The platform must protect:
 - private repository names, URLs, roles and target lifecycle state;
 - branches, observations, recommendations, blockers, evidence and session history;
 - sync-run warnings, ETags, rate-limit state and provider timestamps;
+- MCP tool/resource payloads containing private operational state;
 - audit before/after snapshots and correlation IDs;
 - authentication tokens, password hashes, CSRF secrets and GitHub tokens;
 - database and backup files;
@@ -20,7 +21,10 @@ The platform must protect:
 3. server functions → domain services and local storage adapters;
 4. read-only GitHub client → structurally validated provider observations;
 5. external documents → untrusted data ingestion;
-6. future ChatGPT client → authenticated MCP tools.
+6. in-process MCP adapter → provider-neutral DevOS read service;
+7. future remote ChatGPT/MCP client → authenticated and authorized MCP transport.
+
+The in-process MCP adapter is not a public trust boundary by itself. The transport that eventually exposes it remotely must establish the caller identity and authorization before connecting requests to the server instance.
 
 ## Authentication controls
 
@@ -38,6 +42,8 @@ The local Node/SQLite adapter:
 - resolves the current owner again in every private data server function.
 
 The in-memory limiter is a single-process baseline. Multi-instance deployment requires a shared adapter.
+
+The current browser cookie/session flow is not automatically valid for MCP clients. A remote MCP adapter must explicitly prove its authentication method, token audience, expiry/revocation, per-session isolation and authorization mapping.
 
 ## Operational mutation controls
 
@@ -76,6 +82,37 @@ The browser sends an immutable recommendation ID and expected current active bra
 
 These services are prerequisites for future MCP writes. MCP must call the same domain services and cannot bypass confirmation, concurrency or audit rules.
 
+## MCP read-only adapter
+
+The current MCP implementation is intentionally limited:
+
+- `packages/mcp` receives only a `SemogtwMcpReadService` interface;
+- `apps/mcp` receives an already-open SQLite database and composes canonical read services;
+- no stdio, HTTP or public listener is opened;
+- no cookie, bearer token, database path or secret enters a tool argument;
+- no mutation tool is registered;
+- every tool advertises `readOnlyHint = true`, `destructiveHint = false`, `idempotentHint = true` and `openWorldHint = false`;
+- tool inputs are bounded and schema-validated;
+- project slugs and roadmap filters are normalized again in the domain;
+- successful tools return structured data and a textual JSON representation;
+- expected failures return stable codes;
+- unexpected exceptions are reduced to `DEVOS_READ_FAILED` without the thrown message;
+- resources return JSON envelopes and never echo internal exception text.
+
+Tool annotations are advisory metadata for clients. They are not authentication, authorization or a sandbox. Remote exposure remains blocked until a transport adapter proves:
+
+- TLS and canonical origin behavior;
+- authentication and revocation;
+- owner-only authorization and session isolation;
+- request/body limits and rate limiting;
+- `no-store`/private cache behavior where HTTP is used;
+- DNS rebinding, Origin and Host validation as applicable;
+- sanitized logs and correlation IDs;
+- timeout/cancellation behavior;
+- deployment rollback and secret rotation.
+
+A transport must create or scope server sessions so that state and credentials cannot cross users. It must not expose the raw SQLite file or reuse browser CSRF as bearer authorization.
+
 ## GitHub read-only integration
 
 The provider adapter is read-only by construction:
@@ -95,7 +132,7 @@ The provider adapter is read-only by construction:
 - valid partial evidence is retained while the parent run is marked `partial`;
 - synchronization never writes `active_branch`, role, lifecycle status, `sync_enabled`, project progress, stage state or publication state.
 
-Use a fine-grained token with the smallest repository selection possible and only Metadata read plus Contents read. `SEMOGTW_GITHUB_TOKEN` is read server-side, remains empty in `.env.example`, and must never enter HTML, browser fields, logs, database records or audit snapshots.
+Use a fine-grained token with the smallest repository selection possible and only Metadata read plus Contents read. `SEMOGTW_GITHUB_TOKEN` is read server-side, remains empty in `.env.example`, and must never enter HTML, browser fields, logs, database records, MCP payloads or audit snapshots.
 
 ## Sync-run compatibility
 
@@ -121,7 +158,7 @@ Public routes and endpoints:
 - mark unknown/unpublished dynamic routes `noindex`;
 - exclude private/unlisted content from sitemap and structured data.
 
-Repository targets, names, URLs, roles, branches, observations, recommendations, decisions and sync runs are never public DTO fields.
+Repository targets, names, URLs, roles, branches, observations, recommendations, decisions, sync runs and MCP resource/tool outputs are never public DTO fields.
 
 Static gates cover public route/API source, assets, token/private-field markers, upstream identity and forbidden domain imports. Runtime HTML, loader payloads, metadata, sitemap and host caches still require browser/build verification.
 
@@ -136,11 +173,13 @@ Pragma: no-cache
 
 Private TanStack loaders use route and server-function authorization. Host-specific CDN/cache behavior must be verified on the selected deployment.
 
+A future HTTP MCP endpoint must define equivalent cache prevention and must not rely on resource URIs to provide confidentiality.
+
 ## Prompt injection and imported content
 
 External text is data, not instruction. Importers must preserve origin, sanitize content, cap size/types, never execute embedded commands, never put secrets into prompts and keep tool/system instructions separate.
 
-The current GitHub phase intentionally avoids instruction-bearing bodies and stores only normalized metadata/head evidence.
+The current GitHub phase intentionally avoids instruction-bearing bodies and stores only normalized metadata/head evidence. The current MCP catalog reads normalized DevOS DTOs and does not add arbitrary URL fetching or command execution.
 
 ## Logging
 
@@ -153,7 +192,7 @@ Allowed structured fields:
 - integration and normalized rate-limit state;
 - sanitized error code.
 
-Never log request bodies, cookies, raw tokens, passwords, complete private URLs, audit snapshots, provider response bodies or private source content.
+Never log request bodies, cookies, raw tokens, passwords, complete private URLs, audit snapshots, provider response bodies, MCP structured payloads or private source content.
 
 ## Secrets and backups
 
@@ -176,6 +215,7 @@ Block public deployment when scanners find:
 
 - private repository names/URLs;
 - branch, recommendation, target or sync-run markers;
+- MCP private catalog payloads in public bundles or anonymous routes;
 - token/key patterns;
 - private records in anonymous fixtures;
 - unapproved publications;
@@ -183,7 +223,10 @@ Block public deployment when scanners find:
 
 ## Known limitations
 
-- dependency installation, typecheck and production build have not run in this connector-only environment;
+- the MCP SDK package could not be installed in the current shell environment, so its protocol tests and typecheck are not claimed as executed;
+- the SDK v1.29.0 source/signatures were reviewed through official connected sources only;
+- no MCP transport, remote endpoint or authentication adapter is enabled;
+- dependency installation, typecheck and production build for the current branch have not run in this connector-only environment;
 - browser-level confidentiality, cookie, cache and Operations behavior are not yet observed;
 - live GitHub token permissions/provider behavior are not yet exercised from the app runtime;
 - the in-memory limiter is not distributed;
