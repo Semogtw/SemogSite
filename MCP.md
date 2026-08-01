@@ -107,7 +107,7 @@ The protocol schema also bounds string and array sizes before the domain service
 
 `InMemoryTransport` remains allowed for protocol tests.
 
-The guardrail is part of both `test:guardrails` and `pnpm check`. Its Node-native fixture suite and a permitted-tree scan were observed passing on 2026-08-01.
+The guardrail is part of both `test:guardrails` and `pnpm check`. Its Node-native fixture suite and a representative permitted-tree scan were observed passing on 2026-08-01. The remote PR diff was separately inspected; forbidden transport names appear only inside the guardrail implementation and its rejection fixtures, not in the production MCP server/composition files.
 
 ## Tests
 
