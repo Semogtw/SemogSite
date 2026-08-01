@@ -11,4 +11,17 @@ describe("Semogtw API", () => {
       service: "semogtw-api",
     });
   });
+
+  it("accepts mounted resource roots with or without a trailing slash", async () => {
+    const app = createApiApp();
+
+    for (const path of [
+      "/api/v1/public/projects",
+      "/api/v1/public/projects/",
+    ]) {
+      const response = await app.request(path);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ ok: true, data: [] });
+    }
+  });
 });
