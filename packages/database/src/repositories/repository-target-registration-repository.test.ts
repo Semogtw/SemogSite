@@ -24,7 +24,7 @@ function target(
     visibility: "private",
     defaultBranch: "main",
     activeBranch: null,
-    role: "primary",
+    role: "product",
     syncEnabled: true,
     status: "active",
     lastSyncedAt: null,
@@ -70,7 +70,7 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
     expect(
       database.$client
         .prepare(
-          `SELECT project_id, github_node_id, owner, name, full_name, html_url,
+          `SELECT project_id, github_node_id, owner, name, full_name, github_url,
                   visibility, default_branch, active_branch, role, sync_enabled,
                   status, last_synced_at, data_source
            FROM repositories WHERE id = ?`,
@@ -82,11 +82,11 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
       owner: "Semogtw",
       name: "SemogSite",
       full_name: "Semogtw/SemogSite",
-      html_url: "https://github.com/Semogtw/SemogSite",
+      github_url: "https://github.com/Semogtw/SemogSite",
       visibility: "private",
       default_branch: "main",
       active_branch: null,
-      role: "primary",
+      role: "product",
       sync_enabled: 1,
       status: "active",
       last_synced_at: null,
@@ -101,6 +101,7 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
       before_json: null,
       after_json: JSON.stringify(value),
     });
+    database.$client.close();
   });
 
   it("rejects a missing project and case-insensitive duplicate", async () => {
@@ -135,6 +136,7 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
         .prepare("SELECT COUNT(*) AS count FROM repositories WHERE lower(full_name) = lower(?)")
         .get("Semogtw/SemogSite"),
     ).toEqual({ count: 1 });
+    database.$client.close();
   });
 
   it("reports an ID conflict without inserting an audit event", async () => {
@@ -156,6 +158,7 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
         .prepare("SELECT id FROM audit_events WHERE id = ?")
         .get(conflictAudit.id),
     ).toBeUndefined();
+    database.$client.close();
   });
 
   it("rolls back the repository when audit insertion fails", async () => {
@@ -184,5 +187,6 @@ describe("SqliteRepositoryTargetRegistrationRepository", () => {
         .prepare("SELECT id FROM repositories WHERE id = ?")
         .get(value.id),
     ).toBeUndefined();
+    database.$client.close();
   });
 });
