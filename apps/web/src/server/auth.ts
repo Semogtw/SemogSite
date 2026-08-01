@@ -13,6 +13,7 @@ import {
   setCookie,
 } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { safeReturnTo } from "./auth-navigation";
 import {
   getWebAuthProvider,
   getWebSessionSecret,
@@ -26,28 +27,6 @@ const loginLimiter = new SlidingWindowRateLimiter({
   maxAttempts: 5,
   windowMs: 15 * 60 * 1000,
 });
-
-const safeReturnRoutes = new Set([
-  "/devos",
-  "/devos/today",
-  "/devos/projects",
-  "/devos/roadmap",
-  "/devos/operations",
-  "/devos/settings",
-]);
-
-type SafeReturnRoute =
-  | "/devos"
-  | "/devos/today"
-  | "/devos/projects"
-  | "/devos/roadmap"
-  | "/devos/operations"
-  | "/devos/settings";
-
-const safeReturnTo = (value: string | undefined): SafeReturnRoute =>
-  value !== undefined && safeReturnRoutes.has(value)
-    ? (value as SafeReturnRoute)
-    : "/devos";
 
 export const getCurrentOwnerFn = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -71,10 +50,14 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
     const configured = await ensureWebAuthConfigured();
     const provider = getWebAuthProvider();
     const secret = getWebSessionSecret();
+
+    if (!configured || provider === null || secret === null) {
+      return { ok: false as const, message: "Não foi possível autenticar." };
+    }
+
     const rateKey = getRequestHeader("x-forwarded-for") ?? "unknown-client";
     const rateLimit = loginLimiter.consume(rateKey);
-
-    if (!configured || provider === null || secret === null || !rateLimit.allowed) {
+    if (!rateLimit.allowed) {
       return { ok: false as const, message: "Não foi possível autenticar." };
     }
 
@@ -95,7 +78,10 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
       maxAge: 60 * 60 * 24 * 14,
     });
 
-    throw redirect({ to: safeReturnTo(data.returnTo) });
+    return {
+      ok: true as const,
+      redirectTo: safeReturnTo(data.returnTo),
+    };
   });
 
 export const logoutOwnerFn = createServerFn({ method: "POST" })
