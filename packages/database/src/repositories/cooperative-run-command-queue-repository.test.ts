@@ -143,7 +143,7 @@ describe("SqliteCooperativeRunCommandQueueRepository", () => {
     database.$client.close();
   });
 
-  it("returns duplicate only when command and event payloads both match", async () => {
+  it("deduplicates the same intent even when a retry receives a later server timestamp", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     const run = await seed(database);
@@ -155,11 +155,21 @@ describe("SqliteCooperativeRunCommandQueueRepository", () => {
     await expect(repository.queue(run, value, eventValue)).resolves.toBe(
       "duplicate",
     );
+
+    const retry = {
+      ...value,
+      queuedAt: "2026-08-01T22:05:00.000Z",
+      updatedAt: "2026-08-01T22:05:00.000Z",
+    };
+    await expect(repository.queue(run, retry, event(retry))).resolves.toBe(
+      "duplicate",
+    );
+
     await expect(
       repository.queue(
         run,
-        { ...value, summary: "Changed command." },
-        { ...eventValue, summary: "Changed command." },
+        { ...retry, summary: "Changed command." },
+        { ...event(retry), summary: "Changed command." },
       ),
     ).resolves.toBe("conflict");
     database.$client.close();
