@@ -4,7 +4,7 @@ import type {
   ProjectDataSource,
   ProjectHub,
 } from "@semogtw/domain";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { SqliteDatabase } from "../adapters/sqlite";
 import {
   attentionItems,
@@ -66,74 +66,59 @@ export class SqliteProjectDataSource implements ProjectDataSource {
       .get();
     if (projectRow === undefined) return null;
 
-    const [
-      projectRepositories,
-      currentStages,
-      attention,
-      projectEvidence,
-      recentSessions,
-      nextWorkstream,
-    ] = await Promise.all([
-      Promise.resolve(
-        this.database
-          .select()
-          .from(repositories)
-          .where(eq(repositories.projectId, projectRow.id))
-          .orderBy(asc(repositories.fullName))
-          .all(),
-      ),
-      Promise.resolve(
-        this.database
-          .select()
-          .from(stages)
-          .where(
-            inArray(stages.state, ["next", "in_progress", "blocked"]),
-          )
-          .orderBy(asc(stages.orderIndex))
-          .all()
-          .filter((stage) => stage.projectId === projectRow.id),
-      ),
-      Promise.resolve(
-        this.database
-          .select()
-          .from(attentionItems)
-          .where(
-            inArray(attentionItems.status, ["open", "monitoring"]),
-          )
-          .orderBy(desc(attentionItems.updatedAt))
-          .all()
-          .filter((item) => item.projectId === projectRow.id),
-      ),
-      Promise.resolve(
-        this.database
-          .select()
-          .from(evidence)
-          .where(eq(evidence.projectId, projectRow.id))
-          .orderBy(desc(evidence.occurredAt))
-          .limit(20)
-          .all(),
-      ),
-      Promise.resolve(
-        this.database
-          .select()
-          .from(developmentSessions)
-          .where(eq(developmentSessions.projectId, projectRow.id))
-          .orderBy(desc(developmentSessions.sessionDate))
-          .limit(10)
-          .all(),
-      ),
-      Promise.resolve(
-        this.database
-          .select({ nextGate: workstreams.nextGate })
-          .from(workstreams)
-          .where(
-            inArray(workstreams.status, ["active", "validating", "blocked"]),
-          )
-          .orderBy(asc(workstreams.updatedAt))
-          .all()
-          .find((stream) => stream.nextGate.length > 0) ?? null,
-      ),
-    ]);
+    const projectRepositories = this.database
+      .select()
+      .from(repositories)
+      .where(eq(repositories.projectId, projectRow.id))
+      .orderBy(asc(repositories.fullName))
+      .all();
+    const currentStages = this.database
+      .select()
+      .from(stages)
+      .where(
+        and(
+          eq(stages.projectId, projectRow.id),
+          inArray(stages.state, ["next", "in_progress", "blocked"]),
+        ),
+      )
+      .orderBy(asc(stages.orderIndex))
+      .all();
+    const attention = this.database
+      .select()
+      .from(attentionItems)
+      .where(
+        and(
+          eq(attentionItems.projectId, projectRow.id),
+          inArray(attentionItems.status, ["open", "monitoring"]),
+        ),
+      )
+      .orderBy(desc(attentionItems.updatedAt))
+      .all();
+    const projectEvidence = this.database
+      .select()
+      .from(evidence)
+      .where(eq(evidence.projectId, projectRow.id))
+      .orderBy(desc(evidence.occurredAt))
+      .limit(20)
+      .all();
+    const recentSessions = this.database
+      .select()
+      .from(developmentSessions)
+      .where(eq(developmentSessions.projectId, projectRow.id))
+      .orderBy(desc(developmentSessions.sessionDate))
+      .limit(10)
+      .all();
+    const nextWorkstream = this.database
+      .select({ nextGate: workstreams.nextGate })
+      .from(workstreams)
+      .where(
+        and(
+          eq(workstreams.projectId, projectRow.id),
+          inArray(workstreams.status, ["active", "validating", "blocked"]),
+        ),
+      )
+      .orderBy(asc(workstreams.updatedAt))
+      .get();
 
     const project: OperationalProjectSummary = {
       id: projectRow.id,
