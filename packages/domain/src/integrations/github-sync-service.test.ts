@@ -188,7 +188,7 @@ describe("GitHubSyncService", () => {
     });
   });
 
-  it("completes an empty target set without provider calls", async () => {
+  it("fails an empty target set without provider calls", async () => {
     const store = new RecordingStore([]);
     let providerCalled = false;
     const source: GitHubObservationSource = {
@@ -202,8 +202,9 @@ describe("GitHubSyncService", () => {
     await expect(
       service.synchronize({ runId: "run-empty", now }),
     ).resolves.toMatchObject({
-      status: "success",
+      status: "failed",
       processedTargets: 0,
+      errorCount: 1,
       warnings: ["NO_SYNC_TARGETS"],
     });
     expect(providerCalled).toBe(false);
