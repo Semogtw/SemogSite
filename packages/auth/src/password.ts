@@ -29,6 +29,36 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   return difference === 0;
 }
 
+function parseEncodedHash(encodedHash: string): {
+  iterations: number;
+  salt: Uint8Array;
+  expected: Uint8Array;
+} | null {
+  const parts = encodedHash.split("$");
+  if (parts.length !== 4) return null;
+
+  const [algorithm, iterationsText, saltText, expectedText] = parts;
+  const iterations = Number(iterationsText);
+  if (
+    algorithm !== ALGORITHM ||
+    !Number.isInteger(iterations) ||
+    iterations < 100_000 ||
+    saltText === undefined ||
+    expectedText === undefined
+  ) {
+    return null;
+  }
+
+  try {
+    const salt = fromBase64Url(saltText);
+    const expected = fromBase64Url(expectedText);
+    if (salt.length < SALT_BYTES || expected.length !== KEY_BYTES) return null;
+    return { iterations, salt, expected };
+  } catch {
+    return null;
+  }
+}
+
 async function derive(password: string, salt: Uint8Array, iterations: number) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -50,6 +80,10 @@ async function derive(password: string, salt: Uint8Array, iterations: number) {
   return new Uint8Array(bits);
 }
 
+export function isEncodedPasswordHash(value: string): boolean {
+  return parseEncodedHash(value) !== null;
+}
+
 export async function hashOwnerPassword(password: string): Promise<string> {
   if (password.length < 12) {
     throw new Error("OWNER_PASSWORD_TOO_SHORT");
@@ -63,21 +97,12 @@ export async function verifyOwnerPassword(
   password: string,
   encodedHash: string,
 ): Promise<boolean> {
-  const [algorithm, iterationsText, saltText, expectedText] = encodedHash.split("$");
-  const iterations = Number(iterationsText);
-  if (
-    algorithm !== ALGORITHM ||
-    !Number.isInteger(iterations) ||
-    iterations < 100_000 ||
-    saltText === undefined ||
-    expectedText === undefined
-  ) {
-    return false;
-  }
+  const parsed = parseEncodedHash(encodedHash);
+  if (parsed === null) return false;
 
   try {
-    const actual = await derive(password, fromBase64Url(saltText), iterations);
-    return equalBytes(actual, fromBase64Url(expectedText));
+    const actual = await derive(password, parsed.salt, parsed.iterations);
+    return equalBytes(actual, parsed.expected);
   } catch {
     return false;
   }
