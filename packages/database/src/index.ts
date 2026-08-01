@@ -20,6 +20,15 @@ export type {
 } from "./repositories/audit-data-source";
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
 export { SqliteBranchRecommendationAcceptanceRepository } from "./repositories/branch-recommendation-acceptance-repository";
+export { SqliteCooperativeRunCheckpointRepository } from "./repositories/cooperative-run-checkpoint-repository";
+export { SqliteCooperativeRunReadModel } from "./repositories/cooperative-run-read-model";
+export type {
+  CooperativeRunDetail,
+  CooperativeRunHistoryEvent,
+  CooperativeRunListItem,
+} from "./repositories/cooperative-run-read-model";
+export { SqliteCooperativeRunRegistrationRepository } from "./repositories/cooperative-run-registration-repository";
+export { SqliteCooperativeRunTransitionRepository } from "./repositories/cooperative-run-transition-repository";
 export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteGitHubObservationRepository } from "./repositories/github-observation-repository";
 export { SqliteGitHubSyncReadModel } from "./repositories/github-sync-read-model";
