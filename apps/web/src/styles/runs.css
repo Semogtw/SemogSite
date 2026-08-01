@@ -84,7 +84,8 @@
 }
 
 .run-command-form,
-.run-registration-form {
+.run-registration-form,
+.run-transition-form {
   display: grid;
   gap: 1rem;
   margin: 1rem 0 1.25rem;
@@ -96,7 +97,8 @@
 
 .run-command-form label,
 .run-command-form fieldset,
-.run-registration-form label {
+.run-registration-form label,
+.run-transition-form label {
   display: grid;
   gap: 0.45rem;
   min-width: 0;
@@ -107,7 +109,10 @@
 .run-command-form textarea,
 .run-registration-form input:not([type="checkbox"]),
 .run-registration-form select,
-.run-registration-form textarea {
+.run-registration-form textarea,
+.run-transition-form input:not([type="checkbox"]),
+.run-transition-form select,
+.run-transition-form textarea {
   width: 100%;
   min-height: var(--semog-touch);
 }
@@ -227,7 +232,8 @@
   .run-timeline__item,
   .run-command,
   .run-command-form,
-  .run-registration-form {
+  .run-registration-form,
+  .run-transition-form {
     padding: 0.875rem;
   }
 }
