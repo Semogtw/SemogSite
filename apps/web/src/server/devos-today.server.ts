@@ -1,6 +1,6 @@
 import { TodayService, type TodayQueue } from "@semogtw/domain";
 import { SqliteTodayDataSource } from "@semogtw/database";
-import { getNodeDatabase } from "./node-auth-composition.server";
+import { getNodeDatabase } from "./node-database.server";
 
 export async function readTodayQueue(): Promise<TodayQueue | null> {
   const database = await getNodeDatabase();
