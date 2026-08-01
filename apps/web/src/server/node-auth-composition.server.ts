@@ -9,6 +9,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { configureWebAuth, getWebAuthProvider } from "./auth-runtime";
 
+const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 let configurationAttempt: Promise<boolean> | null = null;
 
 function ensureDatabaseDirectory(databaseUrl: string): string {
@@ -41,6 +42,7 @@ async function configureNodeAuth(): Promise<boolean> {
         ownerId: "semogtw-owner",
         encodedPasswordHash: config.ownerPasswordHash,
         sessions,
+        sessionLifetimeMs,
       }),
       sessionSecret: config.sessionSecret,
     });
