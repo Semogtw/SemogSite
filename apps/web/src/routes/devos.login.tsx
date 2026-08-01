@@ -32,12 +32,10 @@ function LoginPage() {
     setPending(true);
     setMessage(null);
     try {
-      const result = await loginOwnerFn({ data: { password, returnTo } });
+      const data = returnTo === undefined ? { password } : { password, returnTo };
+      const result = await loginOwnerFn({ data });
       if (!result.ok) setMessage(result.message);
-    } catch (error) {
-      if (error instanceof Response || (typeof error === "object" && error !== null)) {
-        throw error;
-      }
+    } catch {
       setMessage("Não foi possível autenticar.");
     } finally {
       setPending(false);
