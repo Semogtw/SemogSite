@@ -8,6 +8,7 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import captureCss from "../styles/capture.css?url";
 import globalCss from "../styles/global.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import roadmapCss from "../styles/roadmap.css?url";
@@ -33,6 +34,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: surfacesCss },
+      { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: roadmapCss },
       { rel: "stylesheet", href: publicProjectsCss },
     ],
