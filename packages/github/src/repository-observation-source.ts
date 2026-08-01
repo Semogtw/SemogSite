@@ -36,6 +36,22 @@ export type ObservationClock = () => string | Promise<string>;
 const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u;
 const repositoryPattern = /^[A-Za-z0-9._-]{1,100}$/u;
 const branchPattern = /^[^\u0000-\u0020\u007f]{1,255}$/u;
+const headShaPattern = /^[0-9a-f]{7,64}$/u;
+
+function isSafeBranchName(name: string): boolean {
+  return (
+    branchPattern.test(name) &&
+    !/[~^:?*[\\]/u.test(name) &&
+    !name.startsWith("/") &&
+    !name.endsWith("/") &&
+    !name.startsWith(".") &&
+    !name.endsWith(".") &&
+    !name.endsWith(".lock") &&
+    !name.includes("..") &&
+    !name.includes("@{") &&
+    !name.includes("//")
+  );
+}
 
 function lowerRemaining(left: number | null, right: number | null): number | null {
   if (left === null) return right;
@@ -95,7 +111,7 @@ function hasSafeRepositoryMetadata(repository: GitHubRepository): boolean {
   if (repository.fullName !== `${repository.owner}/${repository.name}`) {
     return false;
   }
-  if (!branchPattern.test(repository.defaultBranch)) return false;
+  if (!isSafeBranchName(repository.defaultBranch)) return false;
   if (repository.nodeId.length === 0 || repository.nodeId.length > 500) {
     return false;
   }
@@ -183,15 +199,32 @@ export class GitHubRepositoryObservationSource
     let partial = false;
 
     for (const branch of branchResult.data.branches) {
+      const branchName = branch.name.trim();
+      const headSha = branch.headSha.trim().toLowerCase();
+      if (!isSafeBranchName(branchName)) {
+        partial = true;
+        warnings.push(
+          branchName.length === 0
+            ? "INVALID_BRANCH_NAME"
+            : `INVALID_BRANCH_NAME:${branchName}`,
+        );
+        continue;
+      }
+      if (!headShaPattern.test(headSha)) {
+        partial = true;
+        warnings.push(`INVALID_HEAD_SHA:${branchName}`);
+        continue;
+      }
+
       try {
         const commitResult = await this.client.getCommitObservation(
           target.owner,
           target.name,
-          branch.headSha,
+          headSha,
         );
         if (commitResult.status !== "ok") {
           partial = true;
-          warnings.push(`BRANCH_COMMIT_NOT_MODIFIED:${branch.name}`);
+          warnings.push(`BRANCH_COMMIT_NOT_MODIFIED:${branchName}`);
           continue;
         }
         rateLimitRemaining = lowerRemaining(
@@ -202,21 +235,21 @@ export class GitHubRepositoryObservationSource
           rateLimitResetAt,
           commitResult.meta.rateLimit.resetAt,
         );
-        if (commitResult.data.sha !== branch.headSha.toLowerCase()) {
+        if (commitResult.data.sha !== headSha) {
           partial = true;
-          warnings.push(`BRANCH_HEAD_MISMATCH:${branch.name}`);
+          warnings.push(`BRANCH_HEAD_MISMATCH:${branchName}`);
           continue;
         }
         branches.push({
-          name: branch.name,
-          headSha: branch.headSha,
+          name: branchName,
+          headSha,
           committedAt: commitResult.data.committedAt,
           protected: branch.protected,
         });
       } catch (error) {
         const failure = mapFailure(error, observedAt);
         partial = true;
-        warnings.push(`BRANCH_COMMIT_FAILED:${branch.name}:${failure.code}`);
+        warnings.push(`BRANCH_COMMIT_FAILED:${branchName}:${failure.code}`);
         rateLimitResetAt = laterReset(rateLimitResetAt, failure.retryAt);
         if (failure.code === "RATE_LIMITED") break;
       }
