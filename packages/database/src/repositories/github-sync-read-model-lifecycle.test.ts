@@ -11,7 +11,7 @@ describe("SqliteGitHubSyncReadModel target lifecycle", () => {
     database.$client
       .prepare(
         `INSERT INTO repositories (
-          id, project_id, github_node_id, owner, name, full_name, html_url,
+          id, project_id, github_node_id, owner, name, full_name, github_url,
           visibility, default_branch, active_branch, role, sync_enabled, status,
           last_synced_at, data_source, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -27,7 +27,7 @@ describe("SqliteGitHubSyncReadModel target lifecycle", () => {
         "private",
         "main",
         "main",
-        "secondary",
+        "integration",
         0,
         "active",
         now,
