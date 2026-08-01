@@ -67,6 +67,35 @@ describe("AttentionCaptureService", () => {
     );
   });
 
+  it.each(["external_dependency", "critical_test"] as const)(
+    "assigns %s captures to the external environment queue",
+    async (type) => {
+      const insertAttentionWithAudit = vi.fn<AttentionCaptureRepository["insertAttentionWithAudit"]>();
+      const service = new AttentionCaptureService({ insertAttentionWithAudit });
+
+      const result = await service.capture(
+        {
+          projectId: null,
+          type,
+          impact: "medium",
+          title: "Executar validação externa",
+          nextAction: "Executar o gate no ambiente apropriado.",
+          reason: "A validação não pode ser executada neste runtime.",
+          confirmed: true,
+        },
+        context,
+      );
+
+      expect(result).toMatchObject({
+        ok: true,
+        attention: {
+          type,
+          owner: "external_environment",
+        },
+      });
+    },
+  );
+
   it("rejects unconfirmed and empty captures without writing", async () => {
     const insertAttentionWithAudit = vi.fn<AttentionCaptureRepository["insertAttentionWithAudit"]>();
     const service = new AttentionCaptureService({ insertAttentionWithAudit });
