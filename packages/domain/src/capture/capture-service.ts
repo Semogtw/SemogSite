@@ -32,7 +32,7 @@ export type CapturedAttention = {
   status: "open";
   impact: AttentionImpact;
   title: string;
-  owner: "owner";
+  owner: "owner" | "external_environment";
   nextAction: string;
   source: "manual";
   createdAt: string;
@@ -98,6 +98,12 @@ function validate(input: {
   return errors;
 }
 
+function resolveOwner(type: AttentionType): CapturedAttention["owner"] {
+  return type === "external_dependency" || type === "critical_test"
+    ? "external_environment"
+    : "owner";
+}
+
 export class AttentionCaptureService {
   constructor(private readonly repository: AttentionCaptureRepository) {}
 
@@ -129,7 +135,7 @@ export class AttentionCaptureService {
       status: "open",
       impact: input.impact,
       title: normalized.title,
-      owner: "owner",
+      owner: resolveOwner(input.type),
       nextAction: normalized.nextAction,
       source: "manual",
       createdAt: context.now,
