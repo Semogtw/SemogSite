@@ -8,6 +8,7 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import auditCss from "../styles/audit.css?url";
 import captureCss from "../styles/capture.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import globalCss from "../styles/global.css?url";
@@ -39,6 +40,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: evidenceCss },
       { rel: "stylesheet", href: stageCompletionCss },
+      { rel: "stylesheet", href: auditCss },
       { rel: "stylesheet", href: roadmapCss },
       { rel: "stylesheet", href: publicProjectsCss },
     ],
