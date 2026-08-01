@@ -17,7 +17,7 @@ export class SqliteBranchRecommendationAcceptanceRepository
       .prepare(
         `SELECT id, full_name, active_branch, default_branch, updated_at
          FROM repositories
-         WHERE id = ?`,
+         WHERE id = ? AND status = 'active'`,
       )
       .get(repositoryId) as
       | {
@@ -77,6 +77,7 @@ export class SqliteBranchRecommendationAcceptanceRepository
           `UPDATE repositories
            SET active_branch = ?, updated_at = ?
            WHERE id = ?
+             AND status = 'active'
              AND updated_at = ?
              AND (
                (? IS NULL AND active_branch IS NULL)
