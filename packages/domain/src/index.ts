@@ -41,6 +41,15 @@ export type {
   BranchRecommendationInput,
   ObservationConfidence,
 } from "./integrations/repository-observation";
+export type {
+  BranchObservationRecord,
+  BranchRecommendationRecord,
+  LatestRepositoryRecommendation,
+  ObservationInsertResult,
+  RepositoryObservationAggregate,
+  RepositoryObservationRecord,
+  RepositoryObservationStore,
+} from "./integrations/repository-sync-record";
 export { OverviewService } from "./overview/overview-service";
 export type {
   DevOSOverview,
