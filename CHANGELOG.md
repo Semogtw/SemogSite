@@ -2,7 +2,7 @@
 
 All notable changes to Semogtw Platform are recorded here. Dates use `America/Bahia` for presentation; commits remain UTC in Git.
 
-## Unreleased — Foundation
+## Unreleased — Foundation and operational writes
 
 ### Added
 
@@ -24,8 +24,15 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - public home, About, Projects, Journey, Lab, Notes, Stack and Contact route structures;
 - protected DevOS login, Overview, Today, Projects, project hub, Roadmap, Operations, Insights, Capture, Search, Content, Settings and More;
 - live private rendering from the canonical SQLite seed without claiming migration or GitHub sync;
+- confirmed attention capture with CSRF, explicit reason and transactional audit;
+- audited attention resolution/dismissal with optimistic concurrency protection;
+- development-session handoff capture with normalized commit SHAs and explicit test status;
+- manual evidence attachment with HTTPS-only links, preserved observed status and transactional audit;
+- guarded stage completion that reuses domain invariants, requires valid evidence and sets a manual lock;
+- responsive capture, evidence and stage-completion controls in the private DevOS interface;
 - `robots.txt` excluding private route prefixes;
-- architecture, data model, security, public-site, migration, deployment, testing and design documentation.
+- architecture, data model, security, public-site, migration, deployment, testing and design documentation;
+- executable operational-writes plan covering evidence, backup and audit closeout.
 
 ### Fixed during review
 
@@ -41,7 +48,10 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - project hub queries filter by project in SQL;
 - Today links use project slugs rather than internal IDs;
 - native `better-sqlite3` is externalized from Vite SSR bundling;
-- empty example secrets no longer encourage predictable local configuration.
+- empty example secrets no longer encourage predictable local configuration;
+- captured attention now maps domain `source` to SQLite `data_source` explicitly;
+- critical-test captures now map to canonical `local_test` storage values;
+- external dependencies and critical tests now enter the external-environment queue instead of the owner queue.
 
 ### Verified in current environment
 
@@ -53,6 +63,11 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 
 ### Specified by committed tests but not yet executed here
 
+- attention capture validation, classification, mapping and transaction rollback;
+- attention lifecycle validation, optimistic conflicts and audit atomicity;
+- session handoff normalization, explicit test status and transaction rollback;
+- manual evidence allowlists, safe URL validation and audit atomicity;
+- guarded stage completion invariants, stale-write rejection and rollback;
 - auth runtime composition and 14-day expiry;
 - safe login destinations and CSRF-aware logout policy;
 - password rotation session revocation;
@@ -67,11 +82,12 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - full TypeScript workspace check;
 - Vitest workspace;
 - TanStack Start production build;
+- authenticated browser checks for operational writes;
 - browser E2E and responsive visual review;
 - production host, deployment and rollback.
 
 ### Constraints
 
 - connected Figma account reported a view-only starter seat, so editable frames were not falsely marked complete;
-- the environment npm registry returned 404 for required packages, documented in `TESTING.md`;
+- the environment npm registry previously returned 404 and the current runtime cannot resolve `registry.npmjs.org`, documented in `TESTING.md`;
 - no Notion migration, GitHub sync, MCP or public deployment has been performed.
