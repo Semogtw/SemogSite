@@ -8,7 +8,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
   database.$client
     .prepare(
       `INSERT INTO repositories (
-        id, project_id, github_node_id, owner, name, full_name, html_url,
+        id, project_id, github_node_id, owner, name, full_name, github_url,
         visibility, default_branch, active_branch, role, sync_enabled, status,
         last_synced_at, data_source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -24,7 +24,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
       "private",
       "main",
       "develop/foundation-bootstrap",
-      "primary",
+      "product",
       1,
       "active",
       now,
@@ -38,11 +38,13 @@ function seedObservation(database: ReturnType<typeof createSqliteDatabase>): voi
   database.$client
     .prepare(
       `INSERT INTO sync_runs (
-        id, integration, scope, status, started_at, finished_at,
+        id, integration, scope, trigger, started_at, finished_at, status,
+        repositories_checked, changes_applied,
         created_count, updated_count, skipped_count, error_count,
         warnings_json, error_summary, cursor, rate_limit_remaining,
         rate_limit_reset_at, metadata_json
-      ) VALUES (?, 'github', 'repositories', 'partial', ?, ?, 1, 0, 0, 1, ?, ?, NULL, 42, ?, ?)`,
+      ) VALUES (?, 'github', 'repositories', 'manual', ?, ?, 'partial',
+        1, 1, 1, 0, 0, 1, ?, ?, NULL, 42, ?, ?)`,
     )
     .run(
       "sync-run-1",
@@ -130,7 +132,9 @@ describe("SqliteGitHubSyncReadModel", () => {
           id: "repository-1",
           fullName: "Semogtw/SemogSite",
           activeBranch: "develop/foundation-bootstrap",
+          syncEnabled: true,
           recommendation: {
+            id: "recommendation-1",
             status: "recommended",
             branch: "develop/foundation-bootstrap",
             confidence: "high",
@@ -139,6 +143,7 @@ describe("SqliteGitHubSyncReadModel", () => {
         },
       ],
     });
+    database.$client.close();
   });
 
   it("returns an empty honest state when no target or run exists", async () => {
@@ -151,6 +156,7 @@ describe("SqliteGitHubSyncReadModel", () => {
       lastRun: null,
       repositories: [],
     });
+    database.$client.close();
   });
 
   it("sanitizes malformed run JSON without failing the dashboard", async () => {
@@ -159,11 +165,13 @@ describe("SqliteGitHubSyncReadModel", () => {
     database.$client
       .prepare(
         `INSERT INTO sync_runs (
-          id, integration, scope, status, started_at, finished_at,
+          id, integration, scope, trigger, started_at, finished_at, status,
+          repositories_checked, changes_applied,
           created_count, updated_count, skipped_count, error_count,
           warnings_json, error_summary, cursor, rate_limit_remaining,
           rate_limit_reset_at, metadata_json
-        ) VALUES (?, 'github', 'repositories', 'failed', ?, ?, 0, 0, 0, 1, ?, NULL, NULL, NULL, NULL, ?)`,
+        ) VALUES (?, 'github', 'repositories', 'manual', ?, ?, 'failed',
+          0, 0, 0, 0, 0, 1, ?, NULL, NULL, NULL, NULL, ?)`,
       )
       .run("sync-broken", now, now, "{broken", "[]");
     const model = new SqliteGitHubSyncReadModel(database);
@@ -176,5 +184,6 @@ describe("SqliteGitHubSyncReadModel", () => {
         malformedJson: ["warnings", "metadata"],
       },
     });
+    database.$client.close();
   });
 });
