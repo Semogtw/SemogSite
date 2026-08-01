@@ -1,5 +1,5 @@
 import { Button, Surface } from "@semogtw/ui";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { loginOwnerFn } from "../server/auth";
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/devos/login")({
 
 function LoginPage() {
   const { returnTo } = Route.useSearch();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -31,10 +32,15 @@ function LoginPage() {
     if (pending || password.length === 0) return;
     setPending(true);
     setMessage(null);
+
     try {
       const data = returnTo === undefined ? { password } : { password, returnTo };
       const result = await loginOwnerFn({ data });
-      if (!result.ok) setMessage(result.message);
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      await navigate({ to: result.redirectTo });
     } catch {
       setMessage("Não foi possível autenticar.");
     } finally {
@@ -47,7 +53,10 @@ function LoginPage() {
       <Surface className="login-card" aria-labelledby="login-title">
         <p className="eyebrow">Semogtw DevOS</p>
         <h1 id="login-title">Acesso privado</h1>
-        <p>Entre com a credencial do proprietário. Nenhum dado operacional é carregado nesta página.</p>
+        <p>
+          Entre com a credencial do proprietário. Nenhum dado operacional é
+          carregado nesta página.
+        </p>
         <form onSubmit={submit} className="login-form">
           <label htmlFor="owner-password">Senha</label>
           <input
@@ -60,8 +69,16 @@ function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             aria-describedby={message ? "login-error" : undefined}
           />
-          {message ? <p id="login-error" role="alert">{message}</p> : null}
-          <Button tone="primary" type="submit" disabled={pending || password.length === 0}>
+          {message ? (
+            <p id="login-error" role="alert">
+              {message}
+            </p>
+          ) : null}
+          <Button
+            tone="primary"
+            type="submit"
+            disabled={pending || password.length === 0}
+          >
             {pending ? "Verificando…" : "Entrar"}
           </Button>
         </form>
