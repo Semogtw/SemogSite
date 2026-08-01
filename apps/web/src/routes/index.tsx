@@ -1,7 +1,10 @@
+import { Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import { getPublicProjectsFn } from "../server/public-projects";
 
 export const Route = createFileRoute("/")({
+  loader: () => getPublicProjectsFn(),
   head: () => ({
     meta: [
       { title: "Semogtw — Produtos, sistemas e experimentos" },
@@ -22,6 +25,9 @@ const principles = [
 ] as const;
 
 function HomePage() {
+  const projects = Route.useLoaderData();
+  const featuredProjects = projects.filter((project) => project.featured).slice(0, 3);
+
   return (
     <PublicShell>
       <section className="hero" aria-labelledby="hero-title">
@@ -58,13 +64,47 @@ function HomePage() {
         </ol>
       </section>
 
-      <section className="empty-editorial" aria-labelledby="projects-title">
-        <p className="eyebrow">Projetos selecionados</p>
-        <h2 id="projects-title">As publicações começam deliberadamente vazias.</h2>
-        <p>
-          Projetos só aparecem aqui depois de receberem conteúdo público
-          aprovado. Dados operacionais nunca são usados como substituto.
-        </p>
+      <section className="featured-editorial" aria-labelledby="projects-title">
+        <div className="featured-editorial-heading">
+          <p className="eyebrow">Projetos selecionados</p>
+          <h2 id="projects-title">
+            {featuredProjects.length === 0
+              ? "As publicações começam deliberadamente vazias."
+              : "Projetos com conteúdo público aprovado."}
+          </h2>
+          {featuredProjects.length === 0 ? (
+            <p>
+              Projetos só aparecem aqui depois de receberem conteúdo público
+              aprovado e a marcação explícita de destaque. Dados operacionais
+              nunca são usados como substituto.
+            </p>
+          ) : null}
+        </div>
+
+        {featuredProjects.length > 0 ? (
+          <div className="public-project-grid home-project-grid">
+            {featuredProjects.map((project) => (
+              <Surface key={project.slug} className="public-project-card">
+                <p className="eyebrow">Destaque</p>
+                <h3>{project.name}</h3>
+                <p>{project.publicSummary}</p>
+                <div className="public-project-card-footer">
+                  <span data-tabular>
+                    {project.publicProgress === null
+                      ? "Progresso não publicado"
+                      : `${project.publicProgress}% público`}
+                  </span>
+                  <Link
+                    to="/projects/$slug"
+                    params={{ slug: project.slug }}
+                  >
+                    Abrir projeto
+                  </Link>
+                </div>
+              </Surface>
+            ))}
+          </div>
+        ) : null}
       </section>
     </PublicShell>
   );
