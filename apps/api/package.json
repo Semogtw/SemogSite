@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/app.ts"
+    ".": "./src/app.ts",
+    "./sqlite": "./src/composition/sqlite.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -13,8 +14,14 @@
   },
   "dependencies": {
     "@semogtw/auth": "workspace:*",
+    "@semogtw/config": "workspace:*",
     "@semogtw/contracts": "workspace:*",
+    "@semogtw/database": "workspace:*",
+    "@semogtw/domain": "workspace:*",
     "hono": "^4.7.0",
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
   }
 }
