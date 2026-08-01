@@ -10,6 +10,13 @@ export type {
 } from "./backup/sqlite-backup";
 export { SqliteAttentionCaptureRepository } from "./repositories/attention-capture-repository";
 export { SqliteAttentionLifecycleRepository } from "./repositories/attention-lifecycle-repository";
+export { SqliteAuditDataSource } from "./repositories/audit-data-source";
+export type {
+  AuditJsonField,
+  AuditListInput,
+  AuditPage,
+  AuditRecord,
+} from "./repositories/audit-data-source";
 export { SqliteAuthSessionStore } from "./repositories/auth-session-store";
 export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
