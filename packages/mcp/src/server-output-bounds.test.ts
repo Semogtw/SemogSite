@@ -11,14 +11,19 @@ function oversizedService(): SemogtwMcpReadService {
   return {
     async getOverview() {
       return {
-        activeProjectCount: 0,
+        activeProjectCount: 1,
         inProgressStageCount: 0,
         highImpactAttentionCount: 0,
-        projects: [],
+        projects: [
+          {
+            id: "project-oversized",
+            privateSummary: oversized,
+          },
+        ],
         currentStages: [],
         attention: [],
-        lastSyncedAt: oversized,
-      };
+        lastSyncedAt: null,
+      } as never;
     },
     async getToday() {
       return {
@@ -58,7 +63,7 @@ function oversizedService(): SemogtwMcpReadService {
 }
 
 describe("Semogtw MCP output bounds", () => {
-  it("returns a stable error instead of duplicating an oversized tool/resource payload", async () => {
+  it("returns a stable error instead of duplicating an oversized valid tool/resource payload", async () => {
     const server = createSemogtwMcpServer(oversizedService());
     const client = new Client({ name: "bounds-test", version: "1.0.0" });
     const [clientTransport, serverTransport] =
