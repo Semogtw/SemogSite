@@ -1,6 +1,8 @@
 import {
+  CSRF_COOKIE_NAME,
   issueCsrfToken,
   sessionCookieOptions,
+  SESSION_COOKIE_NAME,
   SlidingWindowRateLimiter,
   verifyCsrfToken,
 } from "@semogtw/auth";
@@ -17,10 +19,11 @@ import {
   getWebAuthProvider,
   getWebSessionSecret,
 } from "./auth-runtime";
+import { resolveCurrentOwner } from "./current-owner.server";
 import { ensureWebAuthConfigured } from "./node-auth-composition.server";
 
-export const SESSION_COOKIE = "semogtw_session";
-export const CSRF_COOKIE = "semogtw_csrf";
+export const SESSION_COOKIE = SESSION_COOKIE_NAME;
+export const CSRF_COOKIE = CSRF_COOKIE_NAME;
 
 const loginLimiter = new SlidingWindowRateLimiter({
   maxAttempts: 5,
@@ -28,14 +31,7 @@ const loginLimiter = new SlidingWindowRateLimiter({
 });
 
 export const getCurrentOwnerFn = createServerFn({ method: "GET" }).handler(
-  async () => {
-    if (!(await ensureWebAuthConfigured())) return null;
-
-    const provider = getWebAuthProvider();
-    const rawToken = getCookie(SESSION_COOKIE);
-    if (provider === null || rawToken === undefined) return null;
-    return provider.resolveSession(rawToken);
-  },
+  resolveCurrentOwner,
 );
 
 export const loginOwnerFn = createServerFn({ method: "POST" })
@@ -68,8 +64,12 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
     loginLimiter.reset(rateKey);
     const csrf = await issueCsrfToken(secret, result.session.id);
     const runtimeEnv = import.meta.env.PROD ? "production" : "development";
-    setCookie(SESSION_COOKIE, result.rawToken, sessionCookieOptions(runtimeEnv));
-    setCookie(CSRF_COOKIE, csrf, {
+    setCookie(
+      SESSION_COOKIE_NAME,
+      result.rawToken,
+      sessionCookieOptions(runtimeEnv),
+    );
+    setCookie(CSRF_COOKIE_NAME, csrf, {
       httpOnly: false,
       sameSite: "lax",
       secure: runtimeEnv === "production",
@@ -90,8 +90,8 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
 
     const provider = getWebAuthProvider();
     const secret = getWebSessionSecret();
-    const rawToken = getCookie(SESSION_COOKIE);
-    const csrfCookie = getCookie(CSRF_COOKIE);
+    const rawToken = getCookie(SESSION_COOKIE_NAME);
+    const csrfCookie = getCookie(CSRF_COOKIE_NAME);
     let revoked = false;
 
     if (provider !== null && secret !== null && rawToken && csrfCookie) {
@@ -110,8 +110,8 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
       }
     }
 
-    deleteCookie(SESSION_COOKIE, { path: "/" });
-    deleteCookie(CSRF_COOKIE, { path: "/devos" });
+    deleteCookie(SESSION_COOKIE_NAME, { path: "/" });
+    deleteCookie(CSRF_COOKIE_NAME, { path: "/devos" });
     return {
       ok: true as const,
       revoked,
