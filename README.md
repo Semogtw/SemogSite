@@ -4,18 +4,21 @@ Plataforma pessoal portátil composta por:
 
 - site público editorial;
 - aplicação privada **Semogtw DevOS** em `/devos`;
-- API versionada Hono compartilhada com um futuro adaptador MCP.
+- API Hono versionada;
+- integração GitHub somente leitura;
+- contratos compartilhados para um futuro adaptador MCP.
 
-O repositório está em implementação inicial. Nenhum dado demonstrativo representa uma migração concluída do Notion ou um estado confirmado do GitHub.
+O repositório está em desenvolvimento. O seed demonstrativo não representa migração concluída do Notion, estado confirmado do GitHub ou progresso real de produção.
 
 ## Arquitetura resumida
 
 ```text
 apps/web               TanStack Start: site público e DevOS
-apps/api               Hono: API pública e privada + adaptador Node/SQLite
+apps/api               Hono: API pública/privada e runtime Node
 packages/domain        regras e serviços sem framework
 packages/contracts     schemas e DTOs públicos/privados
-packages/database      Drizzle, SQLite, migrations e read models
+packages/database      Drizzle, SQLite, migrations, writes e read models
+packages/github        cliente REST GET-only e fonte de observações
 packages/auth          autenticação local e sessões revogáveis
 packages/ui            tokens, primitivas e navegação
 packages/config        configuração tipada e fail-closed
@@ -25,58 +28,71 @@ packages/config        configuração tipada e fail-closed
 
 - Node.js 22 ou superior;
 - pnpm 10;
-- compilador nativo disponível para `better-sqlite3` quando não houver binário pré-compilado.
+- compilador nativo para `better-sqlite3` quando não houver binário compatível;
+- acesso HTTPS ao GitHub apenas para executar observações reais.
 
 ## Instalação
 
 ```bash
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile=false
 cp .env.example .env
 pnpm hash:owner-password
 ```
 
-Copie o hash produzido para `SEMOGTW_OWNER_PASSWORD_HASH`. Gere também um segredo aleatório de sessão, sem reutilizar o exemplo:
+Copie o hash para `SEMOGTW_OWNER_PASSWORD_HASH` e gere um segredo de sessão:
 
 ```bash
 node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
 ```
 
-Copie o resultado para `SEMOGTW_SESSION_SECRET`. As duas variáveis permanecem vazias no `.env.example` para que uma cópia não configure uma credencial previsível por acidente.
+Copie o resultado para `SEMOGTW_SESSION_SECRET`. Os campos sensíveis permanecem vazios em `.env.example`.
+
+Para observações GitHub, configure opcionalmente `SEMOGTW_GITHUB_TOKEN` somente no servidor. Use um token fine-grained restrito aos repositórios necessários, com Metadata read e Contents read. Nenhuma permissão de escrita é necessária.
 
 ## Desenvolvimento
 
-Somente web:
-
 ```bash
-pnpm dev
+pnpm dev       # web
+pnpm dev:api   # Hono em http://localhost:3001
+pnpm dev:all   # ambos
 ```
 
-Somente API Hono em `http://localhost:3001`:
+Sem autenticação válida, `/devos` e `/api/v1/private/*` falham fechados. Sem token GitHub, a página Operação continua disponível para cadastro local de alvos, mas o botão de leitura fica desabilitado.
 
-```bash
-pnpm dev:api
-```
+## Banco e migrations
 
-Web e API em paralelo:
+Uma base nova aplica automaticamente:
 
-```bash
-pnpm dev:all
-```
+1. `0001_foundation.sql`;
+2. `0002_seed_demo.sql`;
+3. `0003_github_observations.sql`;
+4. `0004_github_sync_runs.sql`.
 
-`SEMOGTW_API_PORT` altera a porta da API. O banco abre e aplica migrations sem depender de segredos de autenticação, permitindo a superfície pública. Sem hash ou segredo válidos, `/devos` e `/api/v1/private/*` continuam falhando fechados.
+`0004` estende o `sync_runs` legado sem remover `trigger`, `repositories_checked` ou `changes_applied`. Backups e restaurações devem conter as quatro migrations.
 
-## Dados iniciais
+O seed cria apenas um projeto/etapa privados `seed_demo` e nenhum alvo GitHub. O catálogo público permanece vazio até existir conteúdo editorial aprovado.
 
-Uma base nova contém somente um projeto e uma etapa privados marcados `seed_demo`. Isso permite exercitar Overview, Hoje, Projetos, hub e Roadmap autenticados sem fingir migração.
+## Semogtw DevOS
 
-O catálogo público permanece vazio. Ele só mostra projetos com:
+As superfícies privadas implementadas incluem:
 
-- `visibility = public` para listagem/home;
-- resumo público aprovado;
-- `featured = true` para destaque na home.
+- Overview, Hoje, Projetos, hub e Roadmap com SQLite;
+- captura e ciclo de vida de atenção;
+- handoff de sessões;
+- evidência manual e conclusão guardada de etapas;
+- Auditoria paginada;
+- Operação GitHub.
 
-Projetos `unlisted` podem aparecer apenas pelo slug exato quando também possuem resumo aprovado. O serializador público nunca devolve resumo privado, branch, repositórios, bloqueios, evidências, sessões ou auditoria.
+Em **Operação**, o owner pode:
+
+- cadastrar um alvo privado sem SQL e sem enviar token pelo navegador;
+- pausar ou reativar observações sem apagar histórico;
+- executar uma leitura limitada e confirmada do GitHub;
+- revisar runs, warnings, rate limit e recomendações;
+- aceitar localmente a recomendação mais recente com motivo e auditoria.
+
+A sincronização nunca altera automaticamente `active_branch`, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local do DevOS e não envia escrita ao GitHub.
 
 ## API local
 
@@ -89,7 +105,7 @@ GET /api/v1/public/projects/:slug
 GET /api/v1/private/overview
 ```
 
-A API aceita a raiz de recursos com ou sem barra final. O runtime Node fecha HTTP e SQLite em `SIGINT`/`SIGTERM`. Endpoints privados aplicam autenticação antes dos serviços e retornam `Cache-Control: no-store, private`.
+Endpoints privados autenticam antes dos serviços e retornam `Cache-Control: no-store, private`.
 
 ## Gates
 
@@ -98,56 +114,55 @@ pnpm check
 pnpm build
 ```
 
-`pnpm check` executa:
+`pnpm check` executa guardrails, scanners, fronteiras, typecheck e testes recursivos — incluindo `@semogtw/github`.
 
-1. testes dos guardrails sem dependências externas;
-2. scanner de conteúdo residual do upstream;
-3. verificação de fronteiras do domínio;
-4. scanner estático das superfícies públicas de saída;
-5. typecheck dos workspaces e testes de integração da API;
-6. testes automatizados.
+O primeiro install válido deve gerar e commitar `pnpm-lock.yaml`. O ambiente conectado atual não resolve `registry.npmjs.org`; por isso, typecheck, Vitest e build ainda não são declarados aprovados.
+
+## Backup
+
+```bash
+pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw.sqlite
+pnpm verify:backup -- ./backups/semogtw.sqlite ./data/semogtw.sqlite
+```
+
+Os comandos recusam overwrite, verificam integridade, chaves estrangeiras e estado de migrations. Não fazem upload, criptografia ou rotação automática.
 
 ## Segurança
 
-- `/devos` e `/api/v1/private/*` falham fechados sem configuração de autenticação;
-- tokens de sessão são entregues uma vez e somente seu digest é persistido;
-- alteração do hash configurado revoga sessões ativas;
-- login e logout usam rate limit/CSRF conforme aplicável;
-- APIs e loaders públicos recebem DTOs allowlist;
-- respostas privadas da API desabilitam cache;
-- dados privados não podem entrar em HTML público, metadados, sitemap, robots, logs ou payloads anônimos;
-- conteúdo do GitHub será tratado como dado não confiável.
+- autenticação e mutações privadas falham fechadas;
+- tokens de sessão são persistidos apenas como digest;
+- CSRF, confirmação, razão e auditoria protegem mutações sensíveis;
+- respostas e DTOs públicos são allowlist;
+- nomes de repositório, URLs, branches, observações, recomendações e runs são privados;
+- GitHub é tratado como fonte de dados não confiável;
+- o cliente GitHub implementa apenas GET, valida identidade/HTTPS e interrompe leituras posteriores após rate limit;
+- nenhum token, authorization header ou corpo bruto do provider é persistido.
 
-Consulte `SECURITY.md` e `PUBLIC_SITE.md` antes de alterar rotas ou serializadores públicos.
+Consulte `SECURITY.md`, `DATA_MODEL.md`, `TESTING.md` e `RUNBOOK.md` antes de alterar integrações ou superfícies públicas.
 
 ## Estado atual
 
-Implementado na fundação:
+Implementado em código e salvo na branch de desenvolvimento:
 
-- workspace TypeScript estrito;
-- guardrails de upstream, confidencialidade e fronteiras;
-- invariantes de etapa e serviços compartilhados;
-- contratos públicos e privados;
-- schema relacional, migrations e seed demonstrativo explícito;
-- autenticação local revogável, composição Node/SQLite e controles HTTP;
-- API Hono pública/privada com runtime Node;
-- sistema de design e menu móvel funcional;
-- home e Projetos públicos ligados a DTOs allowlist;
-- login e todas as rotas privadas estruturais protegidas;
-- Overview, Hoje, Projetos, hub e Roadmap lendo SQLite real.
+- fundação portátil e autenticação local;
+- leituras e escritas operacionais auditadas;
+- backup e auditoria;
+- integração GitHub somente leitura;
+- cadastro e ciclo de vida de alvos;
+- recomendações e decisão local de branch;
+- migrations e documentação de continuidade.
 
 Ainda não concluído:
 
-- instalação e build integral em ambiente com registry completo;
-- lockfile gerado pelo primeiro install válido;
+- instalação integral e lockfile em ambiente com registry;
+- execução de typecheck, Vitest, build e browser E2E;
+- validação do token/provider em runtime real;
 - adaptador de produção para o host escolhido;
 - migração Notion;
-- sincronização GitHub;
 - MCP;
-- escrita operacional e auditoria de mutações;
 - conteúdo editorial real aprovado;
-- deploy.
+- deploy público.
 
 ## Referência upstream
 
-A fundação avaliou seletivamente `krisnarane/pdi-template` no commit registrado em `docs/UPSTREAM_REFERENCE.md`. Consulte também `THIRD_PARTY_NOTICES.md`. Nenhum conteúdo, dado pessoal, taxonomia de PDI ou identidade visual literal deve ser introduzido.
+A fundação avaliou seletivamente o upstream registrado em `UPSTREAM_REFERENCE.md`. Nenhum conteúdo pessoal, taxonomia de PDI ou identidade visual literal deve ser reintroduzido.
