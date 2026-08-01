@@ -22,7 +22,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
   database.$client
     .prepare(
       `INSERT INTO repositories (
-        id, project_id, github_node_id, owner, name, full_name, html_url,
+        id, project_id, github_node_id, owner, name, full_name, github_url,
         visibility, default_branch, active_branch, role, sync_enabled, status,
         last_synced_at, data_source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -38,7 +38,7 @@ function seedRepository(database: ReturnType<typeof createSqliteDatabase>): void
       "private",
       "main",
       "develop/foundation-bootstrap",
-      "primary",
+      "product",
       1,
       "active",
       before.updatedAt,
@@ -93,7 +93,7 @@ describe("SqliteRepositoryTargetLifecycleRepository", () => {
       database.$client
         .prepare(
           `SELECT sync_enabled, updated_at, full_name, default_branch,
-                  active_branch, github_node_id, data_source
+                  active_branch, github_node_id, role, status, data_source
            FROM repositories WHERE id = ?`,
         )
         .get(before.id),
@@ -104,6 +104,8 @@ describe("SqliteRepositoryTargetLifecycleRepository", () => {
       default_branch: "main",
       active_branch: "develop/foundation-bootstrap",
       github_node_id: "R_repo",
+      role: "product",
+      status: "active",
       data_source: "github",
     });
     expect(
@@ -115,6 +117,7 @@ describe("SqliteRepositoryTargetLifecycleRepository", () => {
       before_json: JSON.stringify(before),
       after_json: JSON.stringify(after),
     });
+    database.$client.close();
   });
 
   it("rejects stale state without an audit event", async () => {
@@ -135,6 +138,7 @@ describe("SqliteRepositoryTargetLifecycleRepository", () => {
         .prepare("SELECT id FROM audit_events WHERE id = ?")
         .get(event.id),
     ).toBeUndefined();
+    database.$client.close();
   });
 
   it("rolls back the sync state when audit insertion fails", async () => {
@@ -161,5 +165,6 @@ describe("SqliteRepositoryTargetLifecycleRepository", () => {
         .prepare("SELECT sync_enabled, updated_at FROM repositories WHERE id = ?")
         .get(before.id),
     ).toEqual({ sync_enabled: 1, updated_at: before.updatedAt });
+    database.$client.close();
   });
 });
