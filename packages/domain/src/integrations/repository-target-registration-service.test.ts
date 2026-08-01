@@ -49,7 +49,7 @@ describe("RepositoryTargetRegistrationService", () => {
         projectId: " project-platform ",
         fullName: " Semogtw/SemogSite ",
         defaultBranch: " main ",
-        role: "primary",
+        role: "product",
         reason: "Este repositório é a fonte técnica principal do projeto.",
         confirmed: true,
       },
@@ -69,7 +69,7 @@ describe("RepositoryTargetRegistrationService", () => {
         visibility: "private",
         defaultBranch: "main",
         activeBranch: null,
-        role: "primary",
+        role: "product",
         syncEnabled: true,
         status: "active",
         lastSyncedAt: null,
@@ -99,7 +99,7 @@ describe("RepositoryTargetRegistrationService", () => {
     );
   });
 
-  it("rejects malformed identity, unsafe branch and missing confirmation", async () => {
+  it("rejects malformed identity, unsafe branch and non-canonical role", async () => {
     const repository = new RecordingRepository();
     const service = new RepositoryTargetRegistrationService(repository);
 
@@ -109,7 +109,7 @@ describe("RepositoryTargetRegistrationService", () => {
           projectId: " ",
           fullName: "user:secret@example.com/repo/extra",
           defaultBranch: "feature branch",
-          role: "archive" as "primary",
+          role: "primary" as "product",
           reason: " ",
           confirmed: false,
         },
@@ -144,8 +144,8 @@ describe("RepositoryTargetRegistrationService", () => {
           projectId: "project-platform",
           fullName: "Semogtw/SemogSite",
           defaultBranch: "main",
-          role: "secondary",
-          reason: "Adicionar alvo secundário.",
+          role: "integration",
+          reason: "Adicionar alvo de integração.",
           confirmed: true,
         },
         context,
