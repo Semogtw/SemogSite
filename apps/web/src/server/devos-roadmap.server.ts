@@ -4,7 +4,7 @@ import {
   type RoadmapResult,
 } from "@semogtw/domain";
 import { SqliteRoadmapDataSource } from "@semogtw/database";
-import { getNodeDatabase } from "./node-auth-composition.server";
+import { getNodeDatabase } from "./node-database.server";
 
 const defaultFilters: RoadmapFilters = {
   projectIds: [],
