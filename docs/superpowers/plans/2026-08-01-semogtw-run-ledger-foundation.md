@@ -141,7 +141,7 @@ Each kind has an allowlisted payload. Sensitive credential keys, arbitrary paylo
 
 ## Task 5: Cooperative writes
 
-- [ ] Add owner-authenticated/manual run registration and lifecycle-transition server functions.
+- [x] Add owner-authenticated/manual run registration and lifecycle-transition server functions.
 - [ ] Add an authorized agent polling surface for queued commands.
 - [x] Require CSRF, explicit confirmation and client idempotency for owner command creation.
 - [x] Add queued owner commands separately from direct process control.
@@ -156,7 +156,7 @@ Each kind has an allowlisted payload. Sensitive credential keys, arbitrary paylo
 /devos/runs/:runId
 ```
 
-Both routes require the owner guard and call server-side owner resolution again before opening the private read model.
+Both routes require the owner guard and call server-side owner resolution again before opening the private read model. The owner can register a cooperative run, transition its reported lifecycle and enqueue bounded commands; none of these actions starts, resumes or controls an external process.
 
 ## Gates
 
@@ -174,7 +174,7 @@ Still required before declaring this phase verified:
 
 - dependency-complete domain/database/web typecheck and Vitest output;
 - migration `0001`–`0005` execution against memory and file-backed SQLite;
-- authenticated browser lifecycle and command-queue checks;
+- authenticated browser registration, lifecycle and command-queue checks;
 - anonymous redirect/confidentiality checks for both run routes;
 - keyboard and 360 px browser validation;
 - full `pnpm check` and production build;
