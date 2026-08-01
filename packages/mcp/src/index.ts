@@ -1,4 +1,5 @@
 export {
+  SEMOGTW_MCP_ERROR_CODES,
   SEMOGTW_MCP_MAX_JSON_BYTES,
   SEMOGTW_MCP_READ_ANNOTATIONS,
   SEMOGTW_MCP_RESOURCES,
@@ -6,6 +7,7 @@ export {
   SEMOGTW_MCP_TOOLS,
 } from "./catalog";
 export type {
+  SemogtwMcpErrorCode,
   SemogtwMcpResourceUri,
   SemogtwMcpToolName,
 } from "./catalog";
