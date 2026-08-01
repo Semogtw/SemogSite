@@ -4,7 +4,7 @@ import {
   type ProjectHub,
 } from "@semogtw/domain";
 import { SqliteProjectDataSource } from "@semogtw/database";
-import { getNodeDatabase } from "./node-auth-composition.server";
+import { getNodeDatabase } from "./node-database.server";
 
 async function getProjectService(): Promise<ProjectService | null> {
   const database = await getNodeDatabase();
