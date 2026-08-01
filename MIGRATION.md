@@ -2,22 +2,29 @@
 
 ## Status
 
-No Notion data has been imported. The SQLite seed is demonstration-only and must not be compared with the expected production counts.
+No Notion content has been imported. The SQLite seed is demonstration-only and must not be compared with expected production counts.
 
-## Source
+Database schema evolution is separate from content migration. The current schema baseline consists of:
 
-The source specification describes an existing DevOS snapshot with projects, repositories, workstreams, stages, attention items and sessions. These counts are acceptance expectations, not data already present in this repository.
+1. `0001_foundation.sql`;
+2. `0002_seed_demo.sql`;
+3. `0003_github_observations.sql`;
+4. `0004_github_sync_runs.sql`.
 
-## Required input
+`0004` extends the original `sync_runs` table additively and must be present before GitHub reads are enabled.
+
+## Content source
+
+The product specification describes an existing DevOS snapshot with projects, repositories, workstreams, stages, attention items and sessions. These counts are acceptance expectations, not data already present in the repository.
 
 Obtain one of:
 
-- structured Notion export in JSON/CSV with relation identifiers; or
-- an authenticated connector snapshot that preserves database and page IDs.
+- a structured Notion JSON/CSV export preserving relation identifiers; or
+- an authenticated connector snapshot preserving database/page IDs.
 
-HTML-only exports are a last resort because relation reconstruction becomes unreliable. Do not scrape the public rendering of a private workspace.
+HTML-only exports are a last resort. Do not scrape a public rendering of a private workspace.
 
-## Import order
+## Content import order
 
 1. projects;
 2. repositories;
@@ -26,47 +33,66 @@ HTML-only exports are a last resort because relation reconstruction becomes unre
 5. attention items;
 6. development sessions;
 7. evidence;
-8. publications/timeline/media when explicitly approved.
+8. publications/timeline/media after explicit approval.
 
-Every imported record receives a stable mapping and `updated_from/source = migration`.
+Every imported record receives a stable source mapping and `data_source/updated_from = migration`.
+
+## Repository mapping
+
+Imported repositories must use the canonical operational contract:
+
+- `github_url`, not provider-observation `html_url`;
+- role: product, core, integration, infrastructure, academic or experiment;
+- status: active, paused, historical or experiment;
+- `active_branch` remains a local accepted decision;
+- `sync_enabled` is explicit;
+- provider metadata refresh must not overwrite manual lifecycle or branch decisions.
+
+GitHub observations are not a replacement for imported project/repository relationships. They are later timestamped evidence linked to an existing target.
 
 ## Import protocol
 
-1. save the source artifact and checksum outside the public bundle;
-2. parse into a staging representation;
-3. validate required fields, enums, dates and relations;
-4. display an import preview with counts and warnings;
-5. reject records that violate domain invariants;
-6. commit in a transaction;
-7. compare expected and actual counts;
-8. manually inspect a sample from every active project;
-9. revalidate branches, commits, PRs and tests directly against GitHub;
-10. preserve Notion read-only during the parity period.
+1. save source artifact and checksum outside the public bundle;
+2. create and verify a pre-import backup containing migrations `0001`–`0004`;
+3. parse into a staging representation;
+4. validate required fields, enums, dates and relations;
+5. display counts, mappings and warnings;
+6. reject domain-invariant violations;
+7. commit in one transaction;
+8. compare expected and actual counts;
+9. inspect samples from every active project;
+10. revalidate provider-derived technical fields through the read-only GitHub integration;
+11. preserve Notion read-only during parity.
 
-## Idempotency
+## Idempotency and conflicts
 
-Use source system + source ID as the import identity. Re-running an unchanged snapshot must not duplicate records. Conflicts with manually locked fields become proposals, never silent overwrites.
+Use source system + source ID as import identity. Re-running an unchanged snapshot must not duplicate records.
+
+Conflicts with manually locked fields, accepted active branches, target lifecycle state or newer audited writes become proposals. They must never silently overwrite owner decisions.
 
 ## Dates
 
-Parse source dates explicitly. Persist timestamps in UTC and retain the original value/source in migration diagnostics when conversion is ambiguous. Presentation uses `America/Bahia`.
+Persist timestamps in UTC. Retain original source values in migration diagnostics when conversion is ambiguous. Presentation uses `America/Bahia`.
 
 ## Privacy
 
-Migration artifacts may contain private repository names, branch information and internal notes. They must remain outside public assets and logs. Import errors should identify source record IDs without echoing full sensitive bodies.
+Migration artifacts may contain private repository names, branches and internal notes. Keep them outside public assets, logs and prompts. Errors should identify source IDs without echoing full sensitive bodies.
 
 ## Rollback
 
-The import runs in a transaction. Before importing into a non-disposable database, create a backup/export and record the schema version. If post-import validation fails, restore the backup or roll back the transaction; do not partially correct production records by hand without audit entries.
+Content import runs transactionally. If validation fails, restore the verified pre-import backup or roll back the transaction. Do not partially repair production records by hand without audited mutations.
+
+Schema migration failure must not be bypassed by manually inserting a row into `_semogtw_migrations`. Restore the compatible backup and apply a reviewed forward repair.
 
 ## Acceptance
 
-Migration is complete only when:
+Content migration is complete only when:
 
 - counts match the captured snapshot or every discrepancy is explained;
-- relations are intact;
-- all domain invariants pass;
-- four active projects are manually sampled;
-- GitHub-derived technical fields are revalidated;
-- public DTO tests show no private leakage;
-- the source checksum and migration run are recorded.
+- relations and source identities are intact;
+- domain invariants pass;
+- active projects are manually sampled;
+- technical fields are revalidated without overwriting manual decisions;
+- public DTO/confidentiality tests show no private leakage;
+- source checksum and migration run are recorded;
+- backup and restore work with all four schema migrations.
