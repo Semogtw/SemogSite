@@ -219,3 +219,8 @@
     justify-content: flex-start;
   }
 }
+
+.editorial-workflow-control {
+  border-top: 1px solid var(--sem-border);
+  padding-top: 1rem;
+}

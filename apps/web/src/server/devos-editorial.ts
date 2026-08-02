@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
 import { createEditorialRevisionCommand } from "./editorial-revision-command";
+import { submitEditorialForReviewCommand } from "./editorial-submit-review-command";
 import { parseEditorialTags } from "./editorial-content.server";
 import { resolveCurrentOwner } from "./current-owner.server";
 import { getNodeDatabase } from "./node-database.server";
@@ -29,6 +30,14 @@ const CreateEditorialRevisionSchema = z.object({
   excerpt: z.string().trim().min(1).max(320),
   bodyMarkdown: z.string().trim().min(1).max(100_000),
   tags: z.string().max(1_000),
+  confirmed: z.literal(true),
+});
+
+const SubmitEditorialForReviewSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
   confirmed: z.literal(true),
 });
 
@@ -230,6 +239,74 @@ export const createEditorialRevisionFn = createServerFn({ method: "POST" })
         code: "EDITORIAL_REVISION_FAILED" as const,
         message:
           "A revisão não pôde ser criada. Nenhum estado parcial foi confirmado.",
+      };
+    }
+  });
+
+export const submitEditorialForReviewFn = createServerFn({ method: "POST" })
+  .validator(SubmitEditorialForReviewSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar o envio para revisão.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await submitEditorialForReviewCommand(database, {
+        documentId: data.documentId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta tela foi carregada. Recarregue antes de enviar para revisão."
+            : result.code === "INVALID_TRANSITION" ||
+                result.code === "INVALID_CURRENT_STATE"
+              ? "Somente um rascunho íntegro pode ser enviado para revisão."
+              : result.code === "DOCUMENT_NOT_FOUND" ||
+                  result.code === "REVISION_NOT_FOUND"
+                ? "O documento ou sua revisão de trabalho não foi encontrado."
+                : "O envio para revisão entrou em conflito com outra tentativa.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Este mesmo envio já havia sido confirmado; nenhum evento foi duplicado."
+          : "Revisão de trabalho enviada para análise sensível. O conteúdo continua privado.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_SUBMIT_REVIEW_FAILED" as const,
+        message:
+          "O envio para revisão falhou. A identidade da tentativa pode ser reutilizada com segurança.",
       };
     }
   });

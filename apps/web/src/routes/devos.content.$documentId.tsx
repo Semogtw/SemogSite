@@ -3,6 +3,7 @@ import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { EditorialRevisionForm } from "../components/devos/editorial-revision-form";
+import { EditorialWorkflowControls } from "../components/devos/editorial-workflow-controls";
 import { getEditorialDocumentDetailFn } from "../server/devos-editorial";
 import { requireOwner } from "../server/require-owner";
 
@@ -172,12 +173,12 @@ function EditorialDocumentPage() {
               <dd>{detail.events.length}</dd>
             </div>
           </dl>
-          <p className="editorial-safety-note">
-            Aprovar, publicar, retirar e fazer rollback ainda não estão
-            disponíveis nesta tela. Esses controles entrarão somente com
-            confirmação, motivo, checklist e concorrência otimista testados.
-          </p>
-          {working ? (
+          <EditorialWorkflowControls
+            documentId={detail.document.id}
+            expectedUpdatedAt={detail.document.updatedAt}
+            workflowStatus={detail.document.workflowStatus}
+          />
+          {working && detail.document.workflowStatus === "draft" ? (
             <EditorialRevisionForm
               documentId={detail.document.id}
               expectedUpdatedAt={detail.document.updatedAt}
