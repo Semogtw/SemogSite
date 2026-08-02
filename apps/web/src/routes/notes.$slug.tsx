@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicEditorialDocumentFn } from "../server/public-editorial";
+import { publicEditorialDetailHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/notes/$slug")({
   loader: ({ params }) =>
@@ -10,23 +11,11 @@ export const Route = createFileRoute("/notes/$slug")({
       data: { slug: params.slug, kind: "note" },
     }),
   head: ({ loaderData, params }) =>
-    loaderData == null
-      ? {
-          meta: [
-            { title: `Nota ${params.slug} — Semogtw` },
-            { name: "robots", content: "noindex, nofollow" },
-            {
-              name: "description",
-              content: "Nota técnica ainda não publicada.",
-            },
-          ],
-        }
-      : {
-          meta: [
-            { title: `${loaderData.title} — Semogtw` },
-            { name: "description", content: loaderData.excerpt },
-          ],
-        },
+    publicEditorialDetailHead({
+      kind: "note",
+      slug: params.slug,
+      document: loaderData ?? null,
+    }),
   component: NotePage,
 });
 
