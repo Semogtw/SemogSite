@@ -238,16 +238,15 @@ Outros exemplos:
 "$SEMOGSITE_TOOLCHAIN/bin/pnpm-offline" --dir "$PWD" exec playwright test
 ```
 
-Em um monorepo, os gates esperados são:
+Em um monorepo, use os gates versionados no workspace:
 
 ```bash
-pnpm -r typecheck
-pnpm -r test
-pnpm -r build
-pnpm exec playwright test
+pnpm check
+pnpm build
+pnpm test:e2e
 ```
 
-Use os scripts realmente declarados no workspace. A lista acima descreve o contrato desejado, mas um slice ainda não implementado pode não possuir todos eles.
+`pnpm test:e2e` limpa somente o banco dedicado `data/semogtw-e2e.sqlite`, recompila o app, inicia o adapter Node local e usa o Chromium fornecido pela toolchain. Não execute `playwright install` em uma sessão offline.
 
 ## 8. Playwright e Chromium
 

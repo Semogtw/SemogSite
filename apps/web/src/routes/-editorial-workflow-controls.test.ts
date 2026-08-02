@@ -36,6 +36,14 @@ describe("editorial workflow controls", () => {
     expect(controls).toContain("Motivo da retirada");
   });
 
+  it("allows an approved revision to replace an older public projection", () => {
+    const route = source("devos.content.$documentId.tsx");
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(route).toContain('publishedRevisionId={detail.document.publishedRevisionId}');
+    expect(controls).toContain("publishedRevisionId !== revisionId");
+  });
+
   it("keeps publication separate and bound to the approved revision", () => {
     const route = source("devos.content.$documentId.tsx");
     const server = source("../server/devos-editorial.ts");

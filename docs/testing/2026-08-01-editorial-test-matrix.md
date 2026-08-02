@@ -109,9 +109,9 @@ Verify:
 - strict DTO rejects extra private fields;
 - public confidentiality and editorial schema scanners pass.
 
-## Future owner UI
+## Owner UI and browser gate
 
-Before public release, browser tests must cover:
+The versioned `pnpm test:e2e` gate currently covers:
 
 1. owner creates document/revision;
 2. preview is authenticated;
@@ -123,10 +123,10 @@ Before public release, browser tests must cover:
 8. create new draft while old revision remains public;
 9. withdraw makes anonymous route not found;
 10. rollback restores prior approved revision with a new event;
-11. stale two-tab form conflicts;
-12. lost-response exact retry does not duplicate;
-13. changed intent same idempotency key conflicts;
-14. long content, keyboard and 360×800 layout remain usable.
+11. keyboard navigation and 360×800 layout remain usable;
+12. private routes redirect anonymously and retain `noindex`.
+
+Deterministic domain/database suites continue to cover stale two-tab snapshots, lost-response exact retries and changed intent under the same idempotency key. Long-content stress and CSP behavior remain host/runtime gates.
 
 ## Renderer/security
 
@@ -171,6 +171,7 @@ pnpm --filter @semogtw/database typecheck
 pnpm --filter @semogtw/database test -- editorial
 pnpm check
 pnpm build
+pnpm test:e2e
 ```
 
 Adapt Vitest filters to the installed CLI when necessary; do not skip the full package suite after focused tests.

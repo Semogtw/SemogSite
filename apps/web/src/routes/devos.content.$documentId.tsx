@@ -197,6 +197,7 @@ function EditorialDocumentPage() {
             expectedUpdatedAt={detail.document.updatedAt}
             workflowStatus={detail.document.workflowStatus}
             publicationStatus={detail.document.publicationStatus}
+            publishedRevisionId={detail.document.publishedRevisionId}
             rollbackCandidates={rollbackCandidates}
           />
           {working && detail.document.workflowStatus === "draft" ? (

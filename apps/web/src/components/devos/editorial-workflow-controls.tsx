@@ -26,6 +26,7 @@ type EditorialWorkflowControlsProps = {
   expectedUpdatedAt: string;
   workflowStatus: "draft" | "in_review" | "approved";
   publicationStatus: "unpublished" | "published" | "withdrawn";
+  publishedRevisionId: string | null;
   rollbackCandidates: readonly RollbackCandidate[];
 };
 
@@ -88,6 +89,7 @@ export function EditorialWorkflowControls({
   expectedUpdatedAt,
   workflowStatus,
   publicationStatus,
+  publishedRevisionId,
   rollbackCandidates,
 }: EditorialWorkflowControlsProps) {
   const router = useRouter();
@@ -111,6 +113,7 @@ export function EditorialWorkflowControls({
       expectedUpdatedAt={expectedUpdatedAt}
       workflowStatus={workflowStatus}
       publicationStatus={publicationStatus}
+      publishedRevisionId={publishedRevisionId}
       rollbackCandidates={rollbackCandidates}
     />
   );
@@ -383,10 +386,11 @@ function PublicationManagement({
   expectedUpdatedAt,
   workflowStatus,
   publicationStatus,
+  publishedRevisionId,
   rollbackCandidates,
 }: EditorialWorkflowControlsProps) {
   const canPublish =
-    workflowStatus === "approved" && publicationStatus !== "published";
+    workflowStatus === "approved" && publishedRevisionId !== revisionId;
   const canWithdraw = publicationStatus === "published";
 
   if (!canPublish && !canWithdraw && rollbackCandidates.length === 0) {

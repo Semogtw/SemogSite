@@ -142,17 +142,19 @@ Endpoints privados autenticam antes de invocar serviços e retornam políticas d
 ```bash
 pnpm check
 pnpm build
+pnpm test:e2e
 ```
 
 Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1` e pnpm `10.14.0`:
 
 - instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
-- guardrails e typechecks dos quatro pacotes aprovados;
-- `pnpm test`: **130 arquivos / 479 testes aprovados**;
+- guardrails e typechecks de todos os workspaces aprovados;
+- `pnpm test`: **130 arquivos / 480 testes aprovados**;
 - `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
 - bundle SSR contendo as 9 migrations e nenhuma migration no cliente;
 - SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
-- Chromium headless: **35 verificações aprovadas**, cobrindo páginas públicas, redirecionamento anônimo, login owner, rotas privadas, `noindex`, ausência de marcadores privados, teclado, viewport de 360 px, logout e console sem erros.
+- `pnpm test:e2e`: **2 cenários Playwright aprovados**, cobrindo login owner, ciclo editorial completo, checklist incompleto bloqueado, troca atômica da revisão pública, rollback, retirada, isolamento anônimo, `noindex`, teclado, console e viewport de 360×800;
+- o adapter Node versionado serve `dist/client` e encaminha as demais requisições ao handler Fetch gerado em `dist/server/server.js`.
 
 ## Backup
 
@@ -191,7 +193,7 @@ Implementado e verificado:
 - projeções públicas de notas e projetos derivadas exclusivamente da revisão aprovada e publicada;
 - renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
 - restauração verificada preservando simultaneamente a projeção pública e um rascunho privado mais novo;
-- lockfile determinístico, typechecks, 479 testes e build SSR aprovados.
+- lockfile determinístico, typechecks, 480 testes, build SSR e gate Playwright aprovados.
 
 Ainda bloqueado ou pendente de uma fase separada:
 
@@ -199,7 +201,6 @@ Ainda bloqueado ou pendente de uma fase separada:
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
 - adapter e deploy no host definitivo;
 - migração de conteúdo real do Notion;
-- repetição do gate Chromium no estado editorial final, incluindo teclado e viewport de 360 px;
 - observabilidade e operação de produção.
 
 ## Referência upstream
