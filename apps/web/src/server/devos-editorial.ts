@@ -6,6 +6,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
+import { createEditorialRevisionCommand } from "./editorial-revision-command";
 import { parseEditorialTags } from "./editorial-content.server";
 import { resolveCurrentOwner } from "./current-owner.server";
 import { getNodeDatabase } from "./node-database.server";
@@ -17,6 +18,18 @@ const EditorialListQuerySchema = z.object({
 
 const EditorialDetailQuerySchema = z.object({
   documentId: z.string().trim().min(1).max(200),
+});
+
+const CreateEditorialRevisionSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  title: z.string().trim().min(1).max(160),
+  excerpt: z.string().trim().min(1).max(320),
+  bodyMarkdown: z.string().trim().min(1).max(100_000),
+  tags: z.string().max(1_000),
+  confirmed: z.literal(true),
 });
 
 const CreateEditorialDocumentSchema = z.object({
@@ -132,6 +145,91 @@ export const createEditorialDocumentFn = createServerFn({ method: "POST" })
         code: "EDITORIAL_CREATE_FAILED" as const,
         message:
           "O rascunho não pôde ser criado. Nenhum estado parcial foi confirmado.",
+      };
+    }
+  });
+
+export const createEditorialRevisionFn = createServerFn({ method: "POST" })
+  .validator(CreateEditorialRevisionSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar a criação da revisão.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await createEditorialRevisionCommand(database, {
+        documentId: data.documentId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        title: data.title,
+        excerpt: data.excerpt,
+        bodyMarkdown: data.bodyMarkdown,
+        tags: parseEditorialTags(data.tags),
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        if (result.code === "VALIDATION_FAILED") {
+          return {
+            ok: false as const,
+            code: result.code,
+            errors: result.errors,
+            message:
+              "Revise o conteúdo. HTML bruto e campos editoriais inválidos são recusados.",
+          };
+        }
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta tela foi carregada. Recarregue antes de criar outra revisão."
+            : result.code === "DOCUMENT_NOT_FOUND"
+              ? "O documento editorial não foi encontrado."
+              : "A revisão não foi criada porque a identidade ou o estado entrou em conflito.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Esta revisão já havia sido salva; nenhum histórico foi duplicado."
+          : "Nova revisão privada criada. Aprovação e publicação continuam inalteradas.",
+        document: {
+          id: result.document.id,
+          workingRevisionId: result.document.workingRevisionId,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+        revision: result.revision
+          ? {
+              id: result.revision.id,
+              sequence: result.revision.sequence,
+              contentHash: result.revision.contentHash,
+            }
+          : null,
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_REVISION_FAILED" as const,
+        message:
+          "A revisão não pôde ser criada. Nenhum estado parcial foi confirmado.",
       };
     }
   });
