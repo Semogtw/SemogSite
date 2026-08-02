@@ -1,0 +1,9 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/editorial-workspace",
+  "expected_head": "0f21facb54476f95cdc48028820b0d356c85783b",
+  "base_commit": "0f21facb54476f95cdc48028820b0d356c85783b",
+  "patch_sha256": "7a33744acc9ccb6f45608d2c9f78831a0088d5c8817be105ff7ed6e5ac41d2a0",
+  "expected_tree": "7b15d8d6ca1679b0e3717481c6bac5facbb849db",
+  "commit_message": "feat(editorial): add owner revision diff"
+}
