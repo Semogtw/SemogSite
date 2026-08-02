@@ -1,20 +1,12 @@
 import { EmptyState, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import { publicEditorialListHead } from "./-public-editorial-head";
 import { getPublicEditorialFn } from "../server/public-editorial";
 
 export const Route = createFileRoute("/notes/")({
   loader: () => getPublicEditorialFn({ data: { kind: "note", limit: 50 } }),
-  head: () => ({
-    meta: [
-      { title: "Notas — Semogtw" },
-      {
-        name: "description",
-        content:
-          "Notas técnicas, decisões, retrospectivas e tutoriais publicados pela Semogtw.",
-      },
-    ],
-  }),
+  head: () => publicEditorialListHead("note"),
   component: NotesPage,
 });
 
