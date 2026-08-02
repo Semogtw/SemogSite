@@ -21,6 +21,21 @@ function scan(files) {
 assert.deepEqual(
   scan([
     [
+      "packages/contracts/src/public/editorial.test.ts",
+      'const rejected = { workflowStatus: "draft" };\n',
+    ],
+    [
+      "packages/contracts/src/public/editorial.spec.ts",
+      'const rejected = { reviewerId: "fixture-only" };\n',
+    ],
+  ]),
+  [],
+  "test and spec files are not production public surfaces",
+);
+
+assert.deepEqual(
+  scan([
+    [
       "packages/contracts/src/public/editorial.ts",
       'export type PublicEditorial = { publishedRevisionId: string; title: string };\n',
     ],
