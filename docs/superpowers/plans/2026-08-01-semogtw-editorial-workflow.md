@@ -100,45 +100,45 @@ It never contains:
 
 ## Task 1: Pure domain contracts
 
-- [ ] Define document, revision, review and publication-event contracts.
-- [ ] Define lifecycle and optimistic-concurrency invariants.
-- [ ] Define bounded draft/revision creation.
-- [ ] Define submit/reopen/approve/publish/withdraw/rollback commands.
-- [ ] Define public projection from published content only.
-- [ ] Add focused tests before implementation.
-- [ ] Export from `@semogtw/domain`.
+- [x] Define document, revision, review and publication-event contracts.
+- [x] Define lifecycle and optimistic-concurrency invariants.
+- [x] Define bounded draft/revision creation.
+- [x] Define submit/reopen/approve/publish/withdraw/rollback commands.
+- [x] Define public projection from published content only.
+- [x] Add focused tests before implementation.
+- [x] Export from `@semogtw/domain`.
 
 ## Task 2: Persistence
 
-- [ ] Add additive migration `0006_editorial_workflow.sql`.
-- [ ] Add document, immutable revision, review and publication-event tables.
-- [ ] Keep public projection query independent from private operational tables.
-- [ ] Use immediate transactions, idempotency keys and optimistic `updated_at` matching.
-- [ ] Preserve publication history and redirect decisions.
-- [ ] Update backup/migration expectations through `0006`.
+- [x] Add additive editorial workflow migrations (`0006`–`0009`).
+- [x] Add document, immutable revision, review and publication-event tables.
+- [x] Keep public projection query independent from private operational tables.
+- [x] Use immediate transactions, idempotency keys and optimistic `updated_at` matching.
+- [x] Preserve publication history (redirect decisions remain future work).
+- [x] Update migration expectations through `0009`.
 
 ## Task 3: Owner-only editorial UI
 
-- [ ] Add private document list/detail/editor routes.
-- [ ] Add revision diff/preview.
-- [ ] Add sensitive-review checklist and approval reason.
-- [ ] Add publish/withdraw/rollback confirmation flows.
-- [ ] Add responsive/keyboard-safe editor controls.
-- [ ] Never expose review/draft payloads through public loaders.
+- [x] Add private document list/detail/editor routes.
+- [ ] Add revision diff; authenticated preview is implemented.
+- [x] Add sensitive-review checklist and approval reason.
+- [x] Add publish/withdraw/rollback confirmation flows.
+- [x] Add responsive and keyboard-operable editor controls; browser verification remains pending.
+- [x] Never expose review/draft payloads through public loaders.
 
 ## Task 4: Public reads
 
-- [ ] Add public read model backed only by current published revision.
-- [ ] Map to explicit public contracts.
-- [ ] Return not-found for draft/withdrawn/unknown content.
+- [x] Add public read model backed only by current published revision.
+- [x] Map to explicit strict public contracts.
+- [x] Return not-found for draft/withdrawn/unknown content.
 - [ ] Add canonical/noindex behavior and approved redirects.
-- [ ] Add public confidentiality scanner coverage for editorial/private fields.
+- [x] Add public confidentiality scanner coverage for editorial/private fields.
 
 ## Task 5: Verification
 
-- [ ] Domain lifecycle/content-bound tests.
-- [ ] SQLite atomicity/idempotency/rollback tests.
-- [ ] Migration `0001`–`0006` memory/file execution.
+- [x] Domain lifecycle/content-bound tests.
+- [x] SQLite atomicity/idempotency/rollback tests.
+- [x] Migration `0001`–`0009` memory/file execution.
 - [ ] Backup/restore with editorial fixtures.
 - [ ] Owner browser edit/review/publish/withdraw/rollback flow.
 - [ ] Anonymous draft/review confidentiality tests.
@@ -175,3 +175,37 @@ It never contains:
 - previous published revisions remain immutable/recoverable;
 - all current-HEAD tests/migrations/build/browser/confidentiality gates are observed;
 - no autonomous publication or remote write is claimed.
+
+## Execution update — 2026-08-02
+
+Implemented and observed on `develop/editorial-workspace`:
+
+- owner creation, immutable revisions, submit-for-review, approval checklist, explicit re-open, publication, withdrawal and rollback;
+- replay-first idempotency for transitions, approval, publication/rollback and withdrawal, including lost-response retries after aggregate state changes;
+- approval and rollback bound to the exact persisted revision/content hash;
+- public lifecycle controls remain available while a newer working draft exists, so an older public projection can always be withdrawn or rolled back;
+- strict public editorial reader backed only by `SqlitePublishedEditorialReadModel`;
+- `/notes` and `/notes/$slug` now read only the current published `note` revision and return not-found for drafts, withdrawals and kind mismatches;
+- approved Markdown is currently emitted as escaped text, not HTML. A sanitized renderer remains a separate security gate.
+
+Observed offline-toolchain gates at local commit `ac51b3d`:
+
+```text
+Node v22.23.1
+pnpm 10.14.0
+@semogtw/domain: 35 files / 199 tests passed
+@semogtw/database: 45 files / 119 tests passed
+@semogtw/contracts: 2 files / 10 tests passed
+@semogtw/web: 23 files / 62 tests passed
+domain, database, contracts and web typechecks passed
+git diff --check passed
+```
+
+Still required before phase 1 can be declared complete:
+
+- migrate `/projects` away from its legacy operational public-field source to the editorial projection;
+- sanitized Markdown renderer and URI/link policy;
+- canonical/redirect policy;
+- browser flow, keyboard and 360×800 verification;
+- file-backed backup/restore fixture;
+- full root `pnpm check` and production build on the final exact remote HEAD.

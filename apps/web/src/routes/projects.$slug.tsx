@@ -1,5 +1,6 @@
-import { Status, Surface } from "@semogtw/ui";
+import { Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicProjectFn } from "../server/public-projects";
 
@@ -13,20 +14,20 @@ export const Route = createFileRoute("/projects/$slug")({
             { name: "robots", content: "noindex, nofollow" },
             {
               name: "description",
-              content: "Página pública de projeto ainda não publicada.",
+              content: "Projeto ainda não publicado na vitrine editorial.",
             },
           ],
         }
       : {
           meta: [
-            { title: `${loaderData.name} — Semogtw` },
-            { name: "description", content: loaderData.publicSummary },
+            { title: `${loaderData.title} — Semogtw` },
+            { name: "description", content: loaderData.excerpt },
           ],
         },
-  component: ProjectPage,
+  component: ProjectDetailPage,
 });
 
-function ProjectPage() {
+function ProjectDetailPage() {
   const { slug } = Route.useParams();
   const project = Route.useLoaderData();
 
@@ -35,10 +36,10 @@ function ProjectPage() {
       <PublicShell>
         <header className="editorial-page-header">
           <p className="eyebrow">Projeto não publicado</p>
-          <h1>Nenhum conteúdo público corresponde a “{slug}”.</h1>
+          <h1>Nenhuma publicação pública corresponde a “{slug}”.</h1>
           <p>
-            Rotas de projeto não usam dados privados como fallback. O conteúdo
-            ficará disponível somente após aprovação editorial.
+            Uma linha operacional, um rascunho ou uma publicação retirada não é
+            usada como fallback nesta rota.
           </p>
           <Link className="text-link" to="/projects">
             Voltar aos projetos
@@ -50,55 +51,35 @@ function ProjectPage() {
 
   return (
     <PublicShell>
-      <article className="public-project-detail">
+      <article className="public-editorial-detail">
         <header className="editorial-page-header">
-          <div className="public-project-card-header">
-            <p className="eyebrow">Projeto publicado</p>
-            {project.featured ? <Status tone="info">Destaque</Status> : null}
-          </div>
-          <h1>{project.name}</h1>
-          <p>{project.publicSummary}</p>
+          <p className="eyebrow">Projeto publicado</p>
+          <h1>{project.title}</h1>
+          <p>{project.excerpt}</p>
         </header>
 
-        <Surface className="public-project-facts">
-          <div>
-            <span>Progresso publicado</span>
-            <strong data-tabular>
-              {project.publicProgress === null
-                ? "Não informado"
-                : `${project.publicProgress}%`}
-            </strong>
+        <div className="public-editorial-byline">
+          <time dateTime={project.updatedAt}>
+            Publicado em{" "}
+            {new Intl.DateTimeFormat("pt-BR", {
+              dateStyle: "long",
+              timeZone: "America/Bahia",
+            }).format(new Date(project.updatedAt))}
+          </time>
+          <div className="public-editorial-tags" aria-label="Marcadores">
+            {project.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
           </div>
-          <div>
-            <span>Última atividade pública</span>
-            <strong>
-              {project.lastPublicActivityAt === null
-                ? "Não publicada"
-                : new Intl.DateTimeFormat("pt-BR", {
-                    dateStyle: "medium",
-                    timeZone: "America/Bahia",
-                  }).format(new Date(project.lastPublicActivityAt))}
-            </strong>
-          </div>
+        </div>
+
+        <Surface className="public-editorial-content">
+          <PublicMarkdown markdown={project.bodyMarkdown} />
         </Surface>
 
-        <div className="public-project-links">
-          {project.liveUrl ? (
-            <a href={project.liveUrl} rel="noreferrer" target="_blank">
-              Abrir projeto
-            </a>
-          ) : null}
-          {project.documentationUrl ? (
-            <a
-              href={project.documentationUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Ler documentação
-            </a>
-          ) : null}
-          <Link to="/projects">Todos os projetos</Link>
-        </div>
+        <Link className="text-link" to="/projects">
+          Todos os projetos
+        </Link>
       </article>
     </PublicShell>
   );

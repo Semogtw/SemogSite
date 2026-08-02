@@ -26,7 +26,7 @@ const principles = [
 
 function HomePage() {
   const projects = Route.useLoaderData();
-  const featuredProjects = projects.filter((project) => project.featured).slice(0, 3);
+  const featuredProjects = projects.slice(0, 3);
 
   return (
     <PublicShell>
@@ -74,9 +74,9 @@ function HomePage() {
           </h2>
           {featuredProjects.length === 0 ? (
             <p>
-              Projetos só aparecem aqui depois de receberem conteúdo público
-              aprovado e a marcação explícita de destaque. Dados operacionais
-              nunca são usados como substituto.
+              Projetos só aparecem aqui depois de receberem uma revisão editorial
+              aprovada e publicada. Dados operacionais nunca são usados como
+              substituto.
             </p>
           ) : null}
         </div>
@@ -85,15 +85,11 @@ function HomePage() {
           <div className="public-project-grid home-project-grid">
             {featuredProjects.map((project) => (
               <Surface key={project.slug} className="public-project-card">
-                <p className="eyebrow">Destaque</p>
-                <h3>{project.name}</h3>
-                <p>{project.publicSummary}</p>
+                <p className="eyebrow">Projeto publicado</p>
+                <h3>{project.title}</h3>
+                <p>{project.excerpt}</p>
                 <div className="public-project-card-footer">
-                  <span data-tabular>
-                    {project.publicProgress === null
-                      ? "Progresso não publicado"
-                      : `${project.publicProgress}% público`}
-                  </span>
+                  <span data-tabular>Revisão editorial publicada</span>
                   <Link
                     to="/projects/$slug"
                     params={{ slug: project.slug }}
