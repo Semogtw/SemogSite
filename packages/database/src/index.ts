@@ -37,6 +37,21 @@ export type {
 } from "./repositories/cooperative-run-read-model";
 export { SqliteCooperativeRunRegistrationRepository } from "./repositories/cooperative-run-registration-repository";
 export { SqliteCooperativeRunTransitionRepository } from "./repositories/cooperative-run-transition-repository";
+export { SqliteEditorialReadModel } from "./repositories/editorial-read-model";
+export type {
+  EditorialDocumentDetail,
+  EditorialDocumentListItem,
+  EditorialHistoryEvent,
+  EditorialHistoryEventKind,
+  EditorialReviewView,
+  EditorialRevisionView,
+} from "./repositories/editorial-read-model";
+export { SqliteEditorialWriteRepository } from "./repositories/editorial-write-repository";
+export { SqlitePublishedEditorialReadModel } from "./repositories/published-editorial-read-model";
+export type {
+  PublishedEditorialProjection,
+  PublishedEditorialProjectionKind,
+} from "./repositories/published-editorial-read-model";
 export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteGitHubObservationRepository } from "./repositories/github-observation-repository";
 export { SqliteGitHubSyncReadModel } from "./repositories/github-sync-read-model";
