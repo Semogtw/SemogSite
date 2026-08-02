@@ -503,50 +503,129 @@ export class EditorialWriteService {
     input: ApproveEditorialRequest,
     context: EditorialWriteContext,
   ): Promise<EditorialWriteResult> {
-    const loaded = await this.loadTransitionEntities(
-      input.documentId,
-      input.revisionId,
-      input.approvalId,
-      context,
+    const resolved = validateContext(context, {
+      documentId: input.documentId,
+      revisionId: input.revisionId,
+      approvalId: input.approvalId,
+      requireExpectedUpdatedAt: true,
+    });
+    if (
+      resolved.errors.length > 0 ||
+      resolved.now === null ||
+      resolved.expectedUpdatedAt === null
+    ) {
+      return { ok: false, code: "VALIDATION_FAILED", errors: resolved.errors };
+    }
+
+    const replay = await this.repository.findReplay(
+      resolved.documentId as string,
+      resolved.idempotencyKey,
     );
-    if (!loaded.ok) return loaded.result;
+    if (replay !== null) {
+      if (replay.event.before === null || replay.revision === null) {
+        return { ok: false, code: "CONFLICT" };
+      }
+      const approval = await this.repository.findApproval(
+        replay.event.before.id,
+        replay.revision.id,
+        replay.revision.contentHash,
+      );
+      if (approval === null) return { ok: false, code: "CONFLICT" };
+      const expectedApproval: EditorialApprovalSnapshot = {
+        id: resolved.approvalId as string,
+        documentId: replay.event.before.id,
+        revisionId: replay.revision.id,
+        contentHash: replay.revision.contentHash,
+        reviewerId: resolved.actorId,
+        reason: input.reason.trim(),
+        notes: input.notes === null ? null : input.notes.trim(),
+        checks: { ...input.checks },
+        reviewedAt: resolved.now,
+      };
+      const transition = applyEditorialTransition(
+        replay.event.before,
+        {
+          kind: "approve",
+          revision: replay.revision,
+          approval: expectedApproval,
+        },
+        {
+          actorId: resolved.actorId,
+          eventId: resolved.eventId,
+          idempotencyKey: resolved.idempotencyKey,
+          correlationId: resolved.correlationId,
+          expectedUpdatedAt: resolved.expectedUpdatedAt,
+          now: resolved.now,
+        },
+      );
+      if (!transition.ok) return { ok: false, code: "CONFLICT" };
+      const event = persistenceEvent({
+        context: resolved,
+        documentId: replay.event.before.id,
+        kind: transition.event.kind,
+        revisionId: replay.revision.id,
+        summary: transition.event.summary,
+        before: replay.event.before,
+        after: transition.document,
+      });
+      return JSON.stringify(event) === JSON.stringify(replay.event) &&
+        JSON.stringify(expectedApproval) === JSON.stringify(approval)
+        ? {
+            ok: true,
+            document: replay.event.after,
+            revision: replay.revision,
+            approval,
+            duplicate: true,
+          }
+        : { ok: false, code: "CONFLICT" };
+    }
+
+    const document = await this.repository.findDocument(
+      resolved.documentId as string,
+    );
+    if (document === null) return { ok: false, code: "DOCUMENT_NOT_FOUND" };
+    const revision = await this.repository.findRevision(
+      document.id,
+      resolved.revisionId as string,
+    );
+    if (revision === null) return { ok: false, code: "REVISION_NOT_FOUND" };
 
     const approval: EditorialApprovalSnapshot = {
-      id: loaded.context.approvalId as string,
-      documentId: loaded.document.id,
-      revisionId: loaded.revision.id,
-      contentHash: loaded.revision.contentHash,
-      reviewerId: loaded.context.actorId,
+      id: resolved.approvalId as string,
+      documentId: document.id,
+      revisionId: revision.id,
+      contentHash: revision.contentHash,
+      reviewerId: resolved.actorId,
       reason: input.reason.trim(),
       notes: input.notes === null ? null : input.notes.trim(),
       checks: { ...input.checks },
-      reviewedAt: loaded.context.now as string,
+      reviewedAt: resolved.now,
     };
     const transition = applyEditorialTransition(
-      loaded.document,
-      { kind: "approve", revision: loaded.revision, approval },
+      document,
+      { kind: "approve", revision, approval },
       {
-        actorId: loaded.context.actorId,
-        eventId: loaded.context.eventId,
-        idempotencyKey: loaded.context.idempotencyKey,
-        correlationId: loaded.context.correlationId,
-        expectedUpdatedAt: loaded.context.expectedUpdatedAt as string,
-        now: loaded.context.now as string,
+        actorId: resolved.actorId,
+        eventId: resolved.eventId,
+        idempotencyKey: resolved.idempotencyKey,
+        correlationId: resolved.correlationId,
+        expectedUpdatedAt: resolved.expectedUpdatedAt,
+        now: resolved.now,
       },
     );
     if (!transition.ok) return transitionFailure(transition);
 
     const event = persistenceEvent({
-      context: loaded.context,
-      documentId: loaded.document.id,
+      context: resolved,
+      documentId: document.id,
       kind: transition.event.kind,
-      revisionId: loaded.revision.id,
+      revisionId: revision.id,
       summary: transition.event.summary,
-      before: loaded.document,
+      before: document,
       after: transition.document,
     });
     const stored = await this.repository.applyTransition(
-      loaded.document,
+      document,
       transition.document,
       event,
       approval,

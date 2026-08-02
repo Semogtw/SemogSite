@@ -5,6 +5,7 @@ import {
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { approveEditorialRevisionCommand } from "./editorial-approve-command";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
 import { createEditorialRevisionCommand } from "./editorial-revision-command";
 import { submitEditorialForReviewCommand } from "./editorial-submit-review-command";
@@ -38,6 +39,26 @@ const SubmitEditorialForReviewSchema = z.object({
   idempotencyKey: z.string().uuid(),
   documentId: z.string().trim().min(1).max(200),
   expectedUpdatedAt: z.string().datetime(),
+  confirmed: z.literal(true),
+});
+
+const ApproveEditorialRevisionSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  revisionId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  reason: z.string().trim().min(1).max(2_000),
+  notes: z.string().max(4_000),
+  checks: z.object({
+    credentials: z.literal(true),
+    personalData: z.literal(true),
+    operationalMetadata: z.literal(true),
+    externalLinks: z.literal(true),
+    legalAttribution: z.literal(true),
+    factualClaims: z.literal(true),
+    markdownSafety: z.literal(true),
+  }),
   confirmed: z.literal(true),
 });
 
@@ -307,6 +328,99 @@ export const submitEditorialForReviewFn = createServerFn({ method: "POST" })
         code: "EDITORIAL_SUBMIT_REVIEW_FAILED" as const,
         message:
           "O envio para revisão falhou. A identidade da tentativa pode ser reutilizada com segurança.",
+      };
+    }
+  });
+
+
+export const approveEditorialRevisionFn = createServerFn({ method: "POST" })
+  .validator(ApproveEditorialRevisionSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar a aprovação editorial.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await approveEditorialRevisionCommand(database, {
+        documentId: data.documentId,
+        revisionId: data.revisionId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        reason: data.reason,
+        notes: data.notes.trim().length === 0 ? null : data.notes,
+        checks: data.checks,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        if (result.code === "VALIDATION_FAILED") {
+          return {
+            ok: false as const,
+            code: result.code,
+            errors: result.errors,
+            message:
+              result.errors.includes("REVIEW_CHECKS_INCOMPLETE")
+                ? "Todos os itens do checklist sensível precisam ser confirmados."
+                : "Revise o motivo, as notas e o checklist antes de aprovar.",
+          };
+        }
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta análise começou. Recarregue antes de aprovar."
+            : result.code === "INVALID_TRANSITION" ||
+                result.code === "INVALID_CURRENT_STATE"
+              ? "Somente uma revisão em análise pode ser aprovada."
+              : result.code === "DOCUMENT_NOT_FOUND" ||
+                  result.code === "REVISION_NOT_FOUND"
+                ? "O documento ou a revisão analisada não foi encontrado."
+                : "A aprovação entrou em conflito com outra tentativa ou identidade.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Esta aprovação já havia sido registrada; revisão e evento não foram duplicados."
+          : "Revisão aprovada e vinculada ao hash analisado. Nada foi publicado.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          approvedRevisionId: result.document.approvedRevisionId,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+        approval: result.approval
+          ? {
+              id: result.approval.id,
+              revisionId: result.approval.revisionId,
+              contentHash: result.approval.contentHash,
+              reviewedAt: result.approval.reviewedAt,
+            }
+          : null,
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_APPROVAL_FAILED" as const,
+        message:
+          "A aprovação falhou. A identidade da tentativa pode ser reutilizada com segurança.",
       };
     }
   });

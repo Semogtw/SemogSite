@@ -175,6 +175,7 @@ function EditorialDocumentPage() {
           </dl>
           <EditorialWorkflowControls
             documentId={detail.document.id}
+            revisionId={detail.document.workingRevisionId}
             expectedUpdatedAt={detail.document.updatedAt}
             workflowStatus={detail.document.workflowStatus}
           />

@@ -224,3 +224,17 @@
   border-top: 1px solid var(--sem-border);
   padding-top: 1rem;
 }
+
+.editorial-review-checklist {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  border: 1px solid var(--sem-border);
+  border-radius: 0.85rem;
+  padding: 1rem;
+}
+
+.editorial-review-checklist legend {
+  padding: 0 0.35rem;
+  font-weight: 750;
+}
