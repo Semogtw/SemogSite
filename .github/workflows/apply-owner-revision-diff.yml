@@ -1,0 +1,81 @@
+name: Apply verified owner revision diff
+
+on:
+  push:
+    branches:
+      - ops/apply-owner-revision-diff-v1
+    paths:
+      - .agent-patches/revision-diff-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-owner-revision-diff
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/revision-diff-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': '0f21facb54476f95cdc48028820b0d356c85783b',
+              'base_commit': '0f21facb54476f95cdc48028820b0d356c85783b',
+              'patch_sha256': '7a33744acc9ccb6f45608d2c9f78831a0088d5c8817be105ff7ed6e5ac41d2a0',
+              'expected_tree': '7b15d8d6ca1679b0e3717481c6bac5facbb849db',
+              'commit_message': 'feat(editorial): add owner revision diff',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from the reviewed fixed contract')
+          PY
+          cat request/.agent-patches/revision-diff-part-* \
+            | tr -d '\n' \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/owner-revision-diff.patch"
+          test "$(sha256sum "$RUNNER_TEMP/owner-revision-diff.patch" | awk '{print $1}')" = \
+            '7a33744acc9ccb6f45608d2c9f78831a0088d5c8817be105ff7ed6e5ac41d2a0'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply verified tree and push with lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = '0f21facb54476f95cdc48028820b0d356c85783b'
+          git -C target reset --hard '0f21facb54476f95cdc48028820b0d356c85783b'
+          git -C target apply --index "$RUNNER_TEMP/owner-revision-diff.patch"
+          git -C target diff --cached --check
+          test "$(git -C target write-tree)" = '7b15d8d6ca1679b0e3717481c6bac5facbb849db'
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'feat(editorial): add owner revision diff'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:0f21facb54476f95cdc48028820b0d356c85783b' \
+            origin HEAD:refs/heads/develop/editorial-workspace
