@@ -75,6 +75,24 @@ function EditorialDocumentPage() {
       (revision) => revision.id === detail.document.workingRevisionId,
     ) ?? detail.revisions[0] ?? null;
 
+  const rollbackCandidates = detail.revisions
+    .filter(
+      (revision) =>
+        revision.id !== detail.document.publishedRevisionId &&
+        detail.reviews.some(
+          (review) =>
+            review.revisionId === revision.id &&
+            review.contentHash === revision.contentHash &&
+            review.checksComplete,
+        ),
+    )
+    .map((revision) => ({
+      id: revision.id,
+      sequence: revision.sequence,
+      title: revision.title,
+      contentHash: revision.contentHash,
+    }));
+
   return (
     <DevOSShell activePath="/devos/more">
       <header className="devos-page-header">
@@ -178,6 +196,8 @@ function EditorialDocumentPage() {
             revisionId={detail.document.workingRevisionId}
             expectedUpdatedAt={detail.document.updatedAt}
             workflowStatus={detail.document.workflowStatus}
+            publicationStatus={detail.document.publicationStatus}
+            rollbackCandidates={rollbackCandidates}
           />
           {working && detail.document.workflowStatus === "draft" ? (
             <EditorialRevisionForm

@@ -1,4 +1,12 @@
 export {
+  PublicEditorialDocumentSchema,
+  PublicEditorialListSchema,
+} from "./public/editorial";
+export type {
+  PublicEditorialDocument,
+  PublicEditorialList,
+} from "./public/editorial";
+export {
   isPubliclyListed,
   PublicProjectSchema,
   toPublicProjectDto,

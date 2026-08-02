@@ -6,15 +6,27 @@ import { useRef, useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import {
   approveEditorialRevisionFn,
+  publishEditorialRevisionFn,
   reopenEditorialDraftFn,
+  rollbackEditorialPublicationFn,
   submitEditorialForReviewFn,
+  withdrawEditorialPublicationFn,
 } from "../../server/devos-editorial";
+
+type RollbackCandidate = {
+  id: string;
+  sequence: number;
+  title: string;
+  contentHash: string;
+};
 
 type EditorialWorkflowControlsProps = {
   documentId: string;
   revisionId: string;
   expectedUpdatedAt: string;
   workflowStatus: "draft" | "in_review" | "approved";
+  publicationStatus: "unpublished" | "published" | "withdrawn";
+  rollbackCandidates: readonly RollbackCandidate[];
 };
 
 type Feedback = {
@@ -75,6 +87,8 @@ export function EditorialWorkflowControls({
   revisionId,
   expectedUpdatedAt,
   workflowStatus,
+  publicationStatus,
+  rollbackCandidates,
 }: EditorialWorkflowControlsProps) {
   const router = useRouter();
   const submissionIdempotencyKey = useRef<string | null>(null);
@@ -90,6 +104,16 @@ export function EditorialWorkflowControls({
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const allChecksComplete = Object.values(checks).every(Boolean);
+  const publicationManagement = (
+    <PublicationManagement
+      documentId={documentId}
+      revisionId={revisionId}
+      expectedUpdatedAt={expectedUpdatedAt}
+      workflowStatus={workflowStatus}
+      publicationStatus={publicationStatus}
+      rollbackCandidates={rollbackCandidates}
+    />
+  );
 
   function resetApprovalAttempt() {
     approvalIdempotencyKey.current = null;
@@ -300,6 +324,7 @@ export function EditorialWorkflowControls({
           documentId={documentId}
           expectedUpdatedAt={expectedUpdatedAt}
         />
+        {publicationManagement}
       </div>
     );
   }
@@ -315,33 +340,417 @@ export function EditorialWorkflowControls({
           documentId={documentId}
           expectedUpdatedAt={expectedUpdatedAt}
         />
+        {publicationManagement}
       </div>
     );
   }
 
   return (
-    <form
-      className="editorial-form editorial-workflow-control"
-      onSubmit={submitForReview}
-    >
+    <div className="editorial-workflow-stack">
+      <form
+        className="editorial-form editorial-workflow-control"
+        onSubmit={submitForReview}
+      >
+        <p className="muted-copy">
+          O envio congela a revisão de trabalho para análise. Nada será publicado,
+          e qualquer mudança posterior exigirá reabertura explícita como rascunho.
+        </p>
+        <label className="capture-confirmation">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            disabled={pending}
+            onChange={(event) => setConfirmed(event.target.checked)}
+          />
+          <span>
+            Confirmo que esta revisão está pronta para o checklist de dados
+            sensíveis, links, atribuição, fatos e segurança do Markdown.
+          </span>
+        </label>
+        <Button type="submit" tone="primary" disabled={pending || !confirmed}>
+          {pending ? "Enviando…" : "Enviar para revisão"}
+        </Button>
+        {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
+      </form>
+      {publicationManagement}
+    </div>
+  );
+}
+
+function PublicationManagement({
+  documentId,
+  revisionId,
+  expectedUpdatedAt,
+  workflowStatus,
+  publicationStatus,
+  rollbackCandidates,
+}: EditorialWorkflowControlsProps) {
+  const canPublish =
+    workflowStatus === "approved" && publicationStatus !== "published";
+  const canWithdraw = publicationStatus === "published";
+
+  if (!canPublish && !canWithdraw && rollbackCandidates.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="editorial-workflow-stack">
+      {canPublish ? (
+        <PublishRevisionForm
+          documentId={documentId}
+          revisionId={revisionId}
+          expectedUpdatedAt={expectedUpdatedAt}
+        />
+      ) : null}
+      {canWithdraw ? (
+        <WithdrawPublicationForm
+          documentId={documentId}
+          expectedUpdatedAt={expectedUpdatedAt}
+        />
+      ) : null}
+      {rollbackCandidates.length > 0 ? (
+        <RollbackPublicationForm
+          documentId={documentId}
+          expectedUpdatedAt={expectedUpdatedAt}
+          candidates={rollbackCandidates}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PublishRevisionForm({
+  documentId,
+  revisionId,
+  expectedUpdatedAt,
+}: {
+  documentId: string;
+  revisionId: string;
+  expectedUpdatedAt: string;
+}) {
+  const router = useRouter();
+  const idempotencyKey = useRef<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  async function publish(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    if (!confirmed) {
+      setFeedback({
+        success: false,
+        message: "Confirme conscientemente a publicação desta revisão exata.",
+      });
+      return;
+    }
+    const csrfToken = readCsrfToken();
+    if (csrfToken === null) {
+      setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
+      return;
+    }
+
+    idempotencyKey.current ??= crypto.randomUUID();
+    setPending(true);
+    setFeedback(null);
+    try {
+      const response = await publishEditorialRevisionFn({
+        data: {
+          csrfToken,
+          idempotencyKey: idempotencyKey.current,
+          documentId,
+          revisionId,
+          expectedUpdatedAt,
+          confirmed: true,
+        },
+      });
+      setFeedback({ success: response.ok, message: response.message });
+      if (!response.ok) return;
+      idempotencyKey.current = null;
+      setConfirmed(false);
+      await router.invalidate();
+    } catch {
+      setFeedback({
+        success: false,
+        message:
+          "A publicação falhou. A identidade da tentativa será reutilizada no próximo envio.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="editorial-form editorial-workflow-control" onSubmit={publish}>
       <p className="muted-copy">
-        O envio congela a revisão de trabalho para análise. Nada será publicado,
-        e qualquer mudança posterior exigirá reabertura explícita como rascunho.
+        A publicação projeta somente a revisão e a aprovação vinculadas ao hash
+        analisado. Ela não altera o histórico imutável.
       </p>
       <label className="capture-confirmation">
         <input
           type="checkbox"
           checked={confirmed}
           disabled={pending}
-          onChange={(event) => setConfirmed(event.target.checked)}
+          onChange={(event) => {
+            idempotencyKey.current = null;
+            setFeedback(null);
+            setConfirmed(event.target.checked);
+          }}
         />
         <span>
-          Confirmo que esta revisão está pronta para o checklist de dados
-          sensíveis, links, atribuição, fatos e segurança do Markdown.
+          Confirmo que esta revisão aprovada pode se tornar a projeção pública.
         </span>
       </label>
       <Button type="submit" tone="primary" disabled={pending || !confirmed}>
-        {pending ? "Enviando…" : "Enviar para revisão"}
+        {pending ? "Publicando…" : "Publicar revisão aprovada"}
+      </Button>
+      {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
+    </form>
+  );
+}
+
+function WithdrawPublicationForm({
+  documentId,
+  expectedUpdatedAt,
+}: {
+  documentId: string;
+  expectedUpdatedAt: string;
+}) {
+  const router = useRouter();
+  const idempotencyKey = useRef<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  function resetAttempt() {
+    idempotencyKey.current = null;
+    setFeedback(null);
+  }
+
+  async function withdraw(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    if (!confirmed || reason.trim().length === 0) {
+      setFeedback({
+        success: false,
+        message: "Informe o motivo e confirme conscientemente a retirada.",
+      });
+      return;
+    }
+    const csrfToken = readCsrfToken();
+    if (csrfToken === null) {
+      setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
+      return;
+    }
+
+    idempotencyKey.current ??= crypto.randomUUID();
+    setPending(true);
+    setFeedback(null);
+    try {
+      const response = await withdrawEditorialPublicationFn({
+        data: {
+          csrfToken,
+          idempotencyKey: idempotencyKey.current,
+          documentId,
+          expectedUpdatedAt,
+          reason,
+          confirmed: true,
+        },
+      });
+      setFeedback({ success: response.ok, message: response.message });
+      if (!response.ok) return;
+      idempotencyKey.current = null;
+      setConfirmed(false);
+      await router.invalidate();
+    } catch {
+      setFeedback({
+        success: false,
+        message:
+          "A retirada falhou. A identidade da tentativa será reutilizada no próximo envio.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="editorial-form editorial-workflow-control" onSubmit={withdraw}>
+      <p className="editorial-safety-note">
+        A retirada remove a projeção pública, mas preserva revisões, aprovação e
+        o último apontador publicado para auditoria.
+      </p>
+      <label>
+        Motivo da retirada
+        <textarea
+          value={reason}
+          maxLength={2_000}
+          rows={3}
+          disabled={pending}
+          required
+          onChange={(event) => {
+            resetAttempt();
+            setReason(event.target.value);
+          }}
+        />
+      </label>
+      <label className="capture-confirmation">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          disabled={pending}
+          onChange={(event) => {
+            resetAttempt();
+            setConfirmed(event.target.checked);
+          }}
+        />
+        <span>Confirmo a retirada imediata desta projeção pública.</span>
+      </label>
+      <Button
+        type="submit"
+        tone="danger"
+        disabled={pending || !confirmed || reason.trim().length === 0}
+      >
+        {pending ? "Retirando…" : "Retirar projeção pública"}
+      </Button>
+      {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
+    </form>
+  );
+}
+
+function RollbackPublicationForm({
+  documentId,
+  expectedUpdatedAt,
+  candidates,
+}: {
+  documentId: string;
+  expectedUpdatedAt: string;
+  candidates: readonly RollbackCandidate[];
+}) {
+  const router = useRouter();
+  const idempotencyKey = useRef<string | null>(null);
+  const [revisionId, setRevisionId] = useState(candidates[0]?.id ?? "");
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  function resetAttempt() {
+    idempotencyKey.current = null;
+    setFeedback(null);
+  }
+
+  async function rollback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    if (!confirmed || revisionId.length === 0 || reason.trim().length === 0) {
+      setFeedback({
+        success: false,
+        message:
+          "Selecione uma revisão, informe o motivo e confirme conscientemente o rollback.",
+      });
+      return;
+    }
+    const csrfToken = readCsrfToken();
+    if (csrfToken === null) {
+      setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
+      return;
+    }
+
+    idempotencyKey.current ??= crypto.randomUUID();
+    setPending(true);
+    setFeedback(null);
+    try {
+      const response = await rollbackEditorialPublicationFn({
+        data: {
+          csrfToken,
+          idempotencyKey: idempotencyKey.current,
+          documentId,
+          revisionId,
+          expectedUpdatedAt,
+          reason,
+          confirmed: true,
+        },
+      });
+      setFeedback({ success: response.ok, message: response.message });
+      if (!response.ok) return;
+      idempotencyKey.current = null;
+      setConfirmed(false);
+      await router.invalidate();
+    } catch {
+      setFeedback({
+        success: false,
+        message:
+          "O rollback falhou. A identidade da tentativa será reutilizada no próximo envio.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="editorial-form editorial-workflow-control" onSubmit={rollback}>
+      <p className="muted-copy">
+        Somente revisões históricas com checklist completo e aprovação para o
+        mesmo hash aparecem nesta lista.
+      </p>
+      <label>
+        Revisão aprovada para restaurar
+        <select
+          value={revisionId}
+          disabled={pending}
+          required
+          onChange={(event) => {
+            resetAttempt();
+            setRevisionId(event.target.value);
+          }}
+        >
+          {candidates.map((candidate) => (
+            <option key={candidate.id} value={candidate.id}>
+              r{candidate.sequence} · {candidate.title} · {candidate.contentHash.slice(0, 12)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Motivo do rollback
+        <textarea
+          value={reason}
+          maxLength={2_000}
+          rows={3}
+          disabled={pending}
+          required
+          onChange={(event) => {
+            resetAttempt();
+            setReason(event.target.value);
+          }}
+        />
+      </label>
+      <label className="capture-confirmation">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          disabled={pending}
+          onChange={(event) => {
+            resetAttempt();
+            setConfirmed(event.target.checked);
+          }}
+        />
+        <span>
+          Confirmo que a revisão histórica selecionada deve substituir apenas a
+          projeção pública, preservando a revisão de trabalho atual.
+        </span>
+      </label>
+      <Button
+        type="submit"
+        disabled={
+          pending ||
+          !confirmed ||
+          revisionId.length === 0 ||
+          reason.trim().length === 0
+        }
+      >
+        {pending ? "Restaurando…" : "Restaurar revisão aprovada"}
       </Button>
       {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
     </form>
@@ -419,10 +828,7 @@ function ReopenDraftForm({
   }
 
   return (
-    <form
-      className="editorial-form editorial-workflow-control"
-      onSubmit={reopen}
-    >
+    <form className="editorial-form editorial-workflow-control" onSubmit={reopen}>
       <p className="muted-copy">
         Reabrir remove o apontador de aprovação ativa e libera a criação de uma
         nova revisão imutável. O histórico anterior permanece preservado.

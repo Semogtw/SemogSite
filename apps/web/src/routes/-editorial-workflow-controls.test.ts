@@ -7,6 +7,46 @@ function source(path: string): string {
 }
 
 describe("editorial workflow controls", () => {
+  it("keeps public projection controls available across workflow states", () => {
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(controls).toContain("const publicationManagement");
+    expect(controls.match(/\{publicationManagement\}/gu)).toHaveLength(3);
+  });
+
+  it("restores only an explicitly selected approved historical revision", () => {
+    const route = source("devos.content.$documentId.tsx");
+    const server = source("../server/devos-editorial.ts");
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(server).toContain("rollbackEditorialPublicationFn");
+    expect(controls).toContain("Restaurar revisão aprovada");
+    expect(controls).toContain("rollbackEditorialPublicationFn");
+    expect(controls).toContain("Motivo do rollback");
+    expect(route).toContain("rollbackCandidates={rollbackCandidates}");
+  });
+
+  it("requires an audit reason before withdrawing a public projection", () => {
+    const server = source("../server/devos-editorial.ts");
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(server).toContain("withdrawEditorialPublicationFn");
+    expect(controls).toContain("Retirar projeção pública");
+    expect(controls).toContain("withdrawEditorialPublicationFn");
+    expect(controls).toContain("Motivo da retirada");
+  });
+
+  it("keeps publication separate and bound to the approved revision", () => {
+    const route = source("devos.content.$documentId.tsx");
+    const server = source("../server/devos-editorial.ts");
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(server).toContain("publishEditorialRevisionFn");
+    expect(controls).toContain("Publicar revisão aprovada");
+    expect(controls).toContain("publishEditorialRevisionFn");
+    expect(route).toContain('publicationStatus={detail.document.publicationStatus}');
+  });
+
   it("requires an audit reason before reopening reviewed content", () => {
     const server = source("../server/devos-editorial.ts");
     const controls = source("../components/devos/editorial-workflow-controls.tsx");

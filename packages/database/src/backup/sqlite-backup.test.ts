@@ -1,3 +1,9 @@
+import type {
+  EditorialApprovalSnapshot,
+  EditorialDocumentSnapshot,
+  EditorialPersistenceEvent,
+  EditorialRevisionSnapshot,
+} from "@semogtw/domain";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   existsSync,
@@ -9,6 +15,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSqliteDatabase, migrate } from "../adapters/sqlite";
+import { SqliteEditorialReadModel } from "../repositories/editorial-read-model";
+import { SqliteEditorialWriteRepository } from "../repositories/editorial-write-repository";
+import { SqlitePublishedEditorialReadModel } from "../repositories/published-editorial-read-model";
 import {
   createVerifiedSqliteBackup,
   verifySqliteBackup,
@@ -75,6 +84,176 @@ describe("SQLite backup", () => {
         .prepare("SELECT focus FROM projects WHERE id = ?")
         .get("demo-project-platform"),
     ).toEqual({ focus: "Estado alterado antes do backup." });
+    restored.$client.close();
+  });
+
+
+  it("restores a published editorial revision without exposing its newer private draft", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    const repository = new SqliteEditorialWriteRepository(database);
+    const publishedHash = "a".repeat(64);
+    const privateHash = "b".repeat(64);
+    const createdAt = "2026-08-02T06:00:00.000Z";
+    const reviewedAt = "2026-08-02T06:05:00.000Z";
+    const publishedAt = "2026-08-02T06:10:00.000Z";
+    const draftedAt = "2026-08-02T06:15:00.000Z";
+
+    const firstRevision: EditorialRevisionSnapshot = {
+      id: "revision-public",
+      documentId: "document-backup",
+      sequence: 1,
+      title: "Conteúdo restaurado",
+      excerpt: "Revisão pública preservada no snapshot.",
+      bodyMarkdown: "# Conteúdo público",
+      tags: ["backup"],
+      contentHash: publishedHash,
+      createdBy: "owner-1",
+      createdAt,
+    };
+    const initial: EditorialDocumentSnapshot = {
+      id: "document-backup",
+      kind: "note",
+      slug: "conteudo-restaurado",
+      workflowStatus: "draft",
+      publicationStatus: "unpublished",
+      workingRevisionId: firstRevision.id,
+      approvedRevisionId: null,
+      publishedRevisionId: null,
+      lastPublishedRevisionId: null,
+      version: 1,
+      createdAt,
+      updatedAt: createdAt,
+    };
+    const event = (
+      kind: EditorialPersistenceEvent["kind"],
+      before: EditorialDocumentSnapshot | null,
+      after: EditorialDocumentSnapshot,
+      revisionId: string | null,
+      sequence: number,
+      reason: string | null = null,
+    ): EditorialPersistenceEvent => ({
+      id: `backup-event-${sequence}`,
+      documentId: after.id,
+      kind,
+      actor: "owner-1",
+      revisionId,
+      summary: kind,
+      reason,
+      before,
+      after,
+      occurredAt: after.updatedAt,
+      idempotencyKey: `backup-key-${sequence}`,
+      correlationId: `backup-correlation-${sequence}`,
+    });
+
+    await repository.createDocument(
+      initial,
+      firstRevision,
+      event("editorial.document_created", null, initial, null, 1),
+    );
+    const approval: EditorialApprovalSnapshot = {
+      id: "approval-public",
+      documentId: initial.id,
+      revisionId: firstRevision.id,
+      contentHash: publishedHash,
+      reviewerId: "owner-1",
+      reason: "Revisão completa para fixture de restauração.",
+      notes: null,
+      checks: {
+        credentials: true,
+        personalData: true,
+        operationalMetadata: true,
+        externalLinks: true,
+        legalAttribution: true,
+        factualClaims: true,
+        markdownSafety: true,
+      },
+      reviewedAt,
+    };
+    const approved: EditorialDocumentSnapshot = {
+      ...initial,
+      workflowStatus: "approved",
+      approvedRevisionId: firstRevision.id,
+      version: 2,
+      updatedAt: reviewedAt,
+    };
+    await repository.applyTransition(
+      initial,
+      approved,
+      event("editorial.approved", initial, approved, firstRevision.id, 2, approval.reason),
+      approval,
+    );
+    const published: EditorialDocumentSnapshot = {
+      ...approved,
+      publicationStatus: "published",
+      publishedRevisionId: firstRevision.id,
+      lastPublishedRevisionId: firstRevision.id,
+      version: 3,
+      updatedAt: publishedAt,
+    };
+    await repository.applyTransition(
+      approved,
+      published,
+      event("editorial.published", approved, published, firstRevision.id, 3),
+      null,
+    );
+
+    const privateRevision: EditorialRevisionSnapshot = {
+      ...firstRevision,
+      id: "revision-private",
+      sequence: 2,
+      title: "PRIVATE_DRAFT_TITLE",
+      excerpt: "PRIVATE_DRAFT_EXCERPT",
+      bodyMarkdown: "# PRIVATE_DRAFT_BODY",
+      contentHash: privateHash,
+      createdAt: draftedAt,
+    };
+    const draft: EditorialDocumentSnapshot = {
+      ...published,
+      workflowStatus: "draft",
+      workingRevisionId: privateRevision.id,
+      approvedRevisionId: null,
+      version: 4,
+      updatedAt: draftedAt,
+    };
+    await repository.createRevision(
+      published,
+      draft,
+      privateRevision,
+      event("editorial.revision_created", published, draft, privateRevision.id, 4),
+    );
+
+    const destination = join(temporaryDirectory(), "editorial-backup.sqlite");
+    await createVerifiedSqliteBackup(database, destination);
+    database.$client.close();
+
+    const restored = createSqliteDatabase(destination);
+    const publicProjection = await new SqlitePublishedEditorialReadModel(restored).findBySlug(
+      "conteudo-restaurado",
+    );
+    expect(publicProjection).toMatchObject({
+      title: "Conteúdo restaurado",
+      bodyMarkdown: "# Conteúdo público",
+      publishedRevisionId: firstRevision.id,
+    });
+    expect(JSON.stringify(publicProjection)).not.toContain("PRIVATE_DRAFT");
+
+    const privateDetail = await new SqliteEditorialReadModel(restored).getDocument(
+      initial.id,
+    );
+    expect(privateDetail?.document).toMatchObject({
+      workflowStatus: "draft",
+      publicationStatus: "published",
+      workingRevisionId: privateRevision.id,
+      publishedRevisionId: firstRevision.id,
+    });
+    expect(privateDetail?.revisions.map((revision) => revision.title)).toEqual([
+      "PRIVATE_DRAFT_TITLE",
+      "Conteúdo restaurado",
+    ]);
+    expect(privateDetail?.reviews).toHaveLength(1);
+    expect(privateDetail?.events).toHaveLength(4);
     restored.$client.close();
   });
 

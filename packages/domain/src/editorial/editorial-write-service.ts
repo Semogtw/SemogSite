@@ -665,6 +665,47 @@ export class EditorialWriteService {
     ) {
       return { ok: false, code: "VALIDATION_FAILED", errors: resolved.errors };
     }
+
+    const replay = await this.repository.findReplay(
+      resolved.documentId as string,
+      resolved.idempotencyKey,
+    );
+    if (replay !== null) {
+      if (replay.event.before === null || replay.revision !== null) {
+        return { ok: false, code: "CONFLICT" };
+      }
+      const replayed = applyEditorialTransition(
+        replay.event.before,
+        { kind: "withdraw", reason: input.reason },
+        {
+          actorId: resolved.actorId,
+          eventId: resolved.eventId,
+          idempotencyKey: resolved.idempotencyKey,
+          correlationId: resolved.correlationId,
+          expectedUpdatedAt: resolved.expectedUpdatedAt,
+          now: resolved.now,
+        },
+      );
+      if (!replayed.ok) return { ok: false, code: "CONFLICT" };
+      const event = persistenceEvent({
+        context: resolved,
+        documentId: replay.event.before.id,
+        kind: replayed.event.kind,
+        revisionId: null,
+        summary: replayed.event.summary,
+        reason: input.reason.trim(),
+        before: replay.event.before,
+        after: replayed.document,
+      });
+      return JSON.stringify(event) === JSON.stringify(replay.event)
+        ? {
+            ok: true,
+            document: replay.event.after,
+            duplicate: true,
+          }
+        : { ok: false, code: "CONFLICT" };
+    }
+
     const current = await this.repository.findDocument(
       resolved.documentId as string,
     );
@@ -826,52 +867,6 @@ export class EditorialWriteService {
     });
   }
 
-  private async loadTransitionEntities(
-    documentId: string,
-    revisionId: string,
-    approvalId: string,
-    context: EditorialWriteContext,
-  ): Promise<
-    | {
-        ok: true;
-        context: ReturnType<typeof validateContext>;
-        document: EditorialDocumentSnapshot;
-        revision: EditorialRevisionSnapshot;
-      }
-    | { ok: false; result: EditorialWriteResult }
-  > {
-    const resolved = validateContext(context, {
-      documentId,
-      revisionId,
-      approvalId,
-      requireExpectedUpdatedAt: true,
-    });
-    if (
-      resolved.errors.length > 0 ||
-      resolved.now === null ||
-      resolved.expectedUpdatedAt === null
-    ) {
-      return {
-        ok: false,
-        result: { ok: false, code: "VALIDATION_FAILED", errors: resolved.errors },
-      };
-    }
-    const document = await this.repository.findDocument(
-      resolved.documentId as string,
-    );
-    if (document === null) {
-      return { ok: false, result: { ok: false, code: "DOCUMENT_NOT_FOUND" } };
-    }
-    const revision = await this.repository.findRevision(
-      document.id,
-      resolved.revisionId as string,
-    );
-    if (revision === null) {
-      return { ok: false, result: { ok: false, code: "REVISION_NOT_FOUND" } };
-    }
-    return { ok: true, context: resolved, document, revision };
-  }
-
   private async publishExistingApproval(
     documentId: string,
     revisionId: string,
@@ -879,63 +874,126 @@ export class EditorialWriteService {
     kind: "publish" | "rollback",
     reason: string | null,
   ): Promise<EditorialWriteResult> {
-    const loaded = await this.loadTransitionEntities(
+    const resolved = validateContext(context, {
       documentId,
       revisionId,
-      `lookup-${revisionId}`,
-      context,
+      requireExpectedUpdatedAt: true,
+    });
+    if (
+      resolved.errors.length > 0 ||
+      resolved.now === null ||
+      resolved.expectedUpdatedAt === null
+    ) {
+      return { ok: false, code: "VALIDATION_FAILED", errors: resolved.errors };
+    }
+
+    const replay = await this.repository.findReplay(
+      resolved.documentId as string,
+      resolved.idempotencyKey,
     );
-    if (!loaded.ok) {
+    if (replay !== null) {
       if (
-        loaded.result.ok === false &&
-        loaded.result.code === "VALIDATION_FAILED"
+        replay.event.before === null ||
+        replay.revision === null ||
+        replay.revision.id !== resolved.revisionId
       ) {
-        const errors = loaded.result.errors.filter(
-          (error) => error !== "APPROVAL_ID_INVALID",
-        );
-        if (errors.length > 0) return { ...loaded.result, errors };
+        return { ok: false, code: "CONFLICT" };
       }
-      return loaded.result;
+      const approval = await this.repository.findApproval(
+        replay.event.before.id,
+        replay.revision.id,
+        replay.revision.contentHash,
+      );
+      if (approval === null) return { ok: false, code: "CONFLICT" };
+
+      const replayed = applyEditorialTransition(
+        replay.event.before,
+        kind === "publish"
+          ? { kind, revision: replay.revision, approval }
+          : {
+              kind,
+              revision: replay.revision,
+              approval,
+              reason: reason ?? "",
+            },
+        {
+          actorId: resolved.actorId,
+          eventId: resolved.eventId,
+          idempotencyKey: resolved.idempotencyKey,
+          correlationId: resolved.correlationId,
+          expectedUpdatedAt: resolved.expectedUpdatedAt,
+          now: resolved.now,
+        },
+      );
+      if (!replayed.ok) return { ok: false, code: "CONFLICT" };
+      const event = persistenceEvent({
+        context: resolved,
+        documentId: replay.event.before.id,
+        kind: replayed.event.kind,
+        revisionId: replay.revision.id,
+        summary: replayed.event.summary,
+        reason: reason?.trim() ?? null,
+        before: replay.event.before,
+        after: replayed.document,
+      });
+      return JSON.stringify(event) === JSON.stringify(replay.event)
+        ? {
+            ok: true,
+            document: replay.event.after,
+            revision: replay.revision,
+            approval,
+            duplicate: true,
+          }
+        : { ok: false, code: "CONFLICT" };
+    }
+
+    const document = await this.repository.findDocument(
+      resolved.documentId as string,
+    );
+    if (document === null) {
+      return { ok: false, code: "DOCUMENT_NOT_FOUND" };
+    }
+    const revision = await this.repository.findRevision(
+      document.id,
+      resolved.revisionId as string,
+    );
+    if (revision === null) {
+      return { ok: false, code: "REVISION_NOT_FOUND" };
     }
     const approval = await this.repository.findApproval(
-      loaded.document.id,
-      loaded.revision.id,
-      loaded.revision.contentHash,
+      document.id,
+      revision.id,
+      revision.contentHash,
     );
     if (approval === null) return { ok: false, code: "APPROVAL_NOT_FOUND" };
 
     const transition = applyEditorialTransition(
-      loaded.document,
+      document,
       kind === "publish"
-        ? { kind, revision: loaded.revision, approval }
-        : {
-            kind,
-            revision: loaded.revision,
-            approval,
-            reason: reason ?? "",
-          },
+        ? { kind, revision, approval }
+        : { kind, revision, approval, reason: reason ?? "" },
       {
-        actorId: loaded.context.actorId,
-        eventId: loaded.context.eventId,
-        idempotencyKey: loaded.context.idempotencyKey,
-        correlationId: loaded.context.correlationId,
-        expectedUpdatedAt: loaded.context.expectedUpdatedAt as string,
-        now: loaded.context.now as string,
+        actorId: resolved.actorId,
+        eventId: resolved.eventId,
+        idempotencyKey: resolved.idempotencyKey,
+        correlationId: resolved.correlationId,
+        expectedUpdatedAt: resolved.expectedUpdatedAt,
+        now: resolved.now,
       },
     );
     if (!transition.ok) return transitionFailure(transition);
     const event = persistenceEvent({
-      context: loaded.context,
-      documentId: loaded.document.id,
+      context: resolved,
+      documentId: document.id,
       kind: transition.event.kind,
-      revisionId: loaded.revision.id,
+      revisionId: revision.id,
       summary: transition.event.summary,
       reason: reason?.trim() ?? null,
-      before: loaded.document,
+      before: document,
       after: transition.document,
     });
     const stored = await this.repository.applyTransition(
-      loaded.document,
+      document,
       transition.document,
       event,
       null,
@@ -943,7 +1001,7 @@ export class EditorialWriteService {
     return mapStoreResult(stored, {
       ok: true,
       document: transition.document,
-      revision: loaded.revision,
+      revision,
       approval,
     });
   }

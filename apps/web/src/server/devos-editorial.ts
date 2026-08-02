@@ -8,8 +8,11 @@ import { z } from "zod";
 import { approveEditorialRevisionCommand } from "./editorial-approve-command";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
 import { createEditorialRevisionCommand } from "./editorial-revision-command";
+import { publishEditorialRevisionCommand } from "./editorial-publish-command";
 import { reopenEditorialDraftCommand } from "./editorial-reopen-draft-command";
+import { rollbackEditorialPublicationCommand } from "./editorial-rollback-command";
 import { submitEditorialForReviewCommand } from "./editorial-submit-review-command";
+import { withdrawEditorialPublicationCommand } from "./editorial-withdraw-command";
 import { parseEditorialTags } from "./editorial-content.server";
 import { resolveCurrentOwner } from "./current-owner.server";
 import { getNodeDatabase } from "./node-database.server";
@@ -67,6 +70,34 @@ const ReopenEditorialDraftSchema = z.object({
   csrfToken: z.string().min(1).max(500),
   idempotencyKey: z.string().uuid(),
   documentId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  reason: z.string().trim().min(1).max(2_000),
+  confirmed: z.literal(true),
+});
+
+const PublishEditorialRevisionSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  revisionId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  confirmed: z.literal(true),
+});
+
+const WithdrawEditorialPublicationSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  reason: z.string().trim().min(1).max(2_000),
+  confirmed: z.literal(true),
+});
+
+const RollbackEditorialPublicationSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  revisionId: z.string().trim().min(1).max(200),
   expectedUpdatedAt: z.string().datetime(),
   reason: z.string().trim().min(1).max(2_000),
   confirmed: z.literal(true),
@@ -510,6 +541,237 @@ export const reopenEditorialDraftFn = createServerFn({ method: "POST" })
         code: "EDITORIAL_REOPEN_FAILED" as const,
         message:
           "A reabertura falhou. A identidade da tentativa pode ser reutilizada com segurança.",
+      };
+    }
+  });
+
+export const publishEditorialRevisionFn = createServerFn({ method: "POST" })
+  .validator(PublishEditorialRevisionSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar a publicação editorial.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await publishEditorialRevisionCommand(database, {
+        documentId: data.documentId,
+        revisionId: data.revisionId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde a aprovação. Recarregue antes de publicar."
+            : result.code === "APPROVAL_NOT_FOUND"
+              ? "A revisão selecionada não possui uma aprovação válida para este hash."
+              : result.code === "INVALID_TRANSITION" ||
+                  result.code === "INVALID_CURRENT_STATE"
+                ? "Somente a revisão aprovada exata pode ser publicada."
+                : result.code === "DOCUMENT_NOT_FOUND" ||
+                    result.code === "REVISION_NOT_FOUND"
+                  ? "O documento ou a revisão aprovada não foi encontrado."
+                  : "A publicação entrou em conflito com outra tentativa ou identidade.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Esta publicação já havia sido registrada; a projeção e o evento não foram duplicados."
+          : "Revisão aprovada publicada como projeção pública.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          publishedRevisionId: result.document.publishedRevisionId,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_PUBLICATION_FAILED" as const,
+        message:
+          "A publicação falhou. A identidade da tentativa pode ser reutilizada com segurança.",
+      };
+    }
+  });
+
+export const withdrawEditorialPublicationFn = createServerFn({ method: "POST" })
+  .validator(WithdrawEditorialPublicationSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar a retirada editorial.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await withdrawEditorialPublicationCommand(database, {
+        documentId: data.documentId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        reason: data.reason,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        if (result.code === "VALIDATION_FAILED") {
+          return {
+            ok: false as const,
+            code: result.code,
+            errors: result.errors,
+            message: "Informe um motivo auditável para retirar esta publicação.",
+          };
+        }
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta tela foi carregada. Recarregue antes de retirar."
+            : result.code === "INVALID_TRANSITION" ||
+                result.code === "INVALID_CURRENT_STATE"
+              ? "Somente uma projeção atualmente publicada pode ser retirada."
+              : result.code === "DOCUMENT_NOT_FOUND"
+                ? "O documento publicado não foi encontrado."
+                : "A retirada entrou em conflito com outra tentativa ou identidade.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Esta retirada já havia sido registrada; nenhum evento foi duplicado."
+          : "Projeção pública retirada. Revisões e aprovações históricas foram preservadas.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          publishedRevisionId: result.document.publishedRevisionId,
+          lastPublishedRevisionId: result.document.lastPublishedRevisionId,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_WITHDRAWAL_FAILED" as const,
+        message:
+          "A retirada falhou. A identidade da tentativa pode ser reutilizada com segurança.",
+      };
+    }
+  });
+
+export const rollbackEditorialPublicationFn = createServerFn({ method: "POST" })
+  .validator(RollbackEditorialPublicationSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar o rollback editorial.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await rollbackEditorialPublicationCommand(database, {
+        documentId: data.documentId,
+        revisionId: data.revisionId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        reason: data.reason,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        if (result.code === "VALIDATION_FAILED") {
+          return {
+            ok: false as const,
+            code: result.code,
+            errors: result.errors,
+            message: "Informe um motivo auditável para restaurar esta revisão.",
+          };
+        }
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta tela foi carregada. Recarregue antes do rollback."
+            : result.code === "APPROVAL_NOT_FOUND"
+              ? "A revisão histórica não conserva aprovação válida para este hash."
+              : result.code === "INVALID_TRANSITION" ||
+                  result.code === "INVALID_CURRENT_STATE"
+                ? "A revisão selecionada não pode substituir a projeção pública atual."
+                : result.code === "DOCUMENT_NOT_FOUND" ||
+                    result.code === "REVISION_NOT_FOUND"
+                  ? "O documento ou a revisão histórica não foi encontrado."
+                  : "O rollback entrou em conflito com outra tentativa ou identidade.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Este rollback já havia sido registrado; a projeção e o evento não foram duplicados."
+          : "Revisão aprovada restaurada como projeção pública sem substituir a revisão de trabalho.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          publishedRevisionId: result.document.publishedRevisionId,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_ROLLBACK_FAILED" as const,
+        message:
+          "O rollback falhou. A identidade da tentativa pode ser reutilizada com segurança.",
       };
     }
   });
