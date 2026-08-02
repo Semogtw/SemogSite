@@ -85,6 +85,10 @@ test.describe.serial("editorial publication lifecycle", () => {
       page.getByRole("heading", { name: "Nota editorial original" }).first(),
     ).toBeVisible();
     await expect(page.getByText("Conteúdo público original.")).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      `/notes/${slug}`,
+    );
 
     await page.goto(detailPath);
     await page.getByLabel("Motivo da reabertura").fill("Preparar revisão atualizada.");
@@ -150,7 +154,16 @@ test.describe.serial("editorial publication lifecycle", () => {
     }).check();
     await page.getByRole("button", { name: "Retirar projeção pública" }).click();
     await page.goto(`/notes/${slug}`);
-    await expect(page.getByRole("heading", { name: /Nenhuma publicação pública corresponde/u })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /Nenhuma publicação pública corresponde/u,
+      }),
+    ).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /noindex/u,
+    );
   });
 
   test("keeps private routes isolated and public pages usable at 360x800", async ({
@@ -173,13 +186,22 @@ test.describe.serial("editorial publication lifecycle", () => {
     for (const path of ["/", "/notes", "/projects"]) {
       await page.goto(path);
       const hasOverflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
       );
       expect(hasOverflow).toBe(false);
 
       const robots = page.locator('meta[name="robots"]');
       if ((await robots.count()) > 0) {
         await expect(robots).not.toHaveAttribute("content", /noindex/u);
+      }
+
+      if (path !== "/") {
+        await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+          "href",
+          path,
+        );
       }
     }
 
