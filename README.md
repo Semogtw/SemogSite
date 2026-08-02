@@ -147,7 +147,8 @@ pnpm build
 Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1` e pnpm `10.14.0`:
 
 - instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
-- `pnpm check`: guardrails, typecheck e **115 arquivos / 429 testes aprovados**;
+- guardrails e typechecks dos quatro pacotes aprovados;
+- `pnpm test`: **130 arquivos / 479 testes aprovados**;
 - `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
 - bundle SSR contendo as 9 migrations e nenhuma migration no cliente;
 - SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
@@ -186,8 +187,11 @@ Implementado e verificado:
 - serviço de leitura compartilhado para adapters;
 - catálogo MCP interno somente leitura;
 - ledger cooperativo de execuções;
-- fundação editorial privada com revisions, approvals e guardas de publicação;
-- lockfile determinístico, checks completos, build SSR e gates de navegador.
+- ciclo editorial owner-only completo com revisions imutáveis, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
+- projeções públicas de notas e projetos derivadas exclusivamente da revisão aprovada e publicada;
+- renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
+- restauração verificada preservando simultaneamente a projeção pública e um rascunho privado mais novo;
+- lockfile determinístico, typechecks, 479 testes e build SSR aprovados.
 
 Ainda bloqueado ou pendente de uma fase separada:
 
@@ -195,7 +199,7 @@ Ainda bloqueado ou pendente de uma fase separada:
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
 - adapter e deploy no host definitivo;
 - migração de conteúdo real do Notion;
-- fluxo editorial público completo com conteúdo aprovado;
+- repetição do gate Chromium no estado editorial final, incluindo teclado e viewport de 360 px;
 - observabilidade e operação de produção.
 
 ## Referência upstream
