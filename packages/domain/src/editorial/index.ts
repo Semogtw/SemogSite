@@ -40,3 +40,18 @@ export type {
   EditorialWriteStoreResult,
   EditorialWriteValidationError,
 } from "./editorial-write-service";
+
+export { EditorialRedirectService } from "./editorial-redirect-service";
+export type {
+  CreateEditorialRedirectRequest,
+  EditorialRedirectAction,
+  EditorialRedirectContext,
+  EditorialRedirectEventDraft,
+  EditorialRedirectEventSnapshot,
+  EditorialRedirectRepository,
+  EditorialRedirectResult,
+  EditorialRedirectStoreResult,
+  EditorialRedirectTargetSnapshot,
+  EditorialRedirectValidationError,
+  RevokeEditorialRedirectRequest,
+} from "./editorial-redirect-service";
