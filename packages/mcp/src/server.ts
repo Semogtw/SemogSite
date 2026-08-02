@@ -17,6 +17,7 @@ import {
   SEMOGTW_MCP_TOOLS,
   type SemogtwMcpErrorCode,
 } from "./catalog";
+import { containsSensitiveOutputKey } from "./output-safety";
 import {
   devosOverviewOutputSchema,
   devosProjectOutputSchema,
@@ -71,7 +72,7 @@ type SerializationResult =
     };
 type OutputValidationResult =
   | { ok: true; data: unknown }
-  | { ok: false };
+  | { ok: false; code: "DEVOS_READ_FAILED" | "SENSITIVE_OUTPUT_REJECTED" };
 
 function errorPayload(code: SemogtwMcpErrorCode): JsonRecord {
   return { ok: false, error: { code } };
@@ -81,10 +82,13 @@ function validateOutput(
   schema: ZodTypeAny,
   value: unknown,
 ): OutputValidationResult {
+  if (containsSensitiveOutputKey(value)) {
+    return { ok: false, code: "SENSITIVE_OUTPUT_REJECTED" };
+  }
   const parsed = schema.safeParse(value);
   return parsed.success
     ? { ok: true, data: parsed.data }
-    : { ok: false };
+    : { ok: false, code: "DEVOS_READ_FAILED" };
 }
 
 function serializePayload(payload: JsonRecord): SerializationResult {
@@ -119,7 +123,7 @@ function toolSuccess(
   schema: ZodTypeAny,
 ) {
   const validated = validateOutput(schema, value);
-  if (!validated.ok) return toolFailure("DEVOS_READ_FAILED");
+  if (!validated.ok) return toolFailure(validated.code);
 
   const structuredContent: JsonRecord = { [key]: validated.data };
   const serialized = serializePayload(structuredContent);
@@ -145,7 +149,7 @@ async function resourceContents(
       const validated = validateOutput(schema, result.data);
       payload = validated.ok
         ? { ok: true, data: validated.data }
-        : errorPayload("DEVOS_READ_FAILED");
+        : errorPayload(validated.code);
     }
   } catch {
     payload = errorPayload("DEVOS_READ_FAILED");
