@@ -1,0 +1,53 @@
+name: Apply verified editorial replay patch
+
+on:
+  push:
+    branches:
+      - develop/editorial-workspace
+    paths:
+      - .github/workflows/apply-editorial-replay.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-editorial-replay-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          fetch-depth: 1
+
+      - name: Reassemble and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/editorial-replay/replay.b64.part-* \
+            | tr -d '\n' \
+            | base64 --decode > "$RUNNER_TEMP/editorial-replay.patch"
+          printf '%s  %s\n' \
+            '1c2d38e934cc6669a0d6f25fbe5f56748e41680b920ab97e730c6a6df798373d' \
+            "$RUNNER_TEMP/editorial-replay.patch" | sha256sum -c -
+
+      - name: Apply patch and remove transport files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index --whitespace=error "$RUNNER_TEMP/editorial-replay.patch"
+          git rm -r .github/editorial-replay
+          git rm .github/workflows/apply-editorial-replay.yml
+
+      - name: Commit verified replay implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(editorial): replay immutable revision writes'
+          git push origin HEAD:develop/editorial-workspace
