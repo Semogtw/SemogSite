@@ -149,11 +149,11 @@ Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1`
 
 - instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
 - guardrails e typechecks de todos os workspaces aprovados;
-- `pnpm test`: **130 arquivos / 480 testes aprovados**;
+- `pnpm test`: **131 arquivos / 483 testes aprovados**;
 - `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
 - bundle SSR contendo as 9 migrations e nenhuma migration no cliente;
 - SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
-- `pnpm test:e2e`: **2 cenários Playwright aprovados**, cobrindo login owner, ciclo editorial completo, checklist incompleto bloqueado, troca atômica da revisão pública, rollback, retirada, isolamento anônimo, `noindex`, teclado, console e viewport de 360×800;
+- `pnpm test:e2e`: **2 cenários Playwright aprovados**, cobrindo login owner, ciclo editorial completo, checklist incompleto bloqueado, troca atômica da revisão pública, rollback, retirada, isolamento anônimo, canonical/noindex, teclado, console e viewport de 360×800;
 - o adapter Node versionado serve `dist/client` e encaminha as demais requisições ao handler Fetch gerado em `dist/server/server.js`.
 
 ## Backup
@@ -192,8 +192,9 @@ Implementado e verificado:
 - ciclo editorial owner-only completo com revisions imutáveis, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
 - projeções públicas de notas e projetos derivadas exclusivamente da revisão aprovada e publicada;
 - renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
+- canonical provider-neutral em índices e projeções publicadas; conteúdo desconhecido ou retirado permanece sem canonical e com `noindex, nofollow`;
 - restauração verificada preservando simultaneamente a projeção pública e um rascunho privado mais novo;
-- lockfile determinístico, typechecks, 480 testes, build SSR e gate Playwright aprovados.
+- lockfile determinístico, typechecks, 483 testes, build SSR e gate Playwright aprovados.
 
 Ainda bloqueado ou pendente de uma fase separada:
 
