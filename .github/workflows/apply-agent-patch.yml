@@ -5,7 +5,7 @@ on:
     branches:
       - develop/editorial-workspace
     paths:
-      - .agent-patches/editorial-publish.diff.gz.b64
+      - .agent-patches/editorial-publish-trigger
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Replace transport commit with reviewed source commit
+      - name: Replace transport commits with reviewed source commit
         shell: bash
         env:
           TRANSPORT_SHA: ${{ github.sha }}
@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           base64 --decode .agent-patches/editorial-publish.diff.gz.b64 \
             | gzip --decompress > "$RUNNER_TEMP/editorial-publish.diff"
-          git reset --hard HEAD^
+          git reset --hard HEAD~3
           git apply --index "$RUNNER_TEMP/editorial-publish.diff"
           git config user.name "Arthur Almeida"
           git config user.email "arthurgva1602@gmail.com"
