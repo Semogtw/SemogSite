@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const recordSchema = z.record(z.unknown());
-const recordListSchema = z.array(recordSchema);
+const recordListSchema = z.array(recordSchema).max(2_000);
 const nullableTimestampSchema = z.string().datetime().nullable();
 const nullableTextSchema = z.string().nullable();
 const dataSourceSchema = z.enum([
