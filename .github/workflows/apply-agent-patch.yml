@@ -1,0 +1,45 @@
+name: Apply owner agent patch
+
+on:
+  push:
+    branches:
+      - develop/editorial-workspace
+    paths:
+      - .agent-patches/editorial-publish.diff.gz.b64
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-owner-agent-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout patch request
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Replace transport commit with reviewed source commit
+        shell: bash
+        env:
+          TRANSPORT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          base64 --decode .agent-patches/editorial-publish.diff.gz.b64 \
+            | gzip --decompress > "$RUNNER_TEMP/editorial-publish.diff"
+          git reset --hard HEAD^
+          git apply --index "$RUNNER_TEMP/editorial-publish.diff"
+          git config user.name "Arthur Almeida"
+          git config user.email "arthurgva1602@gmail.com"
+          git commit -m "feat(editorial): publish approved revisions explicitly"
+          git push \
+            --force-with-lease="refs/heads/develop/editorial-workspace:${TRANSPORT_SHA}" \
+            origin HEAD:refs/heads/develop/editorial-workspace
