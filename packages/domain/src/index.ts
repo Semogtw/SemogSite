@@ -22,6 +22,7 @@ export type {
   CapturedAttention,
   CaptureValidationError,
 } from "./capture/capture-service";
+export * from "./editorial";
 export { EvidenceService } from "./evidence/evidence-service";
 export type {
   AttachManualEvidenceInput,
@@ -267,6 +268,7 @@ export type {
   Confidence,
   DataSource,
   IsoTimestamp,
+  JsonValue,
   Priority,
   ProjectHealth,
   ProjectStatus,

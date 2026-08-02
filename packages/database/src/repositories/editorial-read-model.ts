@@ -3,6 +3,7 @@ import type {
   EditorialEventKind,
   EditorialRevisionSnapshot,
   EditorialSensitiveReviewChecks,
+  JsonValue,
 } from "@semogtw/domain";
 import type { SqliteDatabase } from "../adapters/sqlite";
 
@@ -42,8 +43,8 @@ export type EditorialHistoryEvent = {
   revisionId: string | null;
   summary: string;
   reason: string | null;
-  before: unknown | null;
-  after: unknown | null;
+  before: JsonValue | null;
+  after: JsonValue | null;
   occurredAt: string;
   correlationId: string;
   malformedJson: readonly ("before" | "after")[];
@@ -164,12 +165,12 @@ function parseTags(value: string): {
 }
 
 function parseHistorical(value: string | null): {
-  value: unknown | null;
+  value: JsonValue | null;
   malformed: boolean;
 } {
   if (value === null) return { value: null, malformed: false };
   try {
-    return { value: JSON.parse(value) as unknown, malformed: false };
+    return { value: JSON.parse(value) as JsonValue, malformed: false };
   } catch {
     return { value: null, malformed: true };
   }

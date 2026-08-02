@@ -5,7 +5,7 @@ import { SqliteProjectRepository } from "./project-repository";
 
 const seedProject = {
   id: "project-seed",
-  slug: "semogtw-platform-demo",
+  slug: "project-seed",
   name: "Semogtw Platform Demo",
   icon: null,
   status: "active" as const,

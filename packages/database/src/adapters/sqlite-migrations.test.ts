@@ -18,6 +18,10 @@ describe("SQLite migrations", () => {
       { name: "0003_github_observations.sql" },
       { name: "0004_github_sync_runs.sql" },
       { name: "0005_cooperative_run_ledger.sql" },
+      { name: "0006_editorial_workflow.sql" },
+      { name: "0007_editorial_invariant_triggers.sql" },
+      { name: "0008_editorial_approval_guards.sql" },
+      { name: "0009_editorial_document_identity_guards.sql" },
     ]);
     expect(
       database.$client

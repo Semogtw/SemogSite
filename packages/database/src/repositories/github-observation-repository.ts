@@ -1,4 +1,5 @@
 import type {
+  JsonValue,
   LatestRepositoryRecommendation,
   ObservationInsertResult,
   RepositoryObservationAggregate,
@@ -34,14 +35,14 @@ function parseEvidenceArray(
   value: string,
   field: "evidence",
   malformed: Array<"warnings" | "evidence">,
-): readonly unknown[] {
+): readonly JsonValue[] {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) {
       malformed.push(field);
       return [];
     }
-    return parsed;
+    return parsed as JsonValue[];
   } catch {
     malformed.push(field);
     return [];

@@ -44,7 +44,7 @@ export class SqliteOverviewDataSource implements OverviewDataSource {
   }
 
   async listCurrentStages(): Promise<readonly OverviewStage[]> {
-    return this.database
+    const rows = this.database
       .select({
         id: stages.id,
         projectId: stages.projectId,
@@ -57,6 +57,18 @@ export class SqliteOverviewDataSource implements OverviewDataSource {
       .where(inArray(stages.state, ["in_progress", "blocked"]))
       .orderBy(asc(stages.projectId), asc(stages.orderIndex))
       .all();
+
+    return rows.flatMap((row): OverviewStage[] => {
+      if (row.state !== "in_progress" && row.state !== "blocked") return [];
+      return [{
+        id: row.id,
+        projectId: row.projectId,
+        title: row.title,
+        state: row.state,
+        progress: row.progress,
+        orderIndex: row.orderIndex,
+      }];
+    });
   }
 
   async listOpenAttention(): Promise<readonly OverviewAttention[]> {

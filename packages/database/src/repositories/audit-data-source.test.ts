@@ -106,6 +106,38 @@ describe("SqliteAuditDataSource", () => {
     ]);
   });
 
+  it("preserves nullable reasons from historical audit rows", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    database.$client
+      .prepare(
+        `INSERT INTO audit_events (
+          id, actor, action, entity_type, entity_id, before_json, after_json,
+          reason, occurred_at, source, confirmed, correlation_id
+        ) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?)`,
+      )
+      .run(
+        "audit-no-reason",
+        "migration",
+        "legacy.import",
+        "legacy_record",
+        "legacy-1",
+        "2026-08-01T13:00:00.000Z",
+        "migration",
+        1,
+        "correlation-audit-no-reason",
+      );
+    const source = new SqliteAuditDataSource(database);
+
+    const page = await source.list({ page: 1, pageSize: 20 });
+
+    expect(page.items[0]).toMatchObject({
+      id: "audit-no-reason",
+      reason: null,
+    });
+    database.$client.close();
+  });
+
   it("marks malformed historical JSON without crashing the page", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);

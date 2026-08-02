@@ -1,3 +1,4 @@
+import type { JsonValue } from "@semogtw/domain";
 import { and, count, desc, eq, type SQL } from "drizzle-orm";
 import type { SqliteDatabase } from "../adapters/sqlite";
 import { auditEvents } from "../schema/audit";
@@ -10,11 +11,11 @@ export type AuditRecord = {
   action: string;
   entityType: string;
   entityId: string;
-  before: unknown | null;
-  after: unknown | null;
-  reason: string;
+  before: JsonValue | null;
+  after: JsonValue | null;
+  reason: string | null;
   occurredAt: string;
-  source: "manual" | "github" | "mcp" | "migration" | "seed_demo";
+  source: string;
   confirmed: boolean;
   correlationId: string;
   malformedJson: readonly AuditJsonField[];
@@ -39,10 +40,10 @@ function parseAuditJson(
   value: string | null,
   field: AuditJsonField,
   malformed: AuditJsonField[],
-): unknown | null {
+): JsonValue | null {
   if (value === null) return null;
   try {
-    return JSON.parse(value) as unknown;
+    return JSON.parse(value) as JsonValue;
   } catch {
     malformed.push(field);
     return null;

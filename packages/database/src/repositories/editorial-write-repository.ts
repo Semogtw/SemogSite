@@ -533,7 +533,8 @@ export class SqliteEditorialWriteRepository implements EditorialWriteRepository 
                 .get(approval.id) as ReviewRow | undefined);
         const approvalMatches =
           approval === null ||
-          (persistedApproval !== undefined &&
+          (persistedApproval !== null &&
+            persistedApproval !== undefined &&
             sameApproval(toApproval(persistedApproval), approval));
         return currentRow !== undefined &&
           sameDocument(toDocument(currentRow), after) &&

@@ -6,3 +6,11 @@ export type Priority = "critical" | "high" | "medium" | "low";
 export type DataSource = "manual" | "github" | "mcp" | "migration" | "seed_demo";
 
 export type IsoTimestamp = string;
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };

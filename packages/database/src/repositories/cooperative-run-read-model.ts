@@ -4,6 +4,7 @@ import {
   type CooperativeRunOrigin,
   type CooperativeRunSnapshot,
   type CooperativeRunStatus,
+  type JsonValue,
   type RunTransitionEventKind,
 } from "@semogtw/domain";
 import type { SqliteDatabase } from "../adapters/sqlite";
@@ -28,8 +29,8 @@ export type CooperativeRunHistoryEvent = {
   actor: string;
   source: CooperativeRunOrigin;
   summary: string;
-  before: unknown | null;
-  after: unknown | null;
+  before: JsonValue | null;
+  after: JsonValue | null;
   occurredAt: string;
   correlationId: string;
   malformedJson: readonly ("before" | "after")[];
@@ -68,12 +69,18 @@ export type CooperativeRunCommandStatus =
   | "rejected"
   | "expired";
 
+export type CooperativeRunCommandAvailability =
+  | "available"
+  | "expired"
+  | "invalid_expiration"
+  | "not_applicable";
+
 export type CooperativeRunCommandView = {
   id: string;
   kind: CooperativeRunCommandKind;
   status: CooperativeRunCommandStatus;
   summary: string;
-  payload: Readonly<Record<string, unknown>> | null;
+  payload: Readonly<Record<string, JsonValue>> | null;
   reason: string | null;
   queuedBy: string;
   correlationId: string;
@@ -82,6 +89,7 @@ export type CooperativeRunCommandView = {
   completedAt: string | null;
   expiresAt: string | null;
   updatedAt: string;
+  queueAvailability: CooperativeRunCommandAvailability;
   malformedPayload: boolean;
 };
 
@@ -197,10 +205,10 @@ function listItem(row: RunRow, observedAt: string): CooperativeRunListItem {
 
 function parseHistoricalJson(
   value: string | null,
-): { value: unknown | null; malformed: boolean } {
+): { value: JsonValue | null; malformed: boolean } {
   if (value === null) return { value: null, malformed: false };
   try {
-    return { value: JSON.parse(value) as unknown, malformed: false };
+    return { value: JSON.parse(value) as JsonValue, malformed: false };
   } catch {
     return { value: null, malformed: true };
   }
@@ -220,8 +228,20 @@ function parseCommitsJson(value: string): {
   }
 }
 
+function deriveCommandAvailability(
+  status: CooperativeRunCommandStatus,
+  expiresAt: string | null,
+  observedAt: string,
+): CooperativeRunCommandAvailability {
+  if (status !== "queued") return "not_applicable";
+  if (expiresAt === null) return "available";
+  const expiresEpoch = Date.parse(expiresAt);
+  if (Number.isNaN(expiresEpoch)) return "invalid_expiration";
+  return expiresEpoch <= Date.parse(observedAt) ? "expired" : "available";
+}
+
 function parsePayloadJson(value: string): {
-  payload: Readonly<Record<string, unknown>> | null;
+  payload: Readonly<Record<string, JsonValue>> | null;
   malformed: boolean;
 } {
   try {
@@ -230,7 +250,7 @@ function parsePayloadJson(value: string): {
       return { payload: null, malformed: true };
     }
     return {
-      payload: parsed as Readonly<Record<string, unknown>>,
+      payload: parsed as Readonly<Record<string, JsonValue>>,
       malformed: false,
     };
   } catch {
@@ -370,6 +390,11 @@ export class SqliteCooperativeRunReadModel {
         completedAt: command.completed_at,
         expiresAt: command.expires_at,
         updatedAt: command.updated_at,
+        queueAvailability: deriveCommandAvailability(
+          command.status,
+          command.expires_at,
+          observedAt,
+        ),
         malformedPayload: payload.malformed,
       };
     });

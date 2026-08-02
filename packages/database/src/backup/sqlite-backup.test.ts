@@ -21,6 +21,10 @@ const expectedMigrations = [
   "0003_github_observations.sql",
   "0004_github_sync_runs.sql",
   "0005_cooperative_run_ledger.sql",
+  "0006_editorial_workflow.sql",
+  "0007_editorial_invariant_triggers.sql",
+  "0008_editorial_approval_guards.sql",
+  "0009_editorial_document_identity_guards.sql",
 ] as const;
 
 function temporaryDirectory(): string {

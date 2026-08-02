@@ -13,6 +13,7 @@
   "dependencies": {
     "@semogtw/auth": "workspace:*",
     "@semogtw/config": "workspace:*",
+    "@semogtw/contracts": "workspace:*",
     "@semogtw/database": "workspace:*",
     "@semogtw/domain": "workspace:*",
     "@semogtw/github": "workspace:*",

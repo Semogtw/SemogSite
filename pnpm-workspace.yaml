@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Installs are an explicit frozen gate. Automatic pre-run repair would not know
+# the portable offline store path and can destructively recreate node_modules.
+verifyDepsBeforeRun: false

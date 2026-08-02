@@ -488,7 +488,7 @@ export function applyRunTransition(
         run,
         {
           ...(command.progress === undefined ? {} : { progress: command.progress }),
-          summary: command.summary,
+          ...(command.summary === undefined ? {} : { summary: command.summary }),
           nextAction: command.nextAction,
         },
         now,

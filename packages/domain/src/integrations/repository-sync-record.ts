@@ -1,3 +1,4 @@
+import type { JsonValue } from "../shared/types";
 import type {
   BranchObservation,
   BranchRecommendation,
@@ -43,7 +44,7 @@ export type BranchRecommendationRecord = {
   confidence: ObservationConfidence;
   reason: string;
   warnings: readonly string[];
-  evidence: readonly unknown[];
+  evidence: readonly JsonValue[];
   observedAt: string;
   sourceHash: string;
 };
@@ -75,6 +76,6 @@ export type LatestRepositoryRecommendation = {
   confidence: ObservationConfidence;
   reason: string;
   warnings: readonly string[];
-  evidence: readonly unknown[];
+  evidence: readonly JsonValue[];
   malformedJson: readonly ("warnings" | "evidence")[];
 };

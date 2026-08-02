@@ -130,6 +130,7 @@ export class SqlitePublishedEditorialSource {
     limit: number;
   }): Promise<readonly PublishedEditorialRecord[]> {
     const limit = normalizeLimit(input.limit);
+    const candidateLimit = Math.min(500, Math.max(limit, limit * 5));
     if (input.kind !== null && !validKinds.has(input.kind)) return [];
 
     const rows = (
@@ -140,7 +141,7 @@ export class SqlitePublishedEditorialSource {
                ORDER BY document.updated_at DESC, document.slug ASC
                LIMIT ?`,
             )
-            .all(limit)
+            .all(candidateLimit)
         : this.database.$client
             .prepare(
               `${publishedSelect}
@@ -148,11 +149,12 @@ export class SqlitePublishedEditorialSource {
                ORDER BY document.updated_at DESC, document.slug ASC
                LIMIT ?`,
             )
-            .all(input.kind, limit)
+            .all(input.kind, candidateLimit)
     ) as PublishedEditorialRow[];
 
     return rows
       .map(toPublishedRecord)
-      .filter((record): record is PublishedEditorialRecord => record !== null);
+      .filter((record): record is PublishedEditorialRecord => record !== null)
+      .slice(0, limit);
   }
 }

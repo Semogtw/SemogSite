@@ -1,3 +1,7 @@
+import {
+  isSafeGitRefName,
+  parseGitHubRepositoryIdentity,
+} from "./github-identifiers";
 import { recommendActiveBranch, type BranchObservation } from "./repository-observation";
 import type {
   ObservationInsertResult,
@@ -123,6 +127,94 @@ function appendDistinct(target: string[], values: readonly string[]): void {
   }
 }
 
+function validIsoTimestamp(value: string | null): boolean {
+  if (value === null) return true;
+  const epoch = Date.parse(value);
+  return !Number.isNaN(epoch);
+}
+
+function validSyncTarget(target: RepositorySyncTarget): boolean {
+  const identity = parseGitHubRepositoryIdentity(target.fullName);
+  return (
+    target.id.trim().length > 0 &&
+    identity !== null &&
+    identity.fullName === target.fullName &&
+    identity.owner === target.owner &&
+    identity.name === target.name &&
+    isSafeGitRefName(target.defaultBranch) &&
+    (target.currentActiveBranch === null ||
+      isSafeGitRefName(target.currentActiveBranch))
+  );
+}
+
+function validCanonicalRepositoryUrl(
+  value: string,
+  fullName: string,
+): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "github.com" &&
+      url.port.length === 0 &&
+      url.username.length === 0 &&
+      url.password.length === 0 &&
+      url.pathname === `/${fullName}` &&
+      url.search.length === 0 &&
+      url.hash.length === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+type ProviderValidationWarning =
+  | "INVALID_PROVIDER_IDENTITY"
+  | "INVALID_PROVIDER_URL"
+  | "INVALID_PROVIDER_DEFAULT_BRANCH"
+  | "INVALID_PROVIDER_TIMESTAMP"
+  | "INVALID_PROVIDER_NODE_ID"
+  | "INVALID_PROVIDER_RATE_LIMIT";
+
+function validateProviderObservation(
+  target: RepositorySyncTarget,
+  observation: ProviderRepositoryObservation,
+): ProviderValidationWarning | null {
+  const identity = parseGitHubRepositoryIdentity(observation.fullName);
+  if (
+    identity === null ||
+    identity.fullName !== observation.fullName ||
+    identity.fullName !== target.fullName
+  ) {
+    return "INVALID_PROVIDER_IDENTITY";
+  }
+  if (!validCanonicalRepositoryUrl(observation.htmlUrl, target.fullName)) {
+    return "INVALID_PROVIDER_URL";
+  }
+  if (!isSafeGitRefName(observation.defaultBranch)) {
+    return "INVALID_PROVIDER_DEFAULT_BRANCH";
+  }
+  if (
+    !validIsoTimestamp(observation.providerUpdatedAt) ||
+    !validIsoTimestamp(observation.observedAt) ||
+    !validIsoTimestamp(observation.pushedAt) ||
+    !validIsoTimestamp(observation.rateLimitResetAt)
+  ) {
+    return "INVALID_PROVIDER_TIMESTAMP";
+  }
+  if (observation.githubNodeId.trim().length === 0) {
+    return "INVALID_PROVIDER_NODE_ID";
+  }
+  if (
+    observation.rateLimitRemaining !== null &&
+    (!Number.isInteger(observation.rateLimitRemaining) ||
+      observation.rateLimitRemaining < 0)
+  ) {
+    return "INVALID_PROVIDER_RATE_LIMIT";
+  }
+  return null;
+}
+
 export class GitHubSyncService {
   constructor(
     private readonly store: GitHubSyncStore,
@@ -155,6 +247,12 @@ export class GitHubSyncService {
     }
 
     for (const target of targets) {
+      if (!validSyncTarget(target)) {
+        errorCount += 1;
+        warnings.push(`${target.id}:INVALID_SYNC_TARGET`);
+        continue;
+      }
+
       let result: RepositoryObservationResult;
       try {
         result = await this.source.observe(target, maxBranches);
@@ -175,6 +273,13 @@ export class GitHubSyncService {
       }
 
       const provider = result.observation;
+      const providerWarning = validateProviderObservation(target, provider);
+      if (providerWarning !== null) {
+        errorCount += 1;
+        warnings.push(`${target.id}:${providerWarning}`);
+        continue;
+      }
+
       rateLimitRemaining = lowerRateLimit(
         rateLimitRemaining,
         provider.rateLimitRemaining,

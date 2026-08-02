@@ -9,7 +9,7 @@
   "scripts": {
     "backup:database": "node scripts/backup-database.mjs",
     "build": "pnpm -r build",
-    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:mcp-transport-boundary && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm -r test",
+    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:run-ledger-guardrails && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:mcp-transport-boundary": "node scripts/check-mcp-transport-boundary.mjs",
@@ -18,10 +18,14 @@
     "dev:api": "pnpm --filter @semogtw/api dev",
     "dev:all": "pnpm --parallel --filter @semogtw/web --filter @semogtw/api dev",
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
-    "test": "pnpm -r test",
-    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs",
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs && node scripts/check-mcp-package-boundaries.test.mjs && node scripts/check-mcp-node-runtime-boundary.test.mjs",
     "typecheck": "pnpm -r typecheck",
-    "verify:backup": "node scripts/verify-backup.mjs"
+    "verify:backup": "node scripts/verify-backup.mjs",
+    "check:mcp-package-boundaries": "node scripts/check-mcp-package-boundaries.mjs",
+    "check:mcp-node-runtime-boundary": "node scripts/check-mcp-node-runtime-boundary.mjs",
+    "check:run-ledger-guardrails": "node scripts/check-run-ledger-guardrails.mjs",
+    "check:editorial-guardrails": "node scripts/check-editorial-guardrails.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

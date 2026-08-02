@@ -26,3 +26,16 @@ export type {
   EditorialValidationError,
   EditorialWorkflowStatus,
 } from "./editorial-workflow";
+
+export { EditorialWriteService } from "./editorial-write-service";
+export type {
+  CreateEditorialDocumentRequest,
+  CreateEditorialRevisionRequest,
+  EditorialPersistenceEvent,
+  ApproveEditorialRequest,
+  EditorialWriteContext,
+  EditorialWriteRepository,
+  EditorialWriteResult,
+  EditorialWriteStoreResult,
+  EditorialWriteValidationError,
+} from "./editorial-write-service";

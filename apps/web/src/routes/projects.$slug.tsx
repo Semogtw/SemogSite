@@ -6,7 +6,7 @@ import { getPublicProjectFn } from "../server/public-projects";
 export const Route = createFileRoute("/projects/$slug")({
   loader: ({ params }) => getPublicProjectFn({ data: { slug: params.slug } }),
   head: ({ loaderData, params }) =>
-    loaderData === null
+    loaderData == null
       ? {
           meta: [
             { title: `Projeto ${params.slug} — Semogtw` },

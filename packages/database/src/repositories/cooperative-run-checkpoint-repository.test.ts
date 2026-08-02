@@ -285,7 +285,10 @@ describe("SqliteCooperativeRunCheckpointRepository", () => {
     const repository = new SqliteCooperativeRunCheckpointRepository(database);
 
     await expect(
-      repository.record(before, value, eventValue, checkpoint(value)),
+      repository.record(before, value, eventValue, {
+        ...checkpoint(value),
+        eventId: eventValue.id,
+      }),
     ).rejects.toThrow();
     expect(
       database.$client
