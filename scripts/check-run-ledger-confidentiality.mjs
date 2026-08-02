@@ -17,6 +17,7 @@ const ignoredDirectories = new Set([
   "__snapshots__",
 ]);
 const publicRouteExtensions = /\.(?:c|m)?(?:j|t)sx?$/u;
+const testFilePattern = /\.(?:test|spec)\.(?:c|m)?(?:j|t)sx?$/u;
 
 const forbiddenPatterns = [
   {
@@ -58,7 +59,13 @@ function collectFiles(directory) {
     const absolute = join(directory, entry);
     const stats = statSync(absolute);
     if (stats.isDirectory()) files.push(...collectFiles(absolute));
-    else if (stats.isFile() && sourceExtension.test(entry)) files.push(absolute);
+    else if (
+      stats.isFile() &&
+      sourceExtension.test(entry) &&
+      !testFilePattern.test(entry)
+    ) {
+      files.push(absolute);
+    }
   }
   return files;
 }
