@@ -1,20 +1,12 @@
 import { EmptyState, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import { publicEditorialListHead } from "./-public-editorial-head";
 import { getPublicProjectsFn } from "../server/public-projects";
 
 export const Route = createFileRoute("/projects/")({
   loader: () => getPublicProjectsFn(),
-  head: () => ({
-    meta: [
-      { title: "Projetos — Semogtw" },
-      {
-        name: "description",
-        content:
-          "Projetos publicados pela Semogtw após revisão editorial explícita.",
-      },
-    ],
-  }),
+  head: () => publicEditorialListHead("project"),
   component: ProjectsPage,
 });
 
