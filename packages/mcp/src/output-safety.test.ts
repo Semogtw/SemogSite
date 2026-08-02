@@ -20,6 +20,13 @@ describe("containsSensitiveOutputKey", () => {
     "sessionDigest",
     "tokenDigest",
     "cookieDigest",
+    "jwt",
+    "sessionId",
+    "authSessionId",
+    "authorizationHeader",
+    "tokenValue",
+    "secretValue",
+    "passwordValue",
   ])("rejects sensitive key %s", (key) => {
     expect(containsSensitiveOutputKey({ nested: { [key]: "marker" } })).toBe(
       true,
