@@ -123,7 +123,7 @@ It never contains:
 - [ ] Add revision diff; authenticated preview is implemented.
 - [x] Add sensitive-review checklist and approval reason.
 - [x] Add publish/withdraw/rollback confirmation flows.
-- [x] Add responsive and keyboard-operable editor controls; browser verification remains pending.
+- [x] Add responsive and keyboard-operable editor controls with Playwright verification at 360×800.
 - [x] Never expose review/draft payloads through public loaders.
 
 ## Task 4: Public reads
@@ -131,7 +131,8 @@ It never contains:
 - [x] Add public read model backed only by current published revision.
 - [x] Map to explicit strict public contracts.
 - [x] Return not-found for draft/withdrawn/unknown content.
-- [ ] Add canonical/noindex behavior and approved redirects.
+- [x] Add provider-neutral canonical/noindex behavior for public editorial routes.
+- [ ] Add approved redirects only after an audited redirect registry is designed; slugs remain immutable and unknown aliases never fall back to private/operational data.
 - [x] Add public confidentiality scanner coverage for editorial/private fields.
 
 ## Task 5: Verification
@@ -139,12 +140,13 @@ It never contains:
 - [x] Domain lifecycle/content-bound tests.
 - [x] SQLite atomicity/idempotency/rollback tests.
 - [x] Migration `0001`–`0009` memory/file execution.
-- [ ] Backup/restore with editorial fixtures.
-- [ ] Owner browser edit/review/publish/withdraw/rollback flow.
-- [ ] Anonymous draft/review confidentiality tests.
-- [ ] Markdown sanitization/XSS and external-link tests.
-- [ ] Keyboard and 360 px review.
-- [ ] Full `pnpm check` and build.
+- [x] Backup/restore with editorial fixtures.
+- [x] Owner browser edit/review/publish/withdraw/rollback flow.
+- [x] Anonymous draft/review confidentiality tests.
+- [x] Markdown sanitization/XSS and external-link tests.
+- [x] Keyboard and 360 px review.
+- [x] Production build and all individual guardrail/typecheck/test stages.
+- [ ] Make the aggregate `pnpm check` parent process exit reliably in the constrained agent shell; its component stages pass when invoked directly.
 
 ## Security rules
 
@@ -182,30 +184,32 @@ Implemented and observed on `develop/editorial-workspace`:
 
 - owner creation, immutable revisions, submit-for-review, approval checklist, explicit re-open, publication, withdrawal and rollback;
 - replay-first idempotency for transitions, approval, publication/rollback and withdrawal, including lost-response retries after aggregate state changes;
-- approval and rollback bound to the exact persisted revision/content hash;
-- public lifecycle controls remain available while a newer working draft exists, so an older public projection can always be withdrawn or rolled back;
-- strict public editorial reader backed only by `SqlitePublishedEditorialReadModel`;
-- `/notes` and `/notes/$slug` now read only the current published `note` revision and return not-found for drafts, withdrawals and kind mismatches;
-- approved Markdown is currently emitted as escaped text, not HTML. A sanitized renderer remains a separate security gate.
+- approval, publication and rollback bound to the exact persisted revision/content hash;
+- a newly approved revision can atomically replace an older public projection without requiring an availability gap;
+- strict public editorial readers backed only by the current published revision;
+- `/notes`, `/projects` and their detail routes no longer use operational DevOS data as public fallback;
+- safe Markdown renderer in React elements with raw HTML disabled and a restrictive URI policy;
+- provider-neutral canonical paths for public indexes and published details; unknown, draft and withdrawn details have `noindex, nofollow` and no canonical;
+- file-backed backup/restore preserves an older public projection together with a newer private draft;
+- a versioned Node HTTP adapter and Playwright gate cover the owner lifecycle, anonymous isolation, keyboard access and 360×800 layout.
 
-Observed offline-toolchain gates at local commit `ac51b3d`:
+Observed current-checkout gates:
 
 ```text
 Node v22.23.1
 pnpm 10.14.0
-@semogtw/domain: 35 files / 199 tests passed
-@semogtw/database: 45 files / 119 tests passed
-@semogtw/contracts: 2 files / 10 tests passed
-@semogtw/web: 23 files / 62 tests passed
-domain, database, contracts and web typechecks passed
+@semogtw/web: 25 files / 68 tests passed
+root Vitest suite: 131 files / 483 tests passed
+all workspace typechecks passed
+production web/SSR build passed
+9 server migration assets verified
+Playwright: 2/2 scenarios passed
 git diff --check passed
 ```
 
 Still required before phase 1 can be declared complete:
 
-- migrate `/projects` away from its legacy operational public-field source to the editorial projection;
-- sanitized Markdown renderer and URI/link policy;
-- canonical/redirect policy;
-- browser flow, keyboard and 360×800 verification;
-- file-backed backup/restore fixture;
-- full root `pnpm check` and production build on the final exact remote HEAD.
+- owner-only revision diff between immutable revisions;
+- an audited redirect registry if slug aliases are ever introduced; current slugs remain immutable;
+- make the aggregate `pnpm check` wrapper exit reliably in the constrained agent shell, although all component gates pass independently;
+- run deployment-specific CSP, trusted-origin, cache and canonical-origin gates on the selected host.
