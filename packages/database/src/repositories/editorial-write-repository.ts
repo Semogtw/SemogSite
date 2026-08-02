@@ -2,6 +2,7 @@ import type {
   EditorialApprovalSnapshot,
   EditorialDocumentSnapshot,
   EditorialPersistenceEvent,
+  EditorialPersistenceReplay,
   EditorialRevisionSnapshot,
   EditorialWriteRepository,
   EditorialWriteStoreResult,
@@ -172,6 +173,34 @@ function sameApproval(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function toPersistenceEvent(
+  row: EventRow,
+): EditorialPersistenceEvent | null {
+  try {
+    const before =
+      row.before_json === null
+        ? null
+        : (JSON.parse(row.before_json) as EditorialDocumentSnapshot);
+    const after = JSON.parse(row.after_json) as EditorialDocumentSnapshot;
+    return {
+      id: row.id,
+      documentId: row.document_id,
+      kind: row.kind,
+      actor: row.actor,
+      revisionId: row.revision_id,
+      summary: row.summary,
+      reason: row.reason,
+      before,
+      after,
+      occurredAt: row.occurred_at,
+      idempotencyKey: row.idempotency_key,
+      correlationId: row.correlation_id,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function sameEvent(row: EventRow, event: EditorialPersistenceEvent): boolean {
   return (
     row.id === event.id &&
@@ -333,6 +362,26 @@ function existingEvent(
 
 export class SqliteEditorialWriteRepository implements EditorialWriteRepository {
   constructor(private readonly database: SqliteDatabase) {}
+
+  async findReplay(
+    documentId: string,
+    idempotencyKey: string,
+  ): Promise<EditorialPersistenceReplay | null> {
+    const row = existingEvent(this.database, documentId, idempotencyKey);
+    if (row === undefined) return null;
+    const event = toPersistenceEvent(row);
+    if (event === null) return null;
+
+    const revisionRow =
+      row.revision_id === null
+        ? undefined
+        : (this.database.$client
+            .prepare(`${revisionSelect} WHERE id = ? AND document_id = ?`)
+            .get(row.revision_id, documentId) as RevisionRow | undefined);
+    const revision =
+      revisionRow === undefined ? null : toRevision(revisionRow);
+    return { event, revision };
+  }
 
   async findDocument(
     documentId: string,

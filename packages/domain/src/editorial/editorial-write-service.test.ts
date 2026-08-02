@@ -79,6 +79,7 @@ function approval(
 
 function repository(): EditorialWriteRepository {
   return {
+    findReplay: vi.fn().mockResolvedValue(null),
     findDocument: vi.fn().mockResolvedValue(document()),
     findRevision: vi.fn().mockResolvedValue(revision()),
     findApproval: vi.fn().mockResolvedValue(approval()),
@@ -179,6 +180,111 @@ describe("EditorialWriteService", () => {
       expect.objectContaining({ sequence: 3 }),
       expect.objectContaining({ kind: "editorial.revision_created" }),
     );
+  });
+
+  it("replays an immutable revision after the aggregate has advanced", async () => {
+    const store = repository();
+    const before = document();
+    const after = document({
+      workingRevisionId: "revision-2",
+      version: 2,
+      updatedAt: t1,
+    });
+    const persistedRevision = revision("revision-2", {
+      sequence: 2,
+      createdAt: t1,
+    });
+    vi.mocked(store.findReplay).mockResolvedValue({
+      revision: persistedRevision,
+      event: {
+        id: "event-1",
+        documentId: "document-1",
+        kind: "editorial.revision_created",
+        actor: "semogtw-owner",
+        revisionId: "revision-2",
+        summary: "Editorial revision revision-2 created.",
+        reason: null,
+        before,
+        after,
+        occurredAt: t1,
+        idempotencyKey: "editorial-key-1",
+        correlationId: "editorial-correlation-1",
+      },
+    });
+    vi.mocked(store.findDocument).mockResolvedValue(
+      document({
+        workingRevisionId: "revision-3",
+        version: 3,
+        updatedAt: "2026-08-01T23:20:00.000Z",
+      }),
+    );
+    const service = new EditorialWriteService(store);
+
+    await expect(
+      service.createRevision(
+        {
+          documentId: "document-1",
+          revisionId: "revision-2",
+          title: "SemogSite 2",
+          excerpt: "Descrição pública revisada.",
+          bodyMarkdown: "# SemogSite\n\nConteúdo público.",
+          tags: ["typescript"],
+          contentHash: hashB,
+        },
+        { ...common, expectedUpdatedAt: t0 },
+      ),
+    ).resolves.toEqual({
+      ok: true,
+      document: after,
+      revision: persistedRevision,
+      duplicate: true,
+    });
+    expect(store.findDocument).not.toHaveBeenCalled();
+    expect(store.createRevision).not.toHaveBeenCalled();
+  });
+
+  it("rejects reuse of a revision replay identity with changed intent", async () => {
+    const store = repository();
+    const before = document();
+    const after = document({
+      workingRevisionId: "revision-2",
+      version: 2,
+      updatedAt: t1,
+    });
+    vi.mocked(store.findReplay).mockResolvedValue({
+      revision: revision("revision-2", { sequence: 2, createdAt: t1 }),
+      event: {
+        id: "event-1",
+        documentId: "document-1",
+        kind: "editorial.revision_created",
+        actor: "semogtw-owner",
+        revisionId: "revision-2",
+        summary: "Editorial revision revision-2 created.",
+        reason: null,
+        before,
+        after,
+        occurredAt: t1,
+        idempotencyKey: "editorial-key-1",
+        correlationId: "editorial-correlation-1",
+      },
+    });
+    const service = new EditorialWriteService(store);
+
+    await expect(
+      service.createRevision(
+        {
+          documentId: "document-1",
+          revisionId: "revision-2",
+          title: "Intent changed",
+          excerpt: "Descrição pública revisada.",
+          bodyMarkdown: "# SemogSite\n\nConteúdo público.",
+          tags: ["typescript"],
+          contentHash: hashB,
+        },
+        { ...common, expectedUpdatedAt: t0 },
+      ),
+    ).resolves.toEqual({ ok: false, code: "CONFLICT" });
+    expect(store.findDocument).not.toHaveBeenCalled();
   });
 
   it("creates and persists an approval bound to the working revision/hash", async () => {

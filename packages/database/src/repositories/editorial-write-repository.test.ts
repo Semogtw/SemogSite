@@ -205,6 +205,61 @@ describe("SqliteEditorialWriteRepository", () => {
     database.$client.close();
   });
 
+  it("returns the original immutable revision replay after later transitions", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    const repository = new SqliteEditorialWriteRepository(database);
+    const initial = document();
+    await repository.createDocument(
+      initial,
+      revision(),
+      event("editorial.document_created", null, initial, null),
+    );
+    const revised = document({
+      workingRevisionId: "revision-2",
+      version: 2,
+      updatedAt: t1,
+    });
+    const revisionEvent = event(
+      "editorial.revision_created",
+      initial,
+      revised,
+      "revision-2",
+      { idempotencyKey: "revision-replay-key" },
+    );
+    await repository.createRevision(
+      initial,
+      revised,
+      revision("revision-2"),
+      revisionEvent,
+    );
+    const inReview = document({
+      workflowStatus: "in_review",
+      workingRevisionId: "revision-2",
+      version: 3,
+      updatedAt: t2,
+    });
+    await repository.applyTransition(
+      revised,
+      inReview,
+      event(
+        "editorial.submitted_for_review",
+        revised,
+        inReview,
+        "revision-2",
+      ),
+      null,
+    );
+
+    await expect(
+      repository.findReplay("document-1", "revision-replay-key"),
+    ).resolves.toEqual({
+      event: revisionEvent,
+      revision: revision("revision-2"),
+    });
+    database.$client.close();
+  });
+
   it("persists approval before the guarded document update and then publishes", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);

@@ -32,6 +32,7 @@ export type {
   CreateEditorialDocumentRequest,
   CreateEditorialRevisionRequest,
   EditorialPersistenceEvent,
+  EditorialPersistenceReplay,
   ApproveEditorialRequest,
   EditorialWriteContext,
   EditorialWriteRepository,

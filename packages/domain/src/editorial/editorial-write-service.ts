@@ -36,7 +36,16 @@ export type EditorialWriteStoreResult =
   | "conflict"
   | "slug_conflict";
 
+export type EditorialPersistenceReplay = {
+  event: EditorialPersistenceEvent;
+  revision: EditorialRevisionSnapshot | null;
+};
+
 export interface EditorialWriteRepository {
+  findReplay(
+    documentId: string,
+    idempotencyKey: string,
+  ): Promise<EditorialPersistenceReplay | null>;
   findDocument(documentId: string): Promise<EditorialDocumentSnapshot | null>;
   findRevision(
     documentId: string,
@@ -357,6 +366,55 @@ export class EditorialWriteService {
         code: "VALIDATION_FAILED",
         errors: resolved.errors,
       };
+    }
+
+    const replay = await this.repository.findReplay(
+      resolved.documentId as string,
+      resolved.idempotencyKey,
+    );
+    if (replay !== null) {
+      if (replay.event.before === null || replay.revision === null) {
+        return { ok: false, code: "CONFLICT" };
+      }
+      const replayed = createEditorialRevision(
+        replay.event.before,
+        {
+          revisionId: resolved.revisionId as string,
+          title: input.title,
+          excerpt: input.excerpt,
+          bodyMarkdown: input.bodyMarkdown,
+          tags: input.tags,
+          contentHash: input.contentHash,
+        },
+        {
+          actorId: resolved.actorId,
+          expectedUpdatedAt: resolved.expectedUpdatedAt,
+          now: resolved.now,
+        },
+      );
+      if (!replayed.ok) return { ok: false, code: "CONFLICT" };
+      const revision = {
+        ...replayed.revision,
+        sequence: replay.revision.sequence,
+      };
+      const event = persistenceEvent({
+        context: resolved,
+        documentId: replay.event.before.id,
+        kind: "editorial.revision_created",
+        revisionId: revision.id,
+        summary: `Editorial revision ${revision.id} created.`,
+        before: replay.event.before,
+        after: replayed.document,
+      });
+      return JSON.stringify(revision) === JSON.stringify(replay.revision) &&
+        JSON.stringify(event) === JSON.stringify(replay.event)
+        ? {
+            ok: true,
+            document: replay.event.after,
+            revision: replay.revision,
+            duplicate: true,
+          }
+        : { ok: false, code: "CONFLICT" };
     }
 
     const current = await this.repository.findDocument(
