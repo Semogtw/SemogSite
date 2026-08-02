@@ -4,7 +4,7 @@ import {
   readdirSync,
   statSync,
 } from "node:fs";
-import { builtinModules } from "node:module";
+import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 import { join, relative, resolve } from "node:path";
 
@@ -16,12 +16,6 @@ const ignoredDirectories = new Set([
 ]);
 const importSpecifierPattern =
   /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["']([^"']+)["']/gu;
-const builtinSpecifiers = new Set(
-  builtinModules.flatMap((specifier) => [
-    specifier,
-    specifier.startsWith("node:") ? specifier.slice(5) : `node:${specifier}`,
-  ]),
-);
 
 function collectSourceFiles(directory) {
   if (!existsSync(directory)) return [];
@@ -53,7 +47,7 @@ export function scanMcpNodeRuntimeBoundary(root = process.cwd()) {
     const path = relative(absoluteRoot, absolutePath).replaceAll("\\", "/");
 
     for (const specifier of importedSpecifiers(content)) {
-      if (!specifier || !builtinSpecifiers.has(specifier)) continue;
+      if (!specifier || !isBuiltin(specifier)) continue;
       violations.push({
         code: "MCP_NODE_RUNTIME_IMPORT",
         path,
