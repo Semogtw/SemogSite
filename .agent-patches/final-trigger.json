@@ -1,0 +1,9 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/editorial-workspace",
+  "expected_head": "80c7dba26b1be1ab65b75cefc8777f0320220f29",
+  "base_commit": "b24763bf783811b77522a3cf56038d93ff984fb4",
+  "patch_sha256": "6c95cb7e2b7d7b05c1e13067b53203c6ab56d48f0e8ea29eb707f16971bfd070",
+  "expected_tree": "0ef60e154d4f07348743c678ca3a6c496f8862c6",
+  "commit_message": "feat(editorial): complete publication lifecycle and public projections"
+}
