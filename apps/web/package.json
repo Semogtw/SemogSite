@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/check-web-server-bundle.mjs",
     "dev": "vite dev",
     "start": "node .output/server/index.mjs",
     "test": "vitest run",
