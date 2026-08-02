@@ -21,6 +21,12 @@ import { createApiApp } from "../app";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
+export type SqliteApiRuntime = {
+  app: ReturnType<typeof createApiApp>;
+  authProvider: AuthProvider | undefined;
+  close(): void;
+};
+
 function resolveDatabasePath(databaseUrl: string): string {
   if (databaseUrl === ":memory:") return databaseUrl;
   const absolutePath = resolve(databaseUrl);
@@ -56,7 +62,7 @@ function composeAuthProvider(
 
 export function createSqliteApiRuntime(
   env: Record<string, string | undefined>,
-) {
+): SqliteApiRuntime {
   const databaseConfig = parseDatabaseConfig(env);
   const database = createSqliteDatabase(
     resolveDatabasePath(databaseConfig.databaseUrl),
