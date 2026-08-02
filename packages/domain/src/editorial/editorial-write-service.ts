@@ -656,6 +656,49 @@ export class EditorialWriteService {
     ) {
       return { ok: false, code: "VALIDATION_FAILED", errors: resolved.errors };
     }
+    const replay = await this.repository.findReplay(
+      resolved.documentId as string,
+      resolved.idempotencyKey,
+    );
+    if (replay !== null) {
+      if (replay.event.before === null || replay.revision === null) {
+        return { ok: false, code: "CONFLICT" };
+      }
+      const replayed = applyEditorialTransition(
+        replay.event.before,
+        kind === "submit_for_review"
+          ? { kind, revision: replay.revision }
+          : { kind, revision: replay.revision, reason: reason ?? "" },
+        {
+          actorId: resolved.actorId,
+          eventId: resolved.eventId,
+          idempotencyKey: resolved.idempotencyKey,
+          correlationId: resolved.correlationId,
+          expectedUpdatedAt: resolved.expectedUpdatedAt,
+          now: resolved.now,
+        },
+      );
+      if (!replayed.ok) return { ok: false, code: "CONFLICT" };
+      const event = persistenceEvent({
+        context: resolved,
+        documentId: replay.event.before.id,
+        kind: replayed.event.kind,
+        revisionId: replay.revision.id,
+        summary: replayed.event.summary,
+        reason: reason?.trim() ?? null,
+        before: replay.event.before,
+        after: replayed.document,
+      });
+      return JSON.stringify(event) === JSON.stringify(replay.event)
+        ? {
+            ok: true,
+            document: replay.event.after,
+            revision: replay.revision,
+            duplicate: true,
+          }
+        : { ok: false, code: "CONFLICT" };
+    }
+
     const current = await this.repository.findDocument(
       resolved.documentId as string,
     );
