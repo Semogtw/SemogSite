@@ -1,0 +1,100 @@
+name: Apply verified editorial redirect storage
+
+on:
+  push:
+    branches:
+      - ops/apply-editorial-redirect-storage-v1
+    paths:
+      - .agent-patches/redirect-storage-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-editorial-redirect-storage
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/redirect-storage-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': 'dd26dbe0190307e6eae9e41dfe3a7657a57df489',
+              'patch_sha256': 'b95bd896c3abdf742876f3c03a54a561ab23330b3880a151f21f51587159aa3f',
+              'commit_message': 'feat(editorial): persist and resolve audited redirects',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from reviewed fixed contract')
+          PY
+          tr -d '\n' < request/.agent-patches/redirect-storage.patch.gz.b64 \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/redirect-storage.patch"
+          test "$(sha256sum "$RUNNER_TEMP/redirect-storage.patch" | awk '{print $1}')" = \
+            'b95bd896c3abdf742876f3c03a54a561ab23330b3880a151f21f51587159aa3f'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact patch and push with lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = 'dd26dbe0190307e6eae9e41dfe3a7657a57df489'
+          git -C target apply --index "$RUNNER_TEMP/redirect-storage.patch"
+          git -C target diff --cached --check
+          git -C target diff --cached --name-only | sort > "$RUNNER_TEMP/actual-paths"
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          apps/web/src/routes/-public-editorial-routes.test.ts
+          apps/web/src/routes/notes.$slug.tsx
+          apps/web/src/routes/projects.$slug.tsx
+          apps/web/src/server/public-editorial.server.test.ts
+          apps/web/src/server/public-editorial.server.ts
+          apps/web/src/server/public-editorial.ts
+          apps/web/src/server/public-projects.server.ts
+          apps/web/src/server/public-projects.ts
+          packages/database/migrations/0010_editorial_redirect_registry.sql
+          packages/database/src/adapters/sqlite-migrations.test.ts
+          packages/database/src/backup/sqlite-backup.test.ts
+          packages/database/src/editorial-exports.test.ts
+          packages/database/src/editorial-migrations.test.ts
+          packages/database/src/index.ts
+          packages/database/src/repositories/editorial-redirect-repository.test.ts
+          packages/database/src/repositories/editorial-redirect-repository.ts
+          packages/database/src/repositories/published-editorial-read-model.test.ts
+          packages/database/src/repositories/published-editorial-read-model.ts
+          packages/database/src/schema/editorial.ts
+          PATHS
+          sort -o "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/expected-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/actual-paths"
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'feat(editorial): persist and resolve audited redirects'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:dd26dbe0190307e6eae9e41dfe3a7657a57df489' \
+            origin HEAD:refs/heads/develop/editorial-workspace
