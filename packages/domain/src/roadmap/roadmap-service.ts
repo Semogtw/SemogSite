@@ -41,14 +41,6 @@ export interface RoadmapDataSource {
   listRoadmapItems(): Promise<readonly RoadmapItem[]>;
 }
 
-const allStates: readonly StageState[] = [
-  "backlog",
-  "next",
-  "in_progress",
-  "blocked",
-  "completed",
-];
-
 export class RoadmapService {
   constructor(private readonly source: RoadmapDataSource) {}
 
@@ -71,12 +63,13 @@ export class RoadmapService {
       return true;
     });
 
-    const board = Object.fromEntries(
-      allStates.map((state) => [
-        state,
-        items.filter((item) => item.state === state),
-      ]),
-    ) as RoadmapBoard;
+    const board: RoadmapBoard = {
+      backlog: items.filter((item) => item.state === "backlog"),
+      next: items.filter((item) => item.state === "next"),
+      in_progress: items.filter((item) => item.state === "in_progress"),
+      blocked: items.filter((item) => item.state === "blocked"),
+      completed: items.filter((item) => item.state === "completed"),
+    };
 
     return { items, board };
   }
