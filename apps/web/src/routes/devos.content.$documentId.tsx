@@ -2,6 +2,7 @@ import { EmptyState, Status, Surface } from "@semogtw/ui";
 import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { EditorialRevisionDiffPanel } from "../components/devos/editorial-revision-diff-panel";
 import { EditorialRevisionForm } from "../components/devos/editorial-revision-form";
 import { EditorialWorkflowControls } from "../components/devos/editorial-workflow-controls";
 import { getEditorialDocumentDetailFn } from "../server/devos-editorial";
@@ -212,6 +213,8 @@ function EditorialDocumentPage() {
           ) : null}
         </Surface>
       </div>
+
+      <EditorialRevisionDiffPanel revisions={detail.revisions} />
 
       <Surface className="editorial-section">
         <div className="surface-heading-row">

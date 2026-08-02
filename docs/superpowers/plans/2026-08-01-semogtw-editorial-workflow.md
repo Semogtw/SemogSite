@@ -120,7 +120,7 @@ It never contains:
 ## Task 3: Owner-only editorial UI
 
 - [x] Add private document list/detail/editor routes.
-- [ ] Add revision diff; authenticated preview is implemented.
+- [x] Add bounded owner-only revision diff; authenticated preview remains available.
 - [x] Add sensitive-review checklist and approval reason.
 - [x] Add publish/withdraw/rollback confirmation flows.
 - [x] Add responsive and keyboard-operable editor controls with Playwright verification at 360×800.
@@ -182,7 +182,7 @@ It never contains:
 
 Implemented and observed on `develop/editorial-workspace`:
 
-- owner creation, immutable revisions, submit-for-review, approval checklist, explicit re-open, publication, withdrawal and rollback;
+- owner creation, immutable revisions, bounded textual revision diff, submit-for-review, approval checklist, explicit re-open, publication, withdrawal and rollback;
 - replay-first idempotency for transitions, approval, publication/rollback and withdrawal, including lost-response retries after aggregate state changes;
 - approval, publication and rollback bound to the exact persisted revision/content hash;
 - a newly approved revision can atomically replace an older public projection without requiring an availability gap;
@@ -198,8 +198,8 @@ Observed current-checkout gates:
 ```text
 Node v22.23.1
 pnpm 10.14.0
-@semogtw/web: 25 files / 68 tests passed
-root Vitest suite: 131 files / 483 tests passed
+@semogtw/web: 26 files / 71 tests passed
+root Vitest suite: 132 files / 486 tests passed
 all workspace typechecks passed
 production web/SSR build passed
 9 server migration assets verified
@@ -209,7 +209,6 @@ git diff --check passed
 
 Still required before phase 1 can be declared complete:
 
-- owner-only revision diff between immutable revisions;
 - an audited redirect registry if slug aliases are ever introduced; current slugs remain immutable;
 - make the aggregate `pnpm check` wrapper exit reliably in the constrained agent shell, although all component gates pass independently;
 - run deployment-specific CSP, trusted-origin, cache and canonical-origin gates on the selected host.

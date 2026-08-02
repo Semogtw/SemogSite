@@ -114,6 +114,20 @@ test.describe.serial("editorial publication lifecycle", () => {
       .getByRole("button", { name: "Salvar nova revisão" })
       .click();
 
+    await expect(
+      page.getByRole("heading", { name: "Diff de revisões imutáveis" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('.editorial-diff-lines li[data-kind="removed"]')
+        .filter({ hasText: "Nota editorial original" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('.editorial-diff-lines li[data-kind="added"]')
+        .filter({ hasText: "Nota editorial atualizada" }),
+    ).toBeVisible();
+
     await submitForReview(page);
     await approve(page, "Segunda revisão validada pelo gate E2E.");
 

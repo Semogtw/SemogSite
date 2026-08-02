@@ -7,6 +7,19 @@ function source(path: string): string {
 }
 
 describe("editorial workflow controls", () => {
+  it("renders an owner-only diff for immutable revisions", () => {
+    const route = source("devos.content.$documentId.tsx");
+    const panel = source(
+      "../components/devos/editorial-revision-diff-panel.tsx",
+    );
+
+    expect(route).toContain("EditorialRevisionDiffPanel");
+    expect(route).toContain("revisions={detail.revisions}");
+    expect(panel).toContain("compareEditorialRevisions");
+    expect(panel).toContain("Diff de revisões imutáveis");
+    expect(panel).not.toContain("dangerouslySetInnerHTML");
+  });
+
   it("keeps public projection controls available across workflow states", () => {
     const controls = source("../components/devos/editorial-workflow-controls.tsx");
 

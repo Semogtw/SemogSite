@@ -149,7 +149,7 @@ Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1`
 
 - instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
 - guardrails e typechecks de todos os workspaces aprovados;
-- `pnpm test`: **131 arquivos / 483 testes aprovados**;
+- `pnpm test`: **132 arquivos / 486 testes aprovados**;
 - `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
 - bundle SSR contendo as 9 migrations e nenhuma migration no cliente;
 - SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
@@ -189,12 +189,12 @@ Implementado e verificado:
 - serviço de leitura compartilhado para adapters;
 - catálogo MCP interno somente leitura;
 - ledger cooperativo de execuções;
-- ciclo editorial owner-only completo com revisions imutáveis, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
+- ciclo editorial owner-only completo com revisions imutáveis, diff textual limitado, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
 - projeções públicas de notas e projetos derivadas exclusivamente da revisão aprovada e publicada;
 - renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
 - canonical provider-neutral em índices e projeções publicadas; conteúdo desconhecido ou retirado permanece sem canonical e com `noindex, nofollow`;
 - restauração verificada preservando simultaneamente a projeção pública e um rascunho privado mais novo;
-- lockfile determinístico, typechecks, 483 testes, build SSR e gate Playwright aprovados.
+- lockfile determinístico, typechecks, 486 testes, build SSR e gate Playwright aprovados.
 
 Ainda bloqueado ou pendente de uma fase separada:
 
