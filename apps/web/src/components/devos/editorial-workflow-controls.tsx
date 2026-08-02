@@ -6,6 +6,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import {
   approveEditorialRevisionFn,
+  reopenEditorialDraftFn,
   submitEditorialForReviewFn,
 } from "../../server/devos-editorial";
 
@@ -210,99 +211,111 @@ export function EditorialWorkflowControls({
 
   if (workflowStatus === "in_review") {
     return (
-      <form
-        className="editorial-form editorial-workflow-control"
-        onSubmit={approveRevision}
-      >
-        <p className="editorial-safety-note">
-          A aprovação fica vinculada à revisão e ao hash exibidos no preview.
-          Ela não publica o conteúdo.
-        </p>
-        <fieldset className="editorial-review-checklist">
-          <legend>Checklist sensível obrigatório</legend>
-          {checkItems.map((item) => (
-            <label className="capture-confirmation" key={item.key}>
-              <input
-                type="checkbox"
-                checked={checks[item.key]}
-                disabled={pending}
-                onChange={(event) => {
-                  resetApprovalAttempt();
-                  setChecks((current) => ({
-                    ...current,
-                    [item.key]: event.target.checked,
-                  }));
-                }}
-              />
-              <span>{item.label}</span>
-            </label>
-          ))}
-        </fieldset>
-        <label>
-          Motivo da aprovação
-          <textarea
-            value={reason}
-            maxLength={2_000}
-            rows={3}
-            disabled={pending}
-            required
-            onChange={(event) => {
-              resetApprovalAttempt();
-              setReason(event.target.value);
-            }}
-          />
-        </label>
-        <label>
-          Notas de revisão <span className="muted-copy">(opcional)</span>
-          <textarea
-            value={notes}
-            maxLength={4_000}
-            rows={4}
-            disabled={pending}
-            onChange={(event) => {
-              resetApprovalAttempt();
-              setNotes(event.target.value);
-            }}
-          />
-        </label>
-        <label className="capture-confirmation">
-          <input
-            type="checkbox"
-            checked={approvalConfirmed}
-            disabled={pending}
-            onChange={(event) => {
-              resetApprovalAttempt();
-              setApprovalConfirmed(event.target.checked);
-            }}
-          />
-          <span>
-            Confirmo que analisei esta revisão exata e assumo a aprovação
-            registrada no histórico owner-only.
-          </span>
-        </label>
-        <Button
-          type="submit"
-          tone="primary"
-          disabled={
-            pending ||
-            !allChecksComplete ||
-            !approvalConfirmed ||
-            reason.trim().length === 0
-          }
+      <div className="editorial-workflow-stack">
+        <form
+          className="editorial-form editorial-workflow-control"
+          onSubmit={approveRevision}
         >
-          {pending ? "Aprovando…" : "Aprovar revisão analisada"}
-        </Button>
-        {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
-      </form>
+          <p className="editorial-safety-note">
+            A aprovação fica vinculada à revisão e ao hash exibidos no preview.
+            Ela não publica o conteúdo.
+          </p>
+          <fieldset className="editorial-review-checklist">
+            <legend>Checklist sensível obrigatório</legend>
+            {checkItems.map((item) => (
+              <label className="capture-confirmation" key={item.key}>
+                <input
+                  type="checkbox"
+                  checked={checks[item.key]}
+                  disabled={pending}
+                  onChange={(event) => {
+                    resetApprovalAttempt();
+                    setChecks((current) => ({
+                      ...current,
+                      [item.key]: event.target.checked,
+                    }));
+                  }}
+                />
+                <span>{item.label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Motivo da aprovação
+            <textarea
+              value={reason}
+              maxLength={2_000}
+              rows={3}
+              disabled={pending}
+              required
+              onChange={(event) => {
+                resetApprovalAttempt();
+                setReason(event.target.value);
+              }}
+            />
+          </label>
+          <label>
+            Notas de revisão <span className="muted-copy">(opcional)</span>
+            <textarea
+              value={notes}
+              maxLength={4_000}
+              rows={4}
+              disabled={pending}
+              onChange={(event) => {
+                resetApprovalAttempt();
+                setNotes(event.target.value);
+              }}
+            />
+          </label>
+          <label className="capture-confirmation">
+            <input
+              type="checkbox"
+              checked={approvalConfirmed}
+              disabled={pending}
+              onChange={(event) => {
+                resetApprovalAttempt();
+                setApprovalConfirmed(event.target.checked);
+              }}
+            />
+            <span>
+              Confirmo que analisei esta revisão exata e assumo a aprovação
+              registrada no histórico owner-only.
+            </span>
+          </label>
+          <Button
+            type="submit"
+            tone="primary"
+            disabled={
+              pending ||
+              !allChecksComplete ||
+              !approvalConfirmed ||
+              reason.trim().length === 0
+            }
+          >
+            {pending ? "Aprovando…" : "Aprovar revisão analisada"}
+          </Button>
+          {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
+        </form>
+        <ReopenDraftForm
+          documentId={documentId}
+          expectedUpdatedAt={expectedUpdatedAt}
+        />
+      </div>
     );
   }
 
   if (workflowStatus === "approved") {
     return (
-      <p className="editorial-safety-note">
-        A revisão aprovada está vinculada ao hash exibido no preview. Publicação
-        continua sendo uma ação separada.
-      </p>
+      <div className="editorial-workflow-stack">
+        <p className="editorial-safety-note">
+          A revisão aprovada está vinculada ao hash exibido no preview.
+          Publicação continua sendo uma ação separada.
+        </p>
+        <ReopenDraftForm
+          documentId={documentId}
+          expectedUpdatedAt={expectedUpdatedAt}
+        />
+      </div>
     );
   }
 
@@ -329,6 +342,125 @@ export function EditorialWorkflowControls({
       </label>
       <Button type="submit" tone="primary" disabled={pending || !confirmed}>
         {pending ? "Enviando…" : "Enviar para revisão"}
+      </Button>
+      {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
+    </form>
+  );
+}
+
+function ReopenDraftForm({
+  documentId,
+  expectedUpdatedAt,
+}: {
+  documentId: string;
+  expectedUpdatedAt: string;
+}) {
+  const router = useRouter();
+  const idempotencyKey = useRef<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  function resetAttempt() {
+    idempotencyKey.current = null;
+    setFeedback(null);
+  }
+
+  async function reopen(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    if (!confirmed || reason.trim().length === 0) {
+      setFeedback({
+        success: false,
+        message: "Informe o motivo e confirme conscientemente a reabertura.",
+      });
+      return;
+    }
+
+    const csrfToken = readCsrfToken();
+    if (csrfToken === null) {
+      setFeedback({
+        success: false,
+        message: "A sessão owner não pôde ser validada.",
+      });
+      return;
+    }
+
+    idempotencyKey.current ??= crypto.randomUUID();
+    setPending(true);
+    setFeedback(null);
+    try {
+      const response = await reopenEditorialDraftFn({
+        data: {
+          csrfToken,
+          idempotencyKey: idempotencyKey.current,
+          documentId,
+          expectedUpdatedAt,
+          reason,
+          confirmed: true,
+        },
+      });
+      setFeedback({ success: response.ok, message: response.message });
+      if (!response.ok) return;
+
+      idempotencyKey.current = null;
+      setConfirmed(false);
+      await router.invalidate();
+    } catch {
+      setFeedback({
+        success: false,
+        message:
+          "A reabertura falhou. A identidade da tentativa será reutilizada no próximo envio.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form
+      className="editorial-form editorial-workflow-control"
+      onSubmit={reopen}
+    >
+      <p className="muted-copy">
+        Reabrir remove o apontador de aprovação ativa e libera a criação de uma
+        nova revisão imutável. O histórico anterior permanece preservado.
+      </p>
+      <label>
+        Motivo da reabertura
+        <textarea
+          value={reason}
+          maxLength={2_000}
+          rows={3}
+          disabled={pending}
+          required
+          onChange={(event) => {
+            resetAttempt();
+            setReason(event.target.value);
+          }}
+        />
+      </label>
+      <label className="capture-confirmation">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          disabled={pending}
+          onChange={(event) => {
+            resetAttempt();
+            setConfirmed(event.target.checked);
+          }}
+        />
+        <span>
+          Confirmo que esta revisão precisa voltar ao estado editável e que o
+          motivo ficará registrado na auditoria.
+        </span>
+      </label>
+      <Button
+        type="submit"
+        disabled={pending || !confirmed || reason.trim().length === 0}
+      >
+        {pending ? "Reabrindo…" : "Reabrir como rascunho"}
       </Button>
       {feedback ? <WorkflowFeedback feedback={feedback} /> : null}
     </form>

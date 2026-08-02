@@ -8,6 +8,7 @@ import { z } from "zod";
 import { approveEditorialRevisionCommand } from "./editorial-approve-command";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
 import { createEditorialRevisionCommand } from "./editorial-revision-command";
+import { reopenEditorialDraftCommand } from "./editorial-reopen-draft-command";
 import { submitEditorialForReviewCommand } from "./editorial-submit-review-command";
 import { parseEditorialTags } from "./editorial-content.server";
 import { resolveCurrentOwner } from "./current-owner.server";
@@ -59,6 +60,15 @@ const ApproveEditorialRevisionSchema = z.object({
     factualClaims: z.literal(true),
     markdownSafety: z.literal(true),
   }),
+  confirmed: z.literal(true),
+});
+
+const ReopenEditorialDraftSchema = z.object({
+  csrfToken: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+  documentId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime(),
+  reason: z.string().trim().min(1).max(2_000),
   confirmed: z.literal(true),
 });
 
@@ -421,6 +431,85 @@ export const approveEditorialRevisionFn = createServerFn({ method: "POST" })
         code: "EDITORIAL_APPROVAL_FAILED" as const,
         message:
           "A aprovação falhou. A identidade da tentativa pode ser reutilizada com segurança.",
+      };
+    }
+  });
+
+
+export const reopenEditorialDraftFn = createServerFn({ method: "POST" })
+  .validator(ReopenEditorialDraftSchema)
+  .handler(async ({ data }) => {
+    const owner = await requireMutationOwner(data.csrfToken);
+    if (owner === null) {
+      return {
+        ok: false as const,
+        code: "MUTATION_NOT_AUTHORIZED" as const,
+        message: "Não foi possível autorizar a reabertura do rascunho.",
+      };
+    }
+
+    const database = await getNodeDatabase();
+    if (database === null) {
+      return {
+        ok: false as const,
+        code: "STORAGE_UNAVAILABLE" as const,
+        message: "O armazenamento editorial privado está indisponível.",
+      };
+    }
+
+    try {
+      const result = await reopenEditorialDraftCommand(database, {
+        documentId: data.documentId,
+        ownerId: owner.id,
+        idempotencyKey: data.idempotencyKey,
+        expectedUpdatedAt: data.expectedUpdatedAt,
+        reason: data.reason,
+        now: new Date().toISOString(),
+      });
+
+      if (!result.ok) {
+        if (result.code === "VALIDATION_FAILED") {
+          return {
+            ok: false as const,
+            code: result.code,
+            errors: result.errors,
+            message: "Informe um motivo auditável para reabrir esta revisão.",
+          };
+        }
+        const message =
+          result.code === "STALE_STATE"
+            ? "O documento mudou desde que esta tela foi carregada. Recarregue antes de reabrir."
+            : result.code === "INVALID_TRANSITION" ||
+                result.code === "INVALID_CURRENT_STATE"
+              ? "Somente conteúdo em análise ou aprovado pode ser reaberto."
+              : result.code === "DOCUMENT_NOT_FOUND" ||
+                  result.code === "REVISION_NOT_FOUND"
+                ? "O documento ou a revisão de trabalho não foi encontrado."
+                : "A reabertura entrou em conflito com outra tentativa ou identidade.";
+        return { ok: false as const, code: result.code, message };
+      }
+
+      return {
+        ok: true as const,
+        duplicate: result.duplicate,
+        message: result.duplicate
+          ? "Esta reabertura já havia sido registrada; nenhum evento foi duplicado."
+          : "Revisão reaberta como rascunho. Aprovação anterior deixou de ser a revisão ativa.",
+        document: {
+          id: result.document.id,
+          workflowStatus: result.document.workflowStatus,
+          publicationStatus: result.document.publicationStatus,
+          approvedRevisionId: result.document.approvedRevisionId,
+          version: result.document.version,
+          updatedAt: result.document.updatedAt,
+        },
+      };
+    } catch {
+      return {
+        ok: false as const,
+        code: "EDITORIAL_REOPEN_FAILED" as const,
+        message:
+          "A reabertura falhou. A identidade da tentativa pode ser reutilizada com segurança.",
       };
     }
   });

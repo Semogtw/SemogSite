@@ -7,6 +7,16 @@ function source(path: string): string {
 }
 
 describe("editorial workflow controls", () => {
+  it("requires an audit reason before reopening reviewed content", () => {
+    const server = source("../server/devos-editorial.ts");
+    const controls = source("../components/devos/editorial-workflow-controls.tsx");
+
+    expect(server).toContain("reopenEditorialDraftFn");
+    expect(controls).toContain("Reabrir como rascunho");
+    expect(controls).toContain("reopenEditorialDraftFn");
+    expect(controls).toContain("Motivo da reabertura");
+  });
+
   it("exposes a sensitive checklist approval control while in review", () => {
     const route = source("devos.content.$documentId.tsx");
     const server = source("../server/devos-editorial.ts");
