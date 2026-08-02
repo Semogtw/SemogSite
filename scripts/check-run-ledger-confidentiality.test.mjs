@@ -21,6 +21,21 @@ function scan(files) {
 assert.deepEqual(
   scan([
     [
+      "packages/contracts/src/public/editorial.test.ts",
+      'const rejected = { lastHeartbeatAt: "fixture-only" };\n',
+    ],
+    [
+      "packages/contracts/src/public/editorial.spec.ts",
+      'const rejected = { queueAvailability: "fixture-only" };\n',
+    ],
+  ]),
+  [],
+  "test and spec files are not production public surfaces",
+);
+
+assert.deepEqual(
+  scan([
+    [
       "apps/web/src/routes/projects.tsx",
       'export const publicProjects = [{ slug: "semog-site", title: "SemogSite" }];\n',
     ],
