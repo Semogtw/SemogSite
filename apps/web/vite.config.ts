@@ -1,6 +1,7 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { databaseMigrationAssetsPlugin } from "./src/build/database-migration-assets";
 
 export default defineConfig({
   server: {
@@ -12,5 +13,5 @@ export default defineConfig({
   ssr: {
     external: ["better-sqlite3"],
   },
-  plugins: [tanstackStart(), react()],
+  plugins: [tanstackStart(), react(), databaseMigrationAssetsPlugin()],
 });
