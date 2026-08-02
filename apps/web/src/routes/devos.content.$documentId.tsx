@@ -2,6 +2,7 @@ import { EmptyState, Status, Surface } from "@semogtw/ui";
 import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { EditorialRevisionForm } from "../components/devos/editorial-revision-form";
 import { getEditorialDocumentDetailFn } from "../server/devos-editorial";
 import { requireOwner } from "../server/require-owner";
 
@@ -176,6 +177,16 @@ function EditorialDocumentPage() {
             disponíveis nesta tela. Esses controles entrarão somente com
             confirmação, motivo, checklist e concorrência otimista testados.
           </p>
+          {working ? (
+            <EditorialRevisionForm
+              documentId={detail.document.id}
+              expectedUpdatedAt={detail.document.updatedAt}
+              title={working.title}
+              excerpt={working.excerpt}
+              bodyMarkdown={working.bodyMarkdown}
+              tags={working.tags}
+            />
+          ) : null}
         </Surface>
       </div>
 
