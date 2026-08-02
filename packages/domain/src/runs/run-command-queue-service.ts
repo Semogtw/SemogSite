@@ -241,7 +241,7 @@ function normalizePayload(
   if (kind === "continue") {
     if (!hasOnlyKeys(value, ["note"])) errors.push("PAYLOAD_FIELD_INVALID");
     const note = value.note === undefined ? null : text(value.note);
-    if (value.note !== undefined && note.length === 0) {
+    if (note !== null && note.length === 0) {
       errors.push("PAYLOAD_INVALID");
     } else if (note !== null && note.length > 1_000) {
       errors.push("NOTE_TOO_LONG");
@@ -260,7 +260,7 @@ function normalizePayload(
     const priority = text(value.priority);
     const note = value.note === undefined ? null : text(value.note);
     if (!priorities.has(priority)) errors.push("PRIORITY_INVALID");
-    if (value.note !== undefined && note.length === 0) {
+    if (note !== null && note.length === 0) {
       errors.push("PAYLOAD_INVALID");
     } else if (note !== null && note.length > 1_000) {
       errors.push("NOTE_TOO_LONG");
