@@ -13,6 +13,13 @@ const exactSensitiveOutputKeys = new Set([
   "sessiondigest",
   "tokendigest",
   "cookiedigest",
+  "jwt",
+  "sessionid",
+  "authsessionid",
+  "authorizationheader",
+  "tokenvalue",
+  "secretvalue",
+  "passwordvalue",
 ]);
 
 function isSensitiveOutputKey(key: string): boolean {
