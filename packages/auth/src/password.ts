@@ -20,6 +20,12 @@ function fromBase64Url(value: string): Uint8Array {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
+function toOwnedArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
+}
+
 function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   if (left.length !== right.length) return false;
   let difference = 0;
@@ -71,7 +77,7 @@ async function derive(password: string, salt: Uint8Array, iterations: number) {
     {
       name: "PBKDF2",
       hash: "SHA-256",
-      salt,
+      salt: toOwnedArrayBuffer(salt),
       iterations,
     },
     key,
