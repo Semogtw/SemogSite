@@ -1,0 +1,81 @@
+name: Apply final editorial tree
+
+on:
+  push:
+    branches:
+      - ops/apply-final-editorial-v2
+    paths:
+      - .agent-patches/final-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-final-editorial-tree
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed patch request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/final-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': '80c7dba26b1be1ab65b75cefc8777f0320220f29',
+              'base_commit': 'b24763bf783811b77522a3cf56038d93ff984fb4',
+              'patch_sha256': '6c95cb7e2b7d7b05c1e13067b53203c6ab56d48f0e8ea29eb707f16971bfd070',
+              'expected_tree': '0ef60e154d4f07348743c678ca3a6c496f8862c6',
+              'commit_message': 'feat(editorial): complete publication lifecycle and public projections',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from fixed reviewed contract')
+          PY
+          cat request/.agent-patches/final-part-* \
+            | tr -d '\n' \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/final-editorial.diff"
+          test "$(sha256sum "$RUNNER_TEMP/final-editorial.diff" | awk '{print $1}')" = \
+            '6c95cb7e2b7d7b05c1e13067b53203c6ab56d48f0e8ea29eb707f16971bfd070'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Replace transport history with verified tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = '80c7dba26b1be1ab65b75cefc8777f0320220f29'
+          git -C target reset --hard 'b24763bf783811b77522a3cf56038d93ff984fb4'
+          git -C target apply --index "$RUNNER_TEMP/final-editorial.diff"
+          git -C target diff --cached --check
+          test "$(git -C target write-tree)" = '0ef60e154d4f07348743c678ca3a6c496f8862c6'
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'feat(editorial): complete publication lifecycle and public projections'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:80c7dba26b1be1ab65b75cefc8777f0320220f29' \
+            origin HEAD:refs/heads/develop/editorial-workspace
