@@ -1,39 +1,203 @@
-# SemogSite
+# Semogtw Platform
 
-Plataforma pessoal da identidade **Semogtw**, composta por uma área pública editorial, o **Semogtw DevOS** privado e uma futura integração MCP sobre os mesmos contratos de domínio.
+Plataforma pessoal portátil composta por uma área pública editorial, o **Semogtw DevOS** privado e adapters sobre os mesmos contratos de domínio. O projeto permanece desacoplado de um provedor de hospedagem específico.
 
-O projeto usa uma arquitetura portátil em TypeScript, com TanStack Start/Router, React, Hono, Zod, Drizzle ORM, SQLite e pnpm workspaces. A implementação deve permanecer desacoplada de um provedor de hospedagem específico.
+O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizzle ORM, SQLite e pnpm workspaces.
+
+> O seed demonstrativo existe apenas para exercitar a fundação. Ele não representa migração concluída do Notion, estado confirmado do GitHub nem progresso real de produção.
 
 ## Documentação essencial
 
-- [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, remontagem, instalação sem rede, Chromium, SQLite nativo e solução de problemas.
-- [Especificação da fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md) — arquitetura, domínio, segurança, rotas e sistema visual.
-- [Plano de implementação da fundação](docs/superpowers/plans/2026-08-01-semogtw-platform-foundation.md) — sequência de construção e gates.
-- [Referência upstream](docs/UPSTREAM_REFERENCE.md) — rastreabilidade das decisões herdadas e adaptadas.
+- [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, checksums, remontagem, instalação sem rede, Chromium e SQLite nativo.
+- [Arquitetura](docs/ARCHITECTURE.md) — fronteiras, composição e decisões estruturais.
+- [Modelo de dados](docs/DATA_MODEL.md) — entidades, projeções e migrations.
+- [Segurança](docs/SECURITY.md) — autenticação, privacidade, integrações e guardrails.
+- [Testes](docs/TESTING.md) — matriz de gates e evidências esperadas.
+- [Runbook](docs/RUNBOOK.md) — operação, backup, restauração e recuperação.
+- [Especificação da fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md).
+- [Plano da fundação](docs/superpowers/plans/2026-08-01-semogtw-platform-foundation.md).
 
-## Ambiente sem acesso à internet
+## Estrutura
 
-Não tente baixar dependências individualmente em uma sessão isolada. Use o pacote reproduzível fabricado em [`Semogtw/Offline-Toolchains`](https://github.com/Semogtw/Offline-Toolchains).
+```text
+apps/web               TanStack Start: site público e DevOS
+apps/api               Hono: API pública/privada e runtime Node
+apps/mcp               composição SQLite → DevOSReadService → McpServer
+packages/domain        regras e serviços sem framework
+packages/contracts     schemas e DTOs públicos/privados
+packages/database      Drizzle, SQLite, migrations, writes e read models
+packages/github        cliente REST GET-only e fonte de observações
+packages/mcp           adapter MCP somente leitura, sem transporte
+packages/auth          autenticação local e sessões revogáveis
+packages/ui            tokens, primitivas e navegação
+packages/config        configuração tipada e fail-closed
+```
 
-Fluxo resumido:
+## Requisitos
 
-1. encontre no issue `Offline-Toolchains#8` o recibo mais recente do SemogSite com `conclusion: success`;
-2. baixe o manifesto e todas as partes do mesmo run;
-3. valide os hashes e remonte o archive;
-4. extraia e ative a toolchain;
-5. execute o instalador offline no checkout;
-6. rode o diagnóstico e os gates disponíveis.
+- Node.js 22;
+- pnpm 10.14;
+- binário ou toolchain compatível com `better-sqlite3`;
+- acesso HTTPS ao GitHub somente quando observações reais forem executadas.
 
-Os comandos completos e os procedimentos de recuperação estão no [tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md).
+Em ambientes sem acesso direto ao npm, use o artifact reproduzível de [`Semogtw/Offline-Toolchains`](https://github.com/Semogtw/Offline-Toolchains) e siga o [tutorial offline](docs/OFFLINE_TOOLCHAIN.md).
 
-## Regras de segurança
+## Instalação
 
-- Não exponha dados privados por loaders, APIs, metadados, sitemap, HTML ou DTOs públicos.
-- Não versione secrets, tokens, hashes de senha de produção, bancos locais, artifacts, caches ou `node_modules`.
-- Não apresente capacidades de hospedagem ainda não verificadas como disponíveis.
-- Mudanças sensíveis ou destrutivas devem produzir auditoria.
-- A área `/devos` e as APIs privadas devem falhar fechadas quando a autenticação não estiver configurada.
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+cp .env.example .env
+pnpm hash:owner-password
+```
+
+Copie o hash gerado para `SEMOGTW_OWNER_PASSWORD_HASH` e configure um segredo de sessão com pelo menos 32 caracteres:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
+
+Use o resultado em `SEMOGTW_SESSION_SECRET`. Para observações GitHub, configure opcionalmente `SEMOGTW_GITHUB_TOKEN` somente no servidor, com permissões fine-grained de leitura restritas aos repositórios necessários.
+
+## Desenvolvimento
+
+```bash
+pnpm dev       # web
+pnpm dev:api   # Hono em http://localhost:3001
+pnpm dev:all   # ambos
+```
+
+Sem autenticação válida, `/devos` e `/api/v1/private/*` falham fechados. Sem token GitHub, o cadastro e a revisão local de alvos continuam disponíveis, mas nenhuma leitura do provider é executada.
+
+Não existe transporte MCP remoto nesta fase. `apps/mcp` compõe o servidor somente leitura sem abrir HTTP, stdio ou outra porta.
+
+## Banco e migrations
+
+Uma base nova aplica, em ordem:
+
+1. `0001_foundation.sql`;
+2. `0002_seed_demo.sql`;
+3. `0003_github_observations.sql`;
+4. `0004_github_sync_runs.sql`;
+5. `0005_cooperative_run_ledger.sql`;
+6. `0006_editorial_workflow.sql`;
+7. `0007_editorial_invariant_triggers.sql`;
+8. `0008_editorial_approval_guards.sql`;
+9. `0009_editorial_document_identity_guards.sql`.
+
+O build web copia esses arquivos somente para o bundle de servidor e falha quando a lista empacotada diverge da fonte. As migrations não são publicadas em `dist/client`.
+
+## Semogtw DevOS
+
+As superfícies privadas implementadas incluem:
+
+- Overview, Hoje, Projetos, hub e Roadmap;
+- captura e ciclo de vida de atenção;
+- handoff de sessões e evidências;
+- conclusão guardada de etapas;
+- Auditoria paginada;
+- Operação GitHub somente leitura;
+- ledger de execuções cooperativas, checkpoints e comandos locais.
+
+A sincronização GitHub nunca altera automaticamente branch ativa, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local auditado do DevOS e não escreve no GitHub.
+
+## MCP somente leitura
+
+`DevOSReadService` reutiliza os serviços de Overview, Today, Projetos e Roadmap. O catálogo inicial contém:
+
+```text
+Resources
+semogtw://devos/overview
+semogtw://devos/today
+semogtw://devos/projects
+semogtw://devos/roadmap
+
+Tools
+devos_get_overview
+devos_get_today
+devos_list_projects
+devos_get_project
+devos_query_roadmap
+```
+
+Todos os tools são anotados como somente leitura, não destrutivos e idempotentes. Entradas, saídas, limites de coleção, tamanho JSON e campos sensíveis são validados antes de responder.
+
+Isso não constitui endpoint remoto. Exposição futura exige autenticação, autorização, isolamento de sessão, TLS, validação de Host/Origin, rate limiting, timeouts, cache privado, logging sanitizado, revogação e rollback.
+
+## API local
+
+Rotas iniciais:
+
+```text
+GET /health
+GET /api/v1/public/projects
+GET /api/v1/public/projects/:slug
+GET /api/v1/private/overview
+```
+
+Endpoints privados autenticam antes de invocar serviços e retornam políticas de cache privadas.
+
+## Gates
+
+```bash
+pnpm check
+pnpm build
+```
+
+Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1` e pnpm `10.14.0`:
+
+- instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
+- `pnpm check`: guardrails, typecheck e **115 arquivos / 429 testes aprovados**;
+- `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
+- bundle SSR contendo as 9 migrations e nenhuma migration no cliente;
+- SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
+- Chromium headless: **35 verificações aprovadas**, cobrindo páginas públicas, redirecionamento anônimo, login owner, rotas privadas, `noindex`, ausência de marcadores privados, teclado, viewport de 360 px, logout e console sem erros.
+
+## Backup
+
+```bash
+pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw.sqlite
+pnpm verify:backup -- ./backups/semogtw.sqlite ./data/semogtw.sqlite
+```
+
+Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e estado das migrations. Upload, criptografia e rotação continuam responsabilidades do runtime escolhido.
+
+## Segurança
+
+- autenticação e mutações privadas falham fechadas;
+- tokens de sessão são persistidos apenas como digest;
+- CSRF, confirmação, razão e auditoria protegem mutações sensíveis;
+- respostas públicas usam DTOs allowlist;
+- nomes de repositório, branches, observações, recomendações, runs e payloads MCP permanecem privados;
+- GitHub é tratado como fonte não confiável e acessado apenas por GET;
+- nenhum token, authorization header ou corpo bruto do provider é persistido;
+- MCP não possui ferramenta de escrita nem transporte remoto;
+- migrations e dependências nativas necessárias ao SSR são verificadas no build.
 
 ## Estado atual
 
-A documentação de produto e fundação é o contrato vigente. O pacote offline inicial representa o stack aprovado enquanto os manifests e o lockfile definitivos do workspace são consolidados. Quando esses arquivos mudarem, a toolchain deve ser regenerada antes de ser tratada como ambiente determinístico.
+Implementado e verificado:
+
+- fundação portátil e autenticação local;
+- leituras e escritas operacionais auditadas;
+- backup, restauração e auditoria;
+- integração GitHub somente leitura;
+- recomendações e decisão local de branch;
+- serviço de leitura compartilhado para adapters;
+- catálogo MCP interno somente leitura;
+- ledger cooperativo de execuções;
+- fundação editorial privada com revisions, approvals e guardas de publicação;
+- lockfile determinístico, checks completos, build SSR e gates de navegador.
+
+Ainda bloqueado ou pendente de uma fase separada:
+
+- autenticação e transporte MCP remoto;
+- validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
+- adapter e deploy no host definitivo;
+- migração de conteúdo real do Notion;
+- fluxo editorial público completo com conteúdo aprovado;
+- observabilidade e operação de produção.
+
+## Referência upstream
+
+A fundação avaliou seletivamente o upstream registrado em `docs/UPSTREAM_REFERENCE.md`. Conteúdo pessoal, taxonomia de PDI e identidade visual literal do projeto de referência não devem ser reintroduzidos.

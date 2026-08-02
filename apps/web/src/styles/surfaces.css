@@ -1,0 +1,135 @@
+.skip-link {
+  position: fixed;
+  inset: 8px auto auto 8px;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+.skip-link:focus { transform: translateY(0); }
+
+.public-main { min-height: calc(100vh - 168px); }
+.editorial-page-header {
+  max-width: 880px;
+  padding-block: clamp(72px, 12vw, 150px);
+}
+.editorial-page-header h1 {
+  margin: 0;
+  font-size: clamp(2.8rem, 7vw, 6.5rem);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+.editorial-page-header > p:last-of-type {
+  max-width: 680px;
+  margin: 32px 0 0;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  line-height: 1.75;
+}
+.public-main > .sem-state { margin-bottom: 96px; }
+
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.login-card { width: min(100%, 440px); }
+.login-card h1 { margin: 0; font-size: 2rem; letter-spacing: -.035em; }
+.login-card > p:not(.eyebrow) { color: var(--color-muted); line-height: 1.65; }
+.login-form { display: grid; gap: 12px; margin-top: 28px; }
+.login-form label { font-size: .875rem; font-weight: 700; }
+.login-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.login-form [role="alert"] { margin: 0; color: var(--color-danger); font-size: .875rem; }
+
+.devos-layout { min-height: 100dvh; display: flex; background: var(--color-bg); }
+.devos-main { width: 100%; min-width: 0; padding: clamp(24px, 5vw, 64px); }
+.devos-session-actions { min-height: 44px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 20px; }
+.devos-session-message { margin: 0; color: var(--color-danger); font-size: .8125rem; }
+.devos-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.devos-page-header h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.8rem); letter-spacing: -.045em; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.metric-grid .sem-surface { display: grid; gap: 16px; }
+.metric-grid span { color: var(--color-muted); font-size: .875rem; }
+.metric-grid strong { font-size: 2.25rem; letter-spacing: -.04em; }
+.devos-section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.devos-section-grid > :first-child { grid-column: 1 / -1; }
+.devos-section-grid h2, .roadmap-column h2 { margin: 0 0 20px; font-size: 1rem; }
+.devos-record-list { display: grid; }
+.devos-record { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--color-border); padding-block: 14px; }
+.devos-record:last-child { border-bottom: 1px solid var(--color-border); }
+.devos-record h3 { margin: 0; font-size: .975rem; }
+.devos-record p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.5; }
+.devos-record-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.devos-record-actions a { min-height: 44px; display: inline-flex; align-items: center; color: var(--color-primary); font-weight: 700; }
+.devos-record--stacked { display: grid; align-items: stretch; gap: 12px; }
+.devos-record__main { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.attention-actions { border-top: 1px dashed var(--color-border); padding-top: 8px; }
+.attention-actions summary { min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; color: var(--color-primary); font-weight: 700; }
+.attention-actions form { display: grid; gap: 12px; padding: 8px 0 6px; }
+.attention-actions label { display: grid; gap: 6px; font-size: .8125rem; font-weight: 700; }
+.attention-actions select,
+.attention-actions textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: inherit;
+}
+.attention-actions select { min-height: 44px; }
+.attention-actions textarea { min-height: 92px; resize: vertical; }
+.attention-actions__confirmation { grid-template-columns: auto 1fr !important; align-items: flex-start; font-weight: 500 !important; line-height: 1.5; }
+.attention-actions__confirmation input { width: 20px; height: 20px; margin: 1px 0 0; }
+.attention-actions__feedback { margin: 0 !important; color: var(--color-danger) !important; font-size: .8125rem; }
+.catalog-disclosure { margin-top: 16px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface-1); }
+.catalog-disclosure summary { min-height: 52px; display: flex; align-items: center; padding: 0 24px; cursor: pointer; font-weight: 700; }
+.catalog-disclosure .sem-state { margin: 0 24px 24px; }
+.roadmap-board { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 10px; }
+.roadmap-column { min-width: 240px; }
+.more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.more-link { display: block; text-decoration: none; }
+.more-link .sem-surface { height: 100%; transition: border-color 160ms ease, transform 160ms ease; }
+.more-link h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.more-link p { margin: 0; color: var(--color-muted); line-height: 1.6; }
+.more-link:hover .sem-surface { border-color: var(--color-primary); transform: translateY(-2px); }
+
+@media (max-width: 760px) {
+  .editorial-page-header { padding-block: 72px; }
+  .public-main > .sem-state { margin-bottom: 64px; }
+  .devos-layout { display: block; }
+  .devos-main { padding: 16px 16px 92px; }
+  .devos-session-actions { margin-bottom: 12px; }
+  .devos-page-header { display: grid; }
+  .metric-grid, .devos-section-grid, .more-grid { grid-template-columns: 1fr; }
+  .devos-section-grid > :first-child { grid-column: auto; }
+  .devos-record { align-items: flex-start; flex-direction: column; }
+  .devos-record--stacked { display: grid; }
+  .devos-record__main { width: 100%; flex-direction: column; }
+  .devos-record-actions { width: 100%; justify-content: space-between; }
+  .attention-actions { width: 100%; }
+  .roadmap-board { display: grid; grid-template-columns: 1fr; overflow: visible; }
+  .roadmap-column { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-link .sem-surface { transition: none; }
+  .more-link:hover .sem-surface { transform: none; }
+}

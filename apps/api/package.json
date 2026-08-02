@@ -1,0 +1,30 @@
+{
+  "name": "@semogtw/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts",
+    "./sqlite": "./src/composition/sqlite.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/node.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@semogtw/auth": "workspace:*",
+    "@semogtw/config": "workspace:*",
+    "@semogtw/contracts": "workspace:*",
+    "@semogtw/database": "workspace:*",
+    "@semogtw/domain": "workspace:*",
+    "hono": "^4.7.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
+  }
+}

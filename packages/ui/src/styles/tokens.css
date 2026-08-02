@@ -1,0 +1,24 @@
+:root {
+  --semog-bg: #0b0d12;
+  --semog-surface-1: #11141b;
+  --semog-surface-2: #171b24;
+  --semog-surface-3: #202633;
+  --semog-border: #2b3342;
+  --semog-text: #f4f7fb;
+  --semog-muted: #98a2b3;
+  --semog-primary: #7c8cff;
+  --semog-success: #38c793;
+  --semog-warning: #e8b455;
+  --semog-danger: #ef6a72;
+  --semog-info: #52a7ff;
+  --semog-radius-sm: 10px;
+  --semog-radius-md: 12px;
+  --semog-radius-lg: 14px;
+  --semog-space-1: 4px;
+  --semog-space-2: 8px;
+  --semog-space-3: 12px;
+  --semog-space-4: 16px;
+  --semog-space-6: 24px;
+  --semog-space-8: 32px;
+  --semog-touch: 44px;
+}

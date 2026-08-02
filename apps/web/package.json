@@ -1,0 +1,38 @@
+{
+  "name": "@semogtw/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && node ../../scripts/check-web-server-bundle.mjs",
+    "dev": "vite dev",
+    "start": "node .output/server/index.mjs",
+    "test": "vitest run",
+    "typecheck": "tsr generate && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@semogtw/auth": "workspace:*",
+    "@semogtw/config": "workspace:*",
+    "@semogtw/contracts": "workspace:*",
+    "@semogtw/database": "workspace:*",
+    "@semogtw/domain": "workspace:*",
+    "@semogtw/github": "workspace:*",
+    "@semogtw/ui": "workspace:*",
+    "@tanstack/react-query": "^5.66.0",
+    "@tanstack/react-router": "^1.168.32",
+    "@tanstack/react-start": "^1.168.32",
+    "better-sqlite3": "^11.8.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@tanstack/router-cli": "1.167.21",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.1.0",
+    "vitest": "^2.1.0"
+  }
+}

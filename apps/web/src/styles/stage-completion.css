@@ -1,0 +1,28 @@
+.stage-completion {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 8px;
+}
+
+.stage-completion > summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: .875rem;
+  font-weight: 750;
+}
+
+.stage-completion .capture-form {
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  padding: 14px;
+  background: var(--color-surface-2);
+}
+
+@media (max-width: 640px) {
+  .stage-completion,
+  .stage-completion .capture-form {
+    width: 100%;
+  }
+}
