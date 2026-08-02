@@ -48,7 +48,7 @@ export function buildAgentContext(input: AgentContextInput): string {
     "",
     ...section("## Etapas ativas", input.activeStages),
     "",
-    ...section("## Próximo passo", input.nextActions),
+    ...section("## Próximo passo:", input.nextActions),
     "",
     ...section("## Bloqueios", input.blockers),
     "",
