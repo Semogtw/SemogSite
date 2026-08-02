@@ -58,7 +58,15 @@ describe("API isolation", () => {
   });
 
   it("rejects private routes before invoking services and disables caching", async () => {
-    const getOverview = vi.fn(async () => ({ activeProjects: 4 }));
+    const getOverview = vi.fn(async () => ({
+      activeProjectCount: 4,
+      inProgressStageCount: 0,
+      highImpactAttentionCount: 0,
+      projects: [],
+      currentStages: [],
+      attention: [],
+      lastSyncedAt: null,
+    }));
     const app = createApiApp({
       authProvider: {
         authenticate: vi.fn(),
