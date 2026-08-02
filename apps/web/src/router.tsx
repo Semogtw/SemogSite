@@ -2,7 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-export function createRouter() {
+export function getRouter() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -20,7 +20,7 @@ export function createRouter() {
   });
 }
 
-export type SemogtwRouter = ReturnType<typeof createRouter>;
+export type SemogtwRouter = ReturnType<typeof getRouter>;
 
 declare module "@tanstack/react-router" {
   interface Register {
