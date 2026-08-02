@@ -3,27 +3,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicProjectFn } from "../server/public-projects";
+import { publicEditorialDetailHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/projects/$slug")({
   loader: ({ params }) => getPublicProjectFn({ data: { slug: params.slug } }),
   head: ({ loaderData, params }) =>
-    loaderData == null
-      ? {
-          meta: [
-            { title: `Projeto ${params.slug} — Semogtw` },
-            { name: "robots", content: "noindex, nofollow" },
-            {
-              name: "description",
-              content: "Projeto ainda não publicado na vitrine editorial.",
-            },
-          ],
-        }
-      : {
-          meta: [
-            { title: `${loaderData.title} — Semogtw` },
-            { name: "description", content: loaderData.excerpt },
-          ],
-        },
+    publicEditorialDetailHead({
+      kind: "project",
+      slug: params.slug,
+      document: loaderData ?? null,
+    }),
   component: ProjectDetailPage,
 });
 
