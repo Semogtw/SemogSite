@@ -66,6 +66,8 @@ export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqlitePublicProjectSource } from "./repositories/public-project-source";
+export { SqliteRecoverySnapshotReadModel } from "./repositories/recovery-snapshot-read-model";
+export type { RecoverySnapshotView } from "./repositories/recovery-snapshot-read-model";
 export { SqliteRecoverySnapshotRepository } from "./repositories/recovery-snapshot-repository";
 export { SqliteRecoverySnapshotSource } from "./repositories/recovery-snapshot-source";
 export type {
