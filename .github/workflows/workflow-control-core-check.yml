@@ -50,11 +50,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build approved native SQLite dependency
+        run: |
+          pnpm approve-builds better-sqlite3
+          pnpm rebuild better-sqlite3
+          test -f node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+
       - name: Test orchestration domain
         run: >-
           pnpm --filter @semogtw/domain exec vitest run
-          src/orchestration/scope-reservation.test.ts
-          src/orchestration/scope-reservation-service.test.ts
+          src/orchestration/*.test.ts
 
       - name: Typecheck domain
         run: pnpm --filter @semogtw/domain typecheck
@@ -64,7 +69,9 @@ jobs:
           pnpm --filter @semogtw/database exec vitest run
           src/orchestration-migrations.test.ts
           src/repositories/scope-reservation-repository.test.ts
+          src/repositories/verification-obligation-repository.test.ts
           src/adapters/sqlite-migrations.test.ts
+          src/backup/sqlite-backup.test.ts
 
       - name: Typecheck database
         run: pnpm --filter @semogtw/database typecheck
