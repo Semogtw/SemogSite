@@ -3,6 +3,7 @@ import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { EditorialRevisionDiffPanel } from "../components/devos/editorial-revision-diff-panel";
+import { EditorialRedirectControls } from "../components/devos/editorial-redirect-controls";
 import { EditorialRevisionForm } from "../components/devos/editorial-revision-form";
 import { EditorialWorkflowControls } from "../components/devos/editorial-workflow-controls";
 import { getEditorialDocumentDetailFn } from "../server/devos-editorial";
@@ -215,6 +216,14 @@ function EditorialDocumentPage() {
       </div>
 
       <EditorialRevisionDiffPanel revisions={detail.revisions} />
+
+      <EditorialRedirectControls
+        documentId={detail.document.id}
+        kind={detail.document.kind}
+        canonicalSlug={detail.document.slug}
+        publicationStatus={detail.document.publicationStatus}
+        redirects={detail.redirects}
+      />
 
       <Surface className="editorial-section">
         <div className="surface-heading-row">

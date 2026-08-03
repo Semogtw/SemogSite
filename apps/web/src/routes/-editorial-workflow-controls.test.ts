@@ -7,6 +7,22 @@ function source(path: string): string {
 }
 
 describe("editorial workflow controls", () => {
+  it("manages audited aliases only from the owner document detail", () => {
+    const route = source("devos.content.$documentId.tsx");
+    const server = source("../server/devos-editorial-redirects.ts");
+    const controls = source(
+      "../components/devos/editorial-redirect-controls.tsx",
+    );
+
+    expect(route).toContain("EditorialRedirectControls");
+    expect(route).toContain("redirects={detail.redirects}");
+    expect(server).toContain("createEditorialRedirectFn");
+    expect(server).toContain("revokeEditorialRedirectFn");
+    expect(controls).toContain("Criar alias auditado");
+    expect(controls).toContain("Revogar alias");
+    expect(controls).toContain("Histórico de aliases");
+  });
+
   it("renders an owner-only diff for immutable revisions", () => {
     const route = source("devos.content.$documentId.tsx");
     const panel = source(

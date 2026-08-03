@@ -105,7 +105,56 @@ describe("SqliteEditorialReadModel", () => {
           malformedJson: [],
         }),
       ],
+      redirects: [],
     });
+    database.$client.close();
+  });
+
+  it("returns append-only redirect history for the owner", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    seed(database);
+    database.$client
+      .prepare(
+        `UPDATE editorial_documents
+         SET workflow_status = 'approved', approved_revision_id = 'revision-1',
+             publication_status = 'published', published_revision_id = 'revision-1',
+             last_published_revision_id = 'revision-1', version = 2, updated_at = ?
+         WHERE id = 'document-1'`,
+      )
+      .run(t1);
+    database.$client
+      .prepare(
+        `INSERT INTO editorial_redirect_events (
+          id, source_slug, kind, target_document_id, sequence, action, actor,
+          reason, occurred_at, idempotency_key, correlation_id
+        ) VALUES
+          ('redirect-1', 'semog-site-antigo', 'project', 'document-1', 1,
+           'created', 'owner', 'Preservar URL.', '2026-08-01T23:20:00.000Z',
+           'redirect-key-1', 'redirect-correlation-1'),
+          ('redirect-2', 'semog-site-antigo', 'project', 'document-1', 2,
+           'revoked', 'owner', 'Revogar URL.', '2026-08-01T23:30:00.000Z',
+           'redirect-key-2', 'redirect-correlation-2')`,
+      )
+      .run();
+
+    const detail = await new SqliteEditorialReadModel(database).getDocument(
+      "document-1",
+    );
+
+    expect(detail?.redirects).toEqual([
+      expect.objectContaining({
+        id: "redirect-2",
+        sourceSlug: "semog-site-antigo",
+        sequence: 2,
+        action: "revoked",
+      }),
+      expect.objectContaining({
+        id: "redirect-1",
+        sequence: 1,
+        action: "created",
+      }),
+    ]);
     database.$client.close();
   });
 
