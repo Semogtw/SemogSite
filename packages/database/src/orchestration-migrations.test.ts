@@ -47,12 +47,13 @@ describe("workflow orchestration migrations", () => {
       expect(reservationColumns.has(column)).toBe(true);
     }
 
-    const migration = database.$client
-      .prepare(
-        "SELECT name FROM _semogtw_migrations WHERE name = '0011_scope_reservations.sql'",
-      )
-      .get();
-    expect(migration).toEqual({ name: "0011_scope_reservations.sql" });
+    expect(
+      database.$client
+        .prepare(
+          "SELECT name FROM _semogtw_migrations WHERE name = '0011_scope_reservations.sql'",
+        )
+        .get(),
+    ).toEqual({ name: "0011_scope_reservations.sql" });
 
     database.$client.close();
   });
@@ -108,17 +109,67 @@ describe("workflow orchestration migrations", () => {
       expect(obligationColumns.has(column)).toBe(true);
     }
 
+    database.$client.close();
+  });
+
+  it("creates immutable recovery snapshots with canonical hashes", () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name = 'recovery_snapshots'`,
+        )
+        .get(),
+    ).toEqual({ name: "recovery_snapshots" });
+
+    const columns = new Set(
+      database.$client
+        .prepare("PRAGMA table_info(recovery_snapshots)")
+        .all()
+        .map((row) => (row as { name: string }).name),
+    );
+    for (const column of [
+      "project_id",
+      "repository_id",
+      "run_id",
+      "branch",
+      "observed_commit_sha",
+      "schema_version",
+      "generated_at",
+      "source_observed_at",
+      "confidence",
+      "canonical_json",
+      "canonical_hash",
+      "markdown",
+      "template_id",
+      "template_version",
+      "created_by",
+      "source",
+      "idempotency_key",
+      "correlation_id",
+    ]) {
+      expect(columns.has(column)).toBe(true);
+    }
+
     expect(
       database.$client
         .prepare(
           `SELECT name FROM _semogtw_migrations
-           WHERE name IN ('0011_scope_reservations.sql', '0012_verification_obligations.sql')
+           WHERE name IN (
+             '0011_scope_reservations.sql',
+             '0012_verification_obligations.sql',
+             '0013_recovery_snapshots.sql'
+           )
            ORDER BY name ASC`,
         )
         .all(),
     ).toEqual([
       { name: "0011_scope_reservations.sql" },
       { name: "0012_verification_obligations.sql" },
+      { name: "0013_recovery_snapshots.sql" },
     ]);
 
     database.$client.close();
@@ -173,6 +224,35 @@ describe("workflow orchestration migrations", () => {
           "agent",
           "Run typecheck.",
           "2026-08-03T08:00:00.000Z",
+        ),
+    ).toThrow();
+
+    expect(() =>
+      database.$client
+        .prepare(
+          `INSERT INTO recovery_snapshots (
+            id, project_id, repository_id, run_id, branch,
+            observed_commit_sha, schema_version, generated_at,
+            source_observed_at, confidence, canonical_json, canonical_hash,
+            markdown, template_id, template_version, created_by, source,
+            idempotency_key, correlation_id
+          ) VALUES (?, ?, ?, NULL, ?, ?, 1, ?, ?, 'high', '{}', ?, ?, ?, 1,
+                    ?, 'manual', ?, ?)`,
+        )
+        .run(
+          "invalid-recovery-sha",
+          "demo-project-platform",
+          "repository-1",
+          "main",
+          "abc123",
+          "2026-08-03T08:00:00.000Z",
+          "2026-08-03T07:59:00.000Z",
+          "b".repeat(64),
+          "Snapshot",
+          "template",
+          "owner",
+          "attempt",
+          "correlation",
         ),
     ).toThrow();
 
