@@ -90,7 +90,7 @@ export function ScopeReservationOverrideForm({
       </label>
       <Button
         type="submit"
-        tone="secondary"
+        tone="neutral"
         disabled={pending || !confirmed || reason.trim().length === 0}
       >
         {pending ? "Encerrando…" : "Encerrar reserva"}
