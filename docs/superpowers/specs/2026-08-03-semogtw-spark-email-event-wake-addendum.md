@@ -31,7 +31,7 @@ Google's public Gemini Spark documentation currently describes:
 - custom Connected Apps backed by MCP server URLs;
 - manual confirmation for write actions through custom MCP apps.
 
-These are external and mutable product behaviors. They must be reverified in the owner's real account before implementation or acceptance.
+These are external and mutable product behaviors. They must be reverified in the owner's real account before implementation or acceptance. Public documentation and actual account rollout may differ by plan, location, language and release stage; observed account behavior is the acceptance source of truth.
 
 Consequences:
 
