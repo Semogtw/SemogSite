@@ -41,11 +41,11 @@ The tests and migrations below are committed specifications until observed on th
 
 ## Database migrations
 
-Execute migrations `0001`–`0009` in memory and file-backed SQLite.
+Execute migrations `0001`–`0010` in memory and file-backed SQLite.
 
 Verify:
 
-- four editorial tables and indexes;
+- documents, revisions, reviews, publication events and redirect events with their indexes;
 - initial document/revision/event transaction;
 - immutable revisions/reviews/events;
 - document deletion forbidden;
@@ -96,6 +96,7 @@ Verify:
 - events ordered append-only;
 - malformed tags/before/after JSON marked explicitly;
 - unknown document returns null;
+- redirect history ordered append-only and visible only privately;
 - no public serializer reuse.
 
 ## Public read model and contracts
@@ -107,6 +108,9 @@ Verify:
 - malformed tags/hash/date/raw HTML omitted;
 - kind filter and list limit bounded;
 - strict DTO rejects extra private fields;
+- canonical lookup precedes alias lookup;
+- only the latest active, kind-bound alias to a published target resolves;
+- revoked/unknown aliases return not-found;
 - public confidentiality and editorial schema scanners pass.
 
 ## Owner UI and browser gate
@@ -124,7 +128,9 @@ The versioned `pnpm test:e2e` gate currently covers:
 9. withdraw makes anonymous route not found;
 10. rollback restores prior approved revision with a new event;
 11. keyboard navigation and 360×800 layout remain usable;
-12. private routes redirect anonymously and retain `noindex`.
+12. private routes redirect anonymously and retain `noindex`;
+13. create an audited alias and verify `308`, `Location` and `Cache-Control: no-store`;
+14. revoke the alias and observe not-found/noindex in the same browser session.
 
 Deterministic domain/database suites continue to cover stale two-tab snapshots, lost-response exact retries and changed intent under the same idempotency key. Long-content stress and CSP behavior remain host/runtime gates.
 
@@ -137,6 +143,7 @@ Deterministic domain/database suites continue to cover stale two-tab snapshots, 
 - images/assets only from approved references;
 - code blocks and tables bounded/responsive;
 - no review notes or private metadata in rendered source;
+- alias responses are same-origin and do not persist in browser cache;
 - CSP behavior verified in selected host.
 
 ## Backup/restore
@@ -146,12 +153,13 @@ A file-backed fixture must contain:
 - published revision A;
 - private working revision B;
 - review for A;
-- publication and draft events;
+- publication, draft and redirect events;
 - unrelated existing DevOS/GitHub/run-ledger records.
 
 After verified backup/restore:
 
 - public adapter returns revision A and publication timestamp;
+- active alias resolves to the canonical slug after restore;
 - owner adapter returns both revisions and history;
 - triggers remain installed;
 - no migration is missing;
