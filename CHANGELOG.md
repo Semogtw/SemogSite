@@ -79,6 +79,22 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 
 This entry records documentation and approved planning only. No OAuth migration, network endpoint, remote client, Spark custom app or MCP write tool has been implemented by these commits.
 
+#### Learning, Growth, Evidence and Credentials planning
+
+- approved provider-neutral Growth design with DevOS as the canonical source of learning state;
+- planned migration `0015_learning_goals.sql` for goals, ordered weighted checkpoints, skills/aliases and append-only events;
+- planned progress derivation from checkpoint state/accepted numeric values, with no canonical percentage column or direct percentage mutation;
+- planned migration `0016_learning_evidence_credentials.sql` for evidence candidates/claims/reviews/policies and credentials;
+- planned owner-review-first evidence flow with narrow deterministic auto-accept rules that explicitly exclude LLM-only classification, keywords and file extensions;
+- planned GitHub evidence references bound to normalized repository/branch/SHA/PR/workflow observations without treating code presence as proof of comprehension;
+- planned credential states, normalized Gmail/Spark metadata proposals and optional private attachment references outside SQLite;
+- three executable plans for the Growth core, evidence/credentials and read-only Growth MCP/Spark workflows;
+- six planned Growth read tools under existing `devos.read` after their domain and remote endpoint dependencies pass;
+- desired supervised write/proposal operations documented but blocked behind a separate post-gate write-authorization specification;
+- concise roadmap entry point added at `docs/LEARNING_GROWTH.md`.
+
+This entry also records documentation and approved planning only. No Growth route/table/tool, certificate import, Gmail monitor or canonical Spark write has been implemented by these commits.
+
 ### Fixed during implementation and review
 
 - login limiter result treated incorrectly as a boolean;
@@ -130,7 +146,7 @@ Workflow run `30841132598` for commit `94956d10f805e13af7f11e5e2e4f63e8e4abe4b8`
 - exact-SHA gate creation and `blocked/environment_missing` result;
 - recovery generation failing closed without a persisted GitHub branch observation.
 
-The documentation reconciliation and remote-MCP planning commits after that run require fresh applicable gates during implementation; planning-only changes do not constitute OAuth, transport or client compatibility evidence.
+The documentation reconciliation, remote-MCP planning and Growth planning commits after that run require fresh applicable gates during implementation; planning-only changes do not constitute OAuth, transport, Growth, credential or client compatibility evidence.
 
 ### Constraints and remaining work
 
@@ -139,11 +155,12 @@ The documentation reconciliation and remote-MCP planning commits after that run 
 - no remote MCP, OAuth migration, stdio listener or external-agent transport is enabled;
 - remote MCP implementation must follow the 2026-08-03 specification and executable plans rather than the historical 2026-08-01 transport reservation;
 - Gemini Spark exists in the owner's Brazilian AI Pro account, but **Custom apps for Spark** must still be observed separately before Spark acceptance can pass;
+- no Growth migration, private Growth route, evidence pipeline, credential store or Growth MCP tool is implemented;
 - live GitHub token permissions/provider behavior still require validation in the selected runtime;
 - no Notion content migration has been performed;
 - backup encryption/upload/retention remain operational responsibilities;
 - multi-instance authentication and remote-MCP throttling require shared limiters;
-- host-specific CSP, cache, cookie, logs and rollback remain to be verified;
+- host-specific CSP, cache, cookie, logs, private attachment storage and rollback remain to be verified;
 - branch inactivity is not proof that an AI session completed;
 - provider-specific prompt launching/automation remains outside the remote read plans;
-- no MCP write scope or mutation tool is planned until authenticated read phases and rollback are verified.
+- no MCP write scope or mutation tool is authorized until authenticated read phases, Growth browser flows, client confirmation behavior and rollback are verified.
