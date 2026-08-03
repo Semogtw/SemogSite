@@ -1,6 +1,7 @@
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { SafeWorkCapabilityEvaluator } from "../components/devos/safe-work-capability-evaluator";
 import { ScopeReservationOverrideForm } from "../components/devos/scope-reservation-override-form";
 import { VerificationObligationResultForm } from "../components/devos/verification-obligation-result-form";
 import {
@@ -115,88 +116,18 @@ function WorkflowOrchestrationPage() {
               <h2>Próximo trabalho seguro</h2>
               <p className="muted-copy">
                 Apenas a primeira etapa incompleta de cada projeto com um único
-                repositório ativo pode ser recomendada. Nenhuma capacidade de
-                runtime é presumida nesta leitura.
+                repositório ativo pode ser recomendada. A avaliação inicial não
+                presume capacidades; uma reavaliação explícita vale somente para a
+                sessão atual.
               </p>
             </div>
             <Status tone="neutral">
-              {dashboard.safeWork.recommendations.length} recomendações
+              {dashboard.safeWork.recommendations.length} recomendações iniciais
             </Status>
           </div>
-
-          {dashboard.safeWork.errors.length > 0 ? (
-            <p className="run-command-form__feedback run-command-form__feedback--error">
-              Avaliação indisponível: {dashboard.safeWork.errors.join(", ")}
-            </p>
-          ) : dashboard.safeWork.recommendations.length === 0 ? (
-            <EmptyState
-              title="Nenhuma etapa segura agora"
-              description="As exclusões abaixo explicam repositórios ambíguos, decisões do proprietário, reservas, gates ou capacidades ausentes."
-            />
-          ) : (
-            <div className="devos-record-list">
-              {dashboard.safeWork.recommendations.map((recommendation) => (
-                <article
-                  className="devos-record devos-record--stacked"
-                  key={recommendation.candidateId}
-                >
-                  <div className="devos-record__main">
-                    <div>
-                      <h3>{recommendation.title}</h3>
-                      <p>
-                        Etapa <code>{recommendation.candidateId}</code>
-                      </p>
-                    </div>
-                    <Status tone="success">score {recommendation.score}</Status>
-                  </div>
-                  <p className="muted-copy">
-                    Motivos: {recommendation.reasons.join(", ")}
-                  </p>
-                  <p className="muted-copy">
-                    Fonte observada em {recommendation.sourceObservedAt}
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
-
-          {dashboard.safeWork.exclusions.length === 0 ? null : (
-            <div className="devos-record-list">
-              <h3>Exclusões do avaliador</h3>
-              {dashboard.safeWork.exclusions.map((exclusion) => (
-                <article className="devos-record" key={exclusion.candidateId}>
-                  <div>
-                    <strong>{exclusion.candidateId}</strong>
-                    <p className="muted-copy">
-                      {exclusion.codes.join(", ")}
-                      {exclusion.details.length === 0
-                        ? ""
-                        : ` · ${exclusion.details.join(", ")}`}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-
-          {dashboard.safeWork.sourceExclusions.length === 0 ? null : (
-            <div className="devos-record-list">
-              <h3>Exclusões da fonte persistida</h3>
-              {dashboard.safeWork.sourceExclusions.map((exclusion) => (
-                <article className="devos-record" key={exclusion.stageId}>
-                  <div>
-                    <strong>{exclusion.stageId}</strong>
-                    <p className="muted-copy">
-                      {exclusion.code}
-                      {exclusion.details.length === 0
-                        ? ""
-                        : ` · ${exclusion.details.join(", ")}`}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+          <SafeWorkCapabilityEvaluator
+            initialEvaluation={dashboard.safeWork}
+          />
         </Surface>
 
         <Surface>
