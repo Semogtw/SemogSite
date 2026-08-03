@@ -1,7 +1,7 @@
 {
-  "repository": "Semogtw/SemogSite",
   "branch": "develop/editorial-workspace",
+  "repository": "Semogtw/SemogSite",
+  "commit_message": "feat(editorial): persist and resolve audited redirects",
   "expected_head": "dd26dbe0190307e6eae9e41dfe3a7657a57df489",
-  "patch_sha256": "b95bd896c3abdf742876f3c03a54a561ab23330b3880a151f21f51587159aa3f",
-  "commit_message": "feat(editorial): persist and resolve audited redirects"
+  "patch_sha256": "b95bd896c3abdf742876f3c03a54a561ab23330b3880a151f21f51587159aa3f"
 }
