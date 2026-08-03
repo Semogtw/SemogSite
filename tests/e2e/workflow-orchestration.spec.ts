@@ -196,7 +196,7 @@ test.describe("authenticated workflow orchestration", () => {
       .locator("xpath=ancestor::form");
     await resultForm.getByLabel("Resultado observado").selectOption("blocked");
     await resultForm
-      .getByLabel("Classificação")
+      .getByRole("combobox", { name: "Classificação", exact: true })
       .selectOption("environment_missing");
     await resultForm
       .getByLabel("Resumo observado")
