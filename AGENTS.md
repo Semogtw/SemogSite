@@ -1,6 +1,6 @@
 # SemogSite Agent Handoff
 
-This file exists on the current stacked planning branch so agents see pending product decisions before changing overlapping areas.
+This file exists on the current stacked planning branch so agents see pending product decisions and execution order before changing overlapping areas.
 
 ## Current planning stack
 
@@ -36,6 +36,28 @@ Canonical decisions include:
 - Spark retrieves the canonical event through authenticated MCP before acting;
 - the email wake bridge is not real-time and is not used for critical or time-sensitive operations.
 
+## Executable planning index
+
+Read this file before implementing any part of the approved direction:
+
+```text
+docs/superpowers/plans/2026-08-03-semogtw-agent-editability-plan-stack.md
+```
+
+It defines the dependency order and hard gates for:
+
+```text
+adaptive Growth owner UX
+Command Gateway and editability coverage
+agent write authorization
+approvals and change sets
+Development Requests
+isolated development executor
+merge, deployment health and rollback
+```
+
+Do not execute a later plan merely because its file exists. Remote MCP writes, critical actions, executor dispatch and deployment each have independent readiness gates.
+
 ## Documentation rule
 
 Do not duplicate cross-cutting rules in new specs or plans.
@@ -50,4 +72,4 @@ Before adding documentation:
 
 ## Implementation boundary
 
-The current MCP rollout remains read-only until its OAuth, transport, isolation, revocation, backup and real-client acceptance gates pass. Future writes, internal model integration, Development Control Plane execution and the Spark email wake bridge remain separately gated. Plans on this branch describe future implementation and do not make those capabilities implemented.
+The current MCP rollout remains read-only until its OAuth, transport, isolation, revocation, backup and real-client acceptance gates pass. Future writes, internal model integration, Development Control Plane execution and the Spark email wake bridge remain separately gated. The executor requires a verified host-enforced sandbox; a plain Node child process is insufficient. Production deployment remains unavailable until the owner selects a host and a provider-specific adapter passes its own reviewed plan. Plans on this branch describe future implementation and do not make those capabilities implemented.
