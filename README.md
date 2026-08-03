@@ -197,7 +197,7 @@ pnpm test:e2e
 
 O gate focado do workflow core também executa:
 
-- allowlist efêmera de `better-sql3` somente no checkout descartável do runner;
+- allowlist efêmera de `better-sqlite3` somente no checkout descartável do runner;
 - scanners de fronteiras e confidencialidade pública;
 - testes de domínio, migrations, backup e repositórios SQLite;
 - typechecks de domínio, banco, UI e web;
