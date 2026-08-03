@@ -1,9 +1,13 @@
 import {
   createSqliteDatabase,
   migrate,
+  SqliteEditorialRedirectRepository,
   type SqliteDatabase,
 } from "@semogtw/database";
-import type { EditorialSensitiveReviewChecks } from "@semogtw/domain";
+import {
+  EditorialRedirectService,
+  type EditorialSensitiveReviewChecks,
+} from "@semogtw/domain";
 import { afterEach, describe, expect, it } from "vitest";
 import { approveEditorialRevisionCommand } from "./editorial-approve-command";
 import { createEditorialDocumentCommand } from "./editorial-document-command";
@@ -139,4 +143,44 @@ describe("public editorial reader", () => {
       kind: "note",
     });
   });
+
+  it("resolves an active alias only after canonical lookup misses", async () => {
+    const db = database();
+    const published = await publishNote(db);
+    const redirect = new EditorialRedirectService(
+      new SqliteEditorialRedirectRepository(db),
+    );
+    const created = await redirect.create(
+      {
+        sourceSlug: "nota-publica-antiga",
+        kind: "note",
+        targetDocumentId: published.id,
+        reason: "Preservar endereço anterior.",
+        confirmed: true,
+      },
+      {
+        actorId: "owner-1",
+        eventId: "redirect-note-event-1",
+        idempotencyKey: "redirect-note-key-1",
+        correlationId: "redirect-note-correlation-1",
+        now: "2026-08-02T05:05:00.000Z",
+      },
+    );
+    if (!created.ok) throw new Error(created.code);
+    const reader = createPublicEditorialReader(db);
+
+    await expect(
+      reader.resolveBySlug("nota-publica", "note"),
+    ).resolves.toMatchObject({
+      document: { slug: "nota-publica" },
+      redirectSlug: null,
+    });
+    await expect(
+      reader.resolveBySlug("nota-publica-antiga", "note"),
+    ).resolves.toEqual({ document: null, redirectSlug: "nota-publica" });
+    await expect(
+      reader.resolveBySlug("nota-publica-antiga", "project"),
+    ).resolves.toEqual({ document: null, redirectSlug: null });
+  });
+
 });

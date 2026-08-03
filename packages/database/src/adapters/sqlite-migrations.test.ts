@@ -22,6 +22,7 @@ describe("SQLite migrations", () => {
       { name: "0007_editorial_invariant_triggers.sql" },
       { name: "0008_editorial_approval_guards.sql" },
       { name: "0009_editorial_document_identity_guards.sql" },
+      { name: "0010_editorial_redirect_registry.sql" },
     ]);
     expect(
       database.$client

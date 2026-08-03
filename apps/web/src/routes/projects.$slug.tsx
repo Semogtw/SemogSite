@@ -1,12 +1,24 @@
 import { Surface } from "@semogtw/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
-import { getPublicProjectFn } from "../server/public-projects";
+import { getPublicProjectRouteFn } from "../server/public-projects";
 import { publicEditorialDetailHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/projects/$slug")({
-  loader: ({ params }) => getPublicProjectFn({ data: { slug: params.slug } }),
+  loader: async ({ params }) => {
+    const resolution = await getPublicProjectRouteFn({
+      data: { slug: params.slug },
+    });
+    if (resolution.redirectSlug !== null) {
+      throw redirect({
+        to: "/projects/$slug",
+        params: { slug: resolution.redirectSlug },
+        statusCode: 308,
+      });
+    }
+    return resolution.document;
+  },
   head: ({ loaderData, params }) =>
     publicEditorialDetailHead({
       kind: "project",

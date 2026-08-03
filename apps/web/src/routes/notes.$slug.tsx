@@ -1,15 +1,24 @@
 import { Surface } from "@semogtw/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
-import { getPublicEditorialDocumentFn } from "../server/public-editorial";
+import { getPublicEditorialDocumentRouteFn } from "../server/public-editorial";
 import { publicEditorialDetailHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/notes/$slug")({
-  loader: ({ params }) =>
-    getPublicEditorialDocumentFn({
+  loader: async ({ params }) => {
+    const resolution = await getPublicEditorialDocumentRouteFn({
       data: { slug: params.slug, kind: "note" },
-    }),
+    });
+    if (resolution.redirectSlug !== null) {
+      throw redirect({
+        to: "/notes/$slug",
+        params: { slug: resolution.redirectSlug },
+        statusCode: 308,
+      });
+    }
+    return resolution.document;
+  },
   head: ({ loaderData, params }) =>
     publicEditorialDetailHead({
       kind: "note",

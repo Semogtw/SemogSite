@@ -37,6 +37,7 @@ export type {
 } from "./repositories/cooperative-run-read-model";
 export { SqliteCooperativeRunRegistrationRepository } from "./repositories/cooperative-run-registration-repository";
 export { SqliteCooperativeRunTransitionRepository } from "./repositories/cooperative-run-transition-repository";
+export { SqliteEditorialRedirectRepository } from "./repositories/editorial-redirect-repository";
 export { SqliteEditorialReadModel } from "./repositories/editorial-read-model";
 export type {
   EditorialDocumentDetail,

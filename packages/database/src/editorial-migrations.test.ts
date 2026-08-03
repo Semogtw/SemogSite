@@ -91,6 +91,7 @@ describe("editorial migrations", () => {
     expect(tables).toEqual([
       { name: "editorial_documents" },
       { name: "editorial_events" },
+      { name: "editorial_redirect_events" },
       { name: "editorial_reviews" },
       { name: "editorial_revisions" },
     ]);
@@ -109,6 +110,8 @@ describe("editorial migrations", () => {
         "editorial_documents_revision_links_update",
         "editorial_events_contiguous_sequence_insert",
         "editorial_events_immutable_update",
+        "editorial_redirect_events_contiguous_sequence_insert",
+        "editorial_redirect_events_immutable_update",
         "editorial_reviews_revision_integrity_insert",
         "editorial_revisions_contiguous_sequence_insert",
         "editorial_revisions_immutable_update",

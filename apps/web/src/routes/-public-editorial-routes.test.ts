@@ -13,10 +13,11 @@ describe("public editorial routes", () => {
     const server = source("../server/public-editorial.ts");
 
     expect(server).toContain("getPublicEditorialFn");
-    expect(server).toContain("getPublicEditorialDocumentFn");
+    expect(server).toContain("getPublicEditorialDocumentRouteFn");
     expect(listRoute).toContain('kind: "note"');
     expect(listRoute).toContain("getPublicEditorialFn");
-    expect(detailRoute).toContain("getPublicEditorialDocumentFn");
+    expect(detailRoute).toContain("getPublicEditorialDocumentRouteFn");
+    expect(detailRoute).toContain("statusCode: 308");
     expect(detailRoute).toContain('kind: "note"');
   });
 
@@ -27,4 +28,18 @@ describe("public editorial routes", () => {
     expect(detailRoute).toContain("document.bodyMarkdown");
     expect(detailRoute).not.toContain("dangerouslySetInnerHTML");
   });
+
+  it("uses permanent same-origin redirects only for audited aliases", () => {
+    const notes = source("notes.$slug.tsx");
+    const projects = source("projects.$slug.tsx");
+    const editorialServer = source("../server/public-editorial.server.ts");
+
+    expect(editorialServer).toContain("resolveBySlug");
+    expect(editorialServer).toContain("resolveRedirect");
+    expect(notes).toContain("redirectSlug");
+    expect(notes).toContain("statusCode: 308");
+    expect(projects).toContain("redirectSlug");
+    expect(projects).toContain("statusCode: 308");
+  });
+
 });

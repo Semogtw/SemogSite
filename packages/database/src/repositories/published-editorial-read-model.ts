@@ -6,6 +6,11 @@ export type PublishedEditorialProjectionKind =
   | "experiment"
   | "page";
 
+
+export type PublishedEditorialRedirect = {
+  targetSlug: string;
+};
+
 export type PublishedEditorialProjection = {
   kind: PublishedEditorialProjectionKind;
   slug: string;
@@ -138,6 +143,40 @@ export class SqlitePublishedEditorialReadModel {
       .prepare(`${selectPublished} AND document.slug = ? LIMIT 1`)
       .get(slug) as Row | undefined;
     return row === undefined ? null : project(row);
+  }
+
+  async resolveRedirect(
+    sourceSlugValue: string,
+    kind: PublishedEditorialProjectionKind,
+  ): Promise<PublishedEditorialRedirect | null> {
+    const sourceSlug = sourceSlugValue.trim().toLowerCase();
+    if (!slugPattern.test(sourceSlug) || !kinds.has(kind)) return null;
+
+    const row = this.database.$client
+      .prepare(
+        `SELECT target.slug AS target_slug
+         FROM editorial_redirect_events AS redirect
+         JOIN editorial_documents AS target
+           ON target.id = redirect.target_document_id
+          AND target.kind = redirect.kind
+         WHERE redirect.source_slug = ?
+           AND redirect.kind = ?
+           AND redirect.action = 'created'
+           AND redirect.sequence = (
+             SELECT MAX(candidate.sequence)
+             FROM editorial_redirect_events AS candidate
+             WHERE candidate.source_slug = redirect.source_slug
+           )
+           AND target.publication_status = 'published'
+           AND target.published_revision_id IS NOT NULL
+           AND target.slug <> redirect.source_slug
+         LIMIT 1`,
+      )
+      .get(sourceSlug, kind) as { target_slug: string } | undefined;
+
+    return row === undefined || !slugPattern.test(row.target_slug)
+      ? null
+      : { targetSlug: row.target_slug };
   }
 
   async list(input: {

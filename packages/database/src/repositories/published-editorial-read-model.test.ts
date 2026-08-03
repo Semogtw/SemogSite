@@ -5,6 +5,8 @@ import { SqlitePublishedEditorialReadModel } from "./published-editorial-read-mo
 const createdAt = "2026-08-01T23:00:00.000Z";
 const publishedAt = "2026-08-01T23:20:00.000Z";
 const draftAt = "2026-08-01T23:30:00.000Z";
+const redirectAt = "2026-08-01T23:40:00.000Z";
+const revokeAt = "2026-08-01T23:45:00.000Z";
 const hashA = "a".repeat(64);
 const hashB = "b".repeat(64);
 
@@ -130,4 +132,63 @@ describe("SqlitePublishedEditorialReadModel", () => {
     ).resolves.toMatchObject({ updatedAt: rollbackAt, publishedRevisionId: "revision-1" });
     database.$client.close();
   });
+
+  it("resolves only the latest active alias to a still-published target", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    seed(database);
+    database.$client.prepare(`
+      INSERT INTO editorial_redirect_events (
+        id, source_slug, kind, target_document_id, sequence, action, actor,
+        reason, occurred_at, idempotency_key, correlation_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      "redirect-1", "semog-site-antigo", "project", "document-1", 1,
+      "created", "owner", "Preservar URL.", redirectAt, "redirect-key-1",
+      "redirect-correlation-1",
+    );
+    const model = new SqlitePublishedEditorialReadModel(database);
+
+    await expect(model.resolveRedirect("semog-site-antigo", "project")).resolves.toEqual({ targetSlug: "semog-site" });
+    await expect(model.resolveRedirect("semog-site-antigo", "note")).resolves.toBeNull();
+
+    database.$client.prepare(`
+      INSERT INTO editorial_redirect_events (
+        id, source_slug, kind, target_document_id, sequence, action, actor,
+        reason, occurred_at, idempotency_key, correlation_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      "redirect-2", "semog-site-antigo", "project", "document-1", 2,
+      "revoked", "owner", "Revogar URL.", revokeAt, "redirect-key-2",
+      "redirect-correlation-2",
+    );
+    await expect(model.resolveRedirect("semog-site-antigo", "project")).resolves.toBeNull();
+    database.$client.close();
+  });
+
+  it("stops resolving an active alias when its target is withdrawn", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    seed(database);
+    database.$client.prepare(`
+      INSERT INTO editorial_redirect_events (
+        id, source_slug, kind, target_document_id, sequence, action, actor,
+        reason, occurred_at, idempotency_key, correlation_id
+      ) VALUES ('redirect-1', 'semog-site-antigo', 'project', 'document-1', 1,
+        'created', 'owner', 'Preservar URL.', ?, 'redirect-key-1',
+        'redirect-correlation-1')
+    `).run(redirectAt);
+    const model = new SqlitePublishedEditorialReadModel(database);
+    await expect(model.resolveRedirect("semog-site-antigo", "project")).resolves.toEqual({ targetSlug: "semog-site" });
+
+    database.$client.prepare(`
+      UPDATE editorial_documents
+      SET publication_status = 'withdrawn', published_revision_id = NULL,
+          version = 4, updated_at = ?
+      WHERE id = 'document-1'
+    `).run(revokeAt);
+    await expect(model.resolveRedirect("semog-site-antigo", "project")).resolves.toBeNull();
+    database.$client.close();
+  });
+
 });
