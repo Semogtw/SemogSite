@@ -71,8 +71,10 @@ export { SqliteRepositoryTargetOptions } from "./repositories/repository-target-
 export type { RepositoryTargetProjectOption } from "./repositories/repository-target-options";
 export { SqliteRepositoryTargetRegistrationRepository } from "./repositories/repository-target-registration-repository";
 export { SqliteRoadmapDataSource } from "./repositories/roadmap-data-source";
+export { SqliteScopeReservationRepository } from "./repositories/scope-reservation-repository";
 export { SqliteSessionHandoffRepository } from "./repositories/session-handoff-repository";
 export { SqliteStageCompletionRepository } from "./repositories/stage-completion-repository";
 export { SqliteStageRepository } from "./repositories/stage-repository";
 export { SqliteTodayDataSource } from "./repositories/today-data-source";
+export { SqliteVerificationObligationRepository } from "./repositories/verification-obligation-repository";
 export * as schema from "./schema";
