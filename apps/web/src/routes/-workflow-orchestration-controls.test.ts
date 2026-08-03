@@ -56,6 +56,20 @@ describe("workflow orchestration controls", () => {
     expect(server).toContain("RecoverySnapshotService");
   });
 
+  it("lists immutable recovery snapshots with copy fallback", () => {
+    const recoveryRoute = source("devos.workflows.recovery.tsx");
+    const history = source("../components/devos/recovery-snapshot-history.tsx");
+    const server = source("../server/devos-workflows.ts");
+
+    expect(server).toContain("SqliteRecoverySnapshotReadModel");
+    expect(server).toContain("listRecent(20)");
+    expect(recoveryRoute).toContain("RecoverySnapshotHistory");
+    expect(recoveryRoute).toContain("dashboard.recoverySnapshots");
+    expect(history).toContain("navigator.clipboard.writeText");
+    expect(history).toContain("Selecione manualmente o conteúdo");
+    expect(history).toContain("snapshot.canonicalHash");
+  });
+
   it("shows persisted safe-work recommendations without inventing runtime capabilities", () => {
     const route = source("devos.workflows.tsx");
     const server = source("../server/devos-workflows.ts");
