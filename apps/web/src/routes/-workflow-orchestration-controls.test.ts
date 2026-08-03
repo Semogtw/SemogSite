@@ -55,4 +55,16 @@ describe("workflow orchestration controls", () => {
     expect(server).toContain("SqliteRecoverySnapshotSource");
     expect(server).toContain("RecoverySnapshotService");
   });
+
+  it("shows persisted safe-work recommendations without inventing runtime capabilities", () => {
+    const route = source("devos.workflows.tsx");
+    const server = source("../server/devos-workflows.ts");
+
+    expect(server).toContain("SqliteSafeWorkSource");
+    expect(server).toContain("availableCapabilities: []");
+    expect(server).toContain("defaultEstimatedMinutes: 60");
+    expect(route).toContain("Próximo trabalho seguro");
+    expect(route).toContain("dashboard.safeWork.recommendations");
+    expect(route).toContain("dashboard.safeWork.sourceExclusions");
+  });
 });
