@@ -46,7 +46,7 @@ export type ProjectResumePolicy = {
 export function classifyDevelopmentActivity(input: DevelopmentActivityInput): DevelopmentActivity;
 ```
 
-- [ ] Write failing tests for signal precedence, 30/60 boundaries, stale observations, blocked/waiting-user, explicit completed/failed, workflow/handoff fallback and invalid timestamps/policy.
+- [x] Write failing tests for signal precedence, 30/60 boundaries, stale observations, blocked/waiting-user, explicit completed/failed, workflow/handoff fallback and invalid timestamps/policy.
 
 ```ts
 expect(classifyDevelopmentActivity(fixture({
@@ -56,10 +56,12 @@ expect(classifyDevelopmentActivity(fixture({
 }))).toMatchObject({ status: "reported_active", source: "heartbeat" });
 ```
 
-- [ ] Run RED: `pnpm --filter @semogtw/domain exec vitest run src/resume/development-activity.test.ts`.
-- [ ] Implement pure timestamp normalization, policy validation, strongest-signal selection, confidence/source/warnings and age derivation.
-- [ ] Run GREEN plus `pnpm --filter @semogtw/domain typecheck`.
-- [ ] Commit: `feat(resume): classify development activity conservatively` and push.
+- [x] Run RED: `pnpm --filter @semogtw/domain exec vitest run src/resume/development-activity.test.ts`.
+- [x] Implement pure timestamp normalization, policy validation, strongest-signal selection, confidence/source/warnings and age derivation.
+- [x] Run GREEN plus `pnpm --filter @semogtw/domain typecheck`.
+- [x] Commit: `feat(resume): classify development activity conservatively` and push.
+
+**Observed evidence:** focused RED failed on the missing module; focused GREEN passed 7/7, domain typecheck passed, and the complete domain suite passed 44 files / 249 tests.
 
 ### Task 2: Policy, target and template contracts
 

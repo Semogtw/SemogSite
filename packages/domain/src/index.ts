@@ -24,6 +24,7 @@ export type {
 } from "./capture/capture-service";
 export * from "./editorial";
 export * from "./orchestration";
+export * from "./resume";
 export { EvidenceService } from "./evidence/evidence-service";
 export type {
   AttachManualEvidenceInput,
