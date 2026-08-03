@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes the implementation on branch `develop/workflow-control-core`.
+This document describes the verified implementation on branch `develop/workflow-control-core`.
 
 The workflow orchestration core is designed as a **portable private capability**. Core behavior does not require:
 
@@ -61,7 +61,8 @@ Properties:
 - owner override with explicit reason and confirmation;
 - immutable event history and global audit event;
 - idempotent retries;
-- active/expired/inactive freshness derived at read time.
+- active/expired/inactive freshness derived at read time;
+- mutation context identity bound to the target reservation before persistence is accessed.
 
 A reservation does not create a Git lock, filesystem lock or GitHub branch protection rule. It is a coordination signal and may be overridden by the owner.
 
@@ -104,7 +105,8 @@ Properties:
 - explicit separation between `environment_missing` and `code_failure`;
 - terminal owner decisions for supersede and waiver;
 - waiver requires reason and confirmation;
-- immutable event history, audit, idempotency and optimistic concurrency.
+- immutable event history, audit, idempotency and optimistic concurrency;
+- mutation context identity bound to the target obligation before persistence is accessed.
 
 Creating an obligation never marks a test as passed. A passed result requires an explicitly recorded observed result.
 
@@ -137,7 +139,9 @@ Security and integrity rules:
 - unsafe document paths are rejected;
 - the source refuses to invent a commit when the accepted branch has no persisted observation;
 - duplicate canonical hashes and idempotent retries do not create extra rows;
-- snapshots cannot be updated after creation.
+- snapshots cannot be updated after creation;
+- the private recovery workspace lists the 20 most recent immutable snapshots, newest first;
+- historical handoffs can be copied without generating duplicate rows, with a manual selection fallback when clipboard access is denied.
 
 ### Safe next-work evaluator
 
@@ -158,7 +162,17 @@ A candidate is excluded when:
 - a required pre-work verification gate is unresolved;
 - its source data is stale or invalid.
 
-The evaluator is implemented in the domain layer. Persistence and DevOS composition of real stage candidates remain a later slice.
+The persisted source now composes real roadmap stages conservatively:
+
+- demonstration seed data is ignored;
+- only the first unfinished stage of each project is eligible;
+- later stages are excluded as `PREVIOUS_STAGE_INCOMPLETE`;
+- a project with no active repository is excluded as `REPOSITORY_NOT_FOUND`;
+- a project with multiple active repositories is excluded as `REPOSITORY_AMBIGUOUS` instead of choosing one;
+- project or stage manual locks become owner-decision exclusions;
+- unresolved stage gates contribute required capabilities and pre-work blockers;
+- active reservations are evaluated for scope conflicts;
+- the default DevOS read assumes no runtime capabilities, so capabilities are never invented.
 
 ## Persistence
 
@@ -198,11 +212,13 @@ Routes:
 `/devos/workflows` provides:
 
 - summary counts;
+- persisted safe-work recommendations and explicit source/evaluator exclusions;
 - scope reservation creation;
 - owner override of persisted active reservations;
 - verification obligation creation;
 - verification result recording;
-- reservation and gate history views.
+- reservation and gate history views;
+- direct navigation to the recovery workspace.
 
 `/devos/workflows/recovery` provides:
 
@@ -211,7 +227,8 @@ Routes:
 - runtime capability declaration;
 - optional plan/toolchain metadata;
 - immutable snapshot creation;
-- Markdown preview and clipboard copy with manual fallback.
+- Markdown preview and clipboard copy with manual fallback;
+- recent immutable snapshot history with canonical hashes.
 
 All routes and server functions:
 
@@ -233,31 +250,34 @@ Commit messages from GitHub are not treated as instructions. The current snapsho
 
 ## Verification evidence
 
-Observed in workflow run `30799550302`:
+Workflow run `30827610583` completed successfully on August 3, 2026 and verified:
 
-- scope-reservation domain tests passed;
-- domain package typecheck passed;
-- database tests did not execute because the runner had installed `better-sqlite3` without its native binding;
-- database typecheck was skipped after that failure.
+- the reviewed CI-only native build of `better-sqlite3`;
+- 34 orchestration domain tests;
+- domain package typecheck;
+- 33 focused database tests, including migrations, backup, reservations, verification obligations, recovery source/storage/history, safe-work source and orchestration read models;
+- database package typecheck;
+- 5 structural web tests for owner controls, recovery and safe-work composition;
+- UI package typecheck;
+- web route generation and TypeScript typecheck;
+- production web build and server-bundle validation.
 
-The focused workflow was updated to authorize and rebuild only `better-sqlite3` inside the job. Later workflow-core code, persistence, UI and web typechecks are **not considered passed** until a newer run completes and its step results are recorded in the private gate-ledger issue.
+The CI allowlist for `better-sqlite3` is appended only to the discarded runner checkout. It does not modify the committed workspace supply-chain policy.
 
-## Known integration debt
+## Remaining work
 
-- `packages/database/src/backup/sqlite-backup.test.ts` still needs its expected migration list reconciled through `0013` before the full database suite can be green;
-- the root `@semogtw/domain` barrel still needs to re-export `./orchestration`; current code uses the explicit `@semogtw/domain/orchestration` subpath;
-- the recovery subroute still needs a visible link in the main workflow route after the route-file conflict is reconciled;
-- the safe-work evaluator still needs a persisted candidate source and DevOS presentation;
-- remote agent tools, campaigns, CI failure clustering, branch-divergence guidance, execution profiles and runtime catalog remain later slices;
-- the one-time patch executors and temporary ops branches must be removed after stabilization;
-- full build, browser, backup and privacy gates remain pending.
+- authenticated and anonymous browser tests for the new routes;
+- 360 px mobile layout verification;
+- a user-selected or persisted runtime capability profile for re-evaluating safe work, while keeping the default empty capability set;
+- remote agent tools, campaigns, CI failure clustering, branch-divergence guidance and a fuller runtime catalog;
+- reconciliation of architecture, data model, security, testing, runbook, README and changelog with the final merged state;
+- removal of temporary one-time patch executors and temporary `ops/*` branches after stabilization;
+- final privacy review, rollback exercise and merge preparation.
 
 ## Next implementation order
 
-1. obtain a completed focused gate and fix only evidenced failures;
-2. reconcile the backup migration contract and root domain barrel;
-3. add persisted recovery snapshot listing and main-route link;
-4. compose safe-work candidates from stages, capabilities, reservations and gates;
-5. run full package checks, build and authenticated/anonymous browser gates;
-6. update architecture, data model, security, testing, runbook, README and changelog from observed final state;
-7. remove temporary executors and prepare the branch for merge.
+1. add authenticated/anonymous browser coverage for `/devos/workflows` and `/devos/workflows/recovery`;
+2. verify narrow-screen usability and no private content leakage;
+3. add an explicit runtime capability evaluator without changing conservative defaults;
+4. reconcile the remaining project documentation from observed final state;
+5. remove temporary executors and prepare the branch for merge.
