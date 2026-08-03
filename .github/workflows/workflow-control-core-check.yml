@@ -51,14 +51,22 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Configure reviewed CI-only native build
+        run: |
+          cat >> pnpm-workspace.yaml <<'YAML'
+
+          # Ephemeral runner-only allowlist. This checkout is discarded after the job.
+          onlyBuiltDependencies:
+            - better-sqlite3
+          YAML
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build approved native SQLite dependency
-        run: |
-          pnpm approve-builds better-sqlite3
-          pnpm rebuild better-sqlite3
-          test -f node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+      - name: Verify native SQLite dependency
+        run: >-
+          test -f
+          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 
       - name: Test orchestration domain
         run: >-
