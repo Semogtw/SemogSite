@@ -101,6 +101,7 @@ jobs:
         run: >-
           pnpm --filter @semogtw/web exec vitest run
           src/routes/-workflow-orchestration-controls.test.ts
+          src/components/devos/safe-work-capability-evaluator.test.ts
 
       - name: Typecheck UI
         run: pnpm --filter @semogtw/ui typecheck
