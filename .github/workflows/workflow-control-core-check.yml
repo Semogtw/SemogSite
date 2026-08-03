@@ -69,9 +69,7 @@ jobs:
           node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 
       - name: Test orchestration domain
-        run: >-
-          pnpm --filter @semogtw/domain exec vitest run
-          src/orchestration/*.test.ts
+        run: pnpm --filter @semogtw/domain exec vitest run src/orchestration
 
       - name: Typecheck domain
         run: pnpm --filter @semogtw/domain typecheck
