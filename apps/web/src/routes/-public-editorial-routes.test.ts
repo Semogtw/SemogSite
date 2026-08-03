@@ -38,8 +38,10 @@ describe("public editorial routes", () => {
     expect(editorialServer).toContain("resolveRedirect");
     expect(notes).toContain("redirectSlug");
     expect(notes).toContain("statusCode: 308");
+    expect(notes).toContain('"Cache-Control": "no-store, max-age=0"');
     expect(projects).toContain("redirectSlug");
     expect(projects).toContain("statusCode: 308");
+    expect(projects).toContain('"Cache-Control": "no-store, max-age=0"');
   });
 
 });

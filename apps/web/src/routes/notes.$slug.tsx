@@ -15,6 +15,7 @@ export const Route = createFileRoute("/notes/$slug")({
         to: "/notes/$slug",
         params: { slug: resolution.redirectSlug },
         statusCode: 308,
+        headers: { "Cache-Control": "no-store, max-age=0" },
       });
     }
     return resolution.document;
