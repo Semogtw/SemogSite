@@ -7,6 +7,8 @@ on:
     paths:
       - packages/domain/**
       - packages/database/**
+      - packages/ui/**
+      - apps/web/**
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -17,6 +19,8 @@ on:
     paths:
       - packages/domain/**
       - packages/database/**
+      - packages/ui/**
+      - apps/web/**
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -33,7 +37,7 @@ concurrency:
 jobs:
   focused-gates:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout branch
         uses: actions/checkout@v6
@@ -70,8 +74,16 @@ jobs:
           src/orchestration-migrations.test.ts
           src/repositories/scope-reservation-repository.test.ts
           src/repositories/verification-obligation-repository.test.ts
+          src/repositories/recovery-snapshot-repository.test.ts
+          src/repositories/workflow-orchestration-read-model.test.ts
           src/adapters/sqlite-migrations.test.ts
           src/backup/sqlite-backup.test.ts
 
       - name: Typecheck database
         run: pnpm --filter @semogtw/database typecheck
+
+      - name: Typecheck UI
+        run: pnpm --filter @semogtw/ui typecheck
+
+      - name: Typecheck web route tree
+        run: pnpm --filter @semogtw/web typecheck
