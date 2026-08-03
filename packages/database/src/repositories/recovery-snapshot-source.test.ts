@@ -37,41 +37,64 @@ function insertRepository(database: ReturnType<typeof createSqliteDatabase>): vo
 function insertObservation(database: ReturnType<typeof createSqliteDatabase>): void {
   database.$client
     .prepare(
+      `INSERT INTO sync_runs (
+        id, scope, trigger, started_at, finished_at, status,
+        repositories_checked, changes_applied, warnings_json, error_summary,
+        cursor, integration, created_count, updated_count, skipped_count,
+        error_count, rate_limit_remaining, rate_limit_reset_at, metadata_json
+      ) VALUES (?, ?, 'manual', ?, ?, 'success', 1, 1, '[]', NULL, NULL,
+                'github', 1, 0, 0, 0, ?, NULL, '{}')`,
+    )
+    .run(
+      "sync-run-1",
+      "repository:repository-1",
+      "2026-08-03T12:54:00.000Z",
+      "2026-08-03T12:55:00.000Z",
+      4_999,
+    );
+
+  database.$client
+    .prepare(
       `INSERT INTO github_repository_observations (
-        id, repository_id, provider_node_id, full_name, html_url, visibility,
-        default_branch, pushed_at, observed_at, api_version, etag,
-        rate_limit_remaining, rate_limit_reset_at, source_hash, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)`,
+        id, sync_run_id, repository_id, github_node_id, full_name,
+        visibility, default_branch, html_url, archived, pushed_at,
+        provider_updated_at, observed_at, api_version, etag,
+        rate_limit_remaining, rate_limit_reset_at, branches_truncated,
+        source_hash
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
     )
     .run(
       "observation-1",
+      "sync-run-1",
       "repository-1",
       "node-1",
       "Semogtw/SemogSite",
-      "https://github.com/Semogtw/SemogSite",
       "private",
       "main",
+      "https://github.com/Semogtw/SemogSite",
+      "2026-08-03T12:50:00.000Z",
       "2026-08-03T12:50:00.000Z",
       "2026-08-03T12:55:00.000Z",
       "2022-11-28",
       4_999,
       "source-hash-1",
-      "2026-08-03T12:55:00.000Z",
     );
   database.$client
     .prepare(
       `INSERT INTO github_branch_observations (
-        id, repository_observation_id, name, head_sha, committed_at,
-        protected, is_default, created_at
-      ) VALUES (?, ?, ?, ?, ?, 0, 0, ?)`,
+        id, repository_observation_id, repository_id, name, head_sha,
+        committed_at, protected, is_default, observed_at, source_hash
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
     )
     .run(
       "branch-observation-1",
       "observation-1",
+      "repository-1",
       branch,
       headSha,
       "2026-08-03T12:50:00.000Z",
       "2026-08-03T12:55:00.000Z",
+      "branch-source-hash-1",
     );
 }
 
