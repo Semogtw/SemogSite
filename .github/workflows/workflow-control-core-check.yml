@@ -12,6 +12,8 @@ on:
       - tests/e2e/**
       - playwright.config.ts
       - scripts/prepare-e2e.mjs
+      - scripts/check-boundaries.mjs
+      - scripts/check-public-confidentiality.mjs
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -27,6 +29,8 @@ on:
       - tests/e2e/**
       - playwright.config.ts
       - scripts/prepare-e2e.mjs
+      - scripts/check-boundaries.mjs
+      - scripts/check-public-confidentiality.mjs
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -73,6 +77,12 @@ jobs:
         run: >-
           test -f
           node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+
+      - name: Check package boundaries
+        run: pnpm check:boundaries
+
+      - name: Check public confidentiality
+        run: pnpm check:public-confidentiality
 
       - name: Test orchestration domain
         run: pnpm --filter @semogtw/domain exec vitest run src/orchestration
