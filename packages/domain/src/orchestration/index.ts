@@ -24,3 +24,22 @@ export type {
   ScopeReservationStoreResult,
   ScopeReservationValidationError,
 } from "./scope-reservation-service";
+export {
+  normalizeVerificationFailureSignature,
+  VerificationObligationService,
+} from "./verification-obligation-service";
+export type {
+  CreateVerificationObligationInput,
+  RecordVerificationResultInput,
+  SupersedeVerificationObligationInput,
+  VerificationFailureClassification,
+  VerificationObligationAuditEvent,
+  VerificationObligationContext,
+  VerificationObligationRepository,
+  VerificationObligationResult,
+  VerificationObligationSnapshot,
+  VerificationObligationStatus,
+  VerificationObligationStoreResult,
+  VerificationObligationValidationError,
+  WaiveVerificationObligationInput,
+} from "./verification-obligation-service";
