@@ -124,11 +124,9 @@ test.describe("authenticated workflow orchestration", () => {
       .fill("Exercitar mutações reais do workflow orchestration no E2E.");
     await targetForm.getByRole("checkbox").check();
     await targetForm.getByRole("button", { name: "Cadastrar alvo privado" }).click();
-    await expect(
-      page.getByText(
-        "Semogtw/E2EWorkflow foi cadastrado como alvo privado de sincronização.",
-      ),
-    ).toBeVisible();
+    await expect(targetForm.getByRole("status")).toHaveText(
+      "Semogtw/E2EWorkflow foi cadastrado como alvo privado de sincronização.",
+    );
 
     await page.goto("/devos/workflows");
     const reservationForm = page
