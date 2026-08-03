@@ -77,8 +77,23 @@ describe("workflow orchestration controls", () => {
     expect(server).toContain("SqliteSafeWorkSource");
     expect(server).toContain("availableCapabilities: []");
     expect(server).toContain("defaultEstimatedMinutes: 60");
-    expect(route).toContain("Próximo trabalho seguro");
-    expect(route).toContain("dashboard.safeWork.recommendations");
-    expect(route).toContain("dashboard.safeWork.sourceExclusions");
+    expect(route).toContain("SafeWorkCapabilityEvaluator");
+    expect(route).toContain("initialEvaluation={dashboard.safeWork}");
+  });
+
+  it("re-evaluates safe work only from explicit owner-provided capabilities", () => {
+    const component = source(
+      "../components/devos/safe-work-capability-evaluator.tsx",
+    );
+    const server = source("../server/devos-safe-work.ts");
+
+    expect(component).toContain("evaluateSafeWorkFn");
+    expect(component).toContain("Capacidades do runtime atual");
+    expect(component).toContain("Nenhuma capacidade é presumida");
+    expect(component).toContain("splitCapabilities");
+    expect(server).toContain("resolveCurrentOwner");
+    expect(server).toContain("SqliteSafeWorkSource");
+    expect(server).toContain("availableCapabilities: data.capabilities");
+    expect(server).toContain("defaultEstimatedMinutes: data.defaultEstimatedMinutes");
   });
 });
