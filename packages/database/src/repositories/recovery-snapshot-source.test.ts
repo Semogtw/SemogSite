@@ -176,8 +176,8 @@ describe("SqliteRecoverySnapshotSource", () => {
         confidence: "high",
         project: {
           id: "demo-project-platform",
-          slug: "semogtw-platform",
-          name: "Semogtw Platform",
+          slug: "semogtw-platform-demo",
+          name: "Semogtw Platform — demonstração",
         },
         repository: {
           id: "repository-1",
