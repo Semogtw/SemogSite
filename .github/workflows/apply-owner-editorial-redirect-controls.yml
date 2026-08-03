@@ -1,0 +1,81 @@
+name: Apply verified owner editorial redirect controls
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-owner-editorial-redirect-controls
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.event.pull_request.head.ref == 'ops/apply-owner-editorial-redirect-controls'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed owner request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/owner-redirect-controls-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': '3ac5a9ec8b525a47fc1cac965a1eb9eca04009ad',
+              'patch_sha256': '55ea8317fb8e8a4158299d9b59caf3fc67e811c2f7faf8b728214368838a60be',
+              'expected_tree': '98e9a193c4653a33d6f32c1bd6c196dccf5a1fde',
+              'part_count': 3,
+              'commit_message': 'feat(editorial): add owner redirect controls',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from reviewed fixed contract')
+          PY
+          test "$(find request/.agent-patches -maxdepth 1 -name 'owner-redirect-controls-part-*' | wc -l)" -eq 3
+          cat request/.agent-patches/owner-redirect-controls-part-* \
+            | tr -d '\n' \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/owner-redirect-controls.patch"
+          test "$(sha256sum "$RUNNER_TEMP/owner-redirect-controls.patch" | awk '{print $1}')" = \
+            '55ea8317fb8e8a4158299d9b59caf3fc67e811c2f7faf8b728214368838a60be'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact tree and push with lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = '3ac5a9ec8b525a47fc1cac965a1eb9eca04009ad'
+          git -C target apply --index "$RUNNER_TEMP/owner-redirect-controls.patch"
+          git -C target diff --cached --check
+          test "$(git -C target write-tree)" = '98e9a193c4653a33d6f32c1bd6c196dccf5a1fde'
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'feat(editorial): add owner redirect controls'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:3ac5a9ec8b525a47fc1cac965a1eb9eca04009ad' \
+            origin HEAD:refs/heads/develop/editorial-workspace

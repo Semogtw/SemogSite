@@ -1,0 +1,83 @@
+name: Apply verified editorial redirect storage v2
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    paths:
+      - .agent-patches/redirect-storage-v2-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-editorial-redirect-storage-v2
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.event.pull_request.head.ref == 'ops/apply-editorial-redirect-storage-v2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed owner request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/redirect-storage-v2-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': 'dd26dbe0190307e6eae9e41dfe3a7657a57df489',
+              'patch_sha256': 'c67dd892fc2571eba9a994540e21981742d62ee11057b6e418b4c8249305bf12',
+              'expected_tree': '21baec5b460141f17e81ee77f0f2c1ad7c444246',
+              'part_count': 5,
+              'commit_message': 'feat(editorial): persist and resolve audited redirects',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from reviewed fixed contract')
+          PY
+          test "$(find request/.agent-patches -maxdepth 1 -name 'redirect-storage-v2-part-*' | wc -l)" -eq 5
+          cat request/.agent-patches/redirect-storage-v2-part-* \
+            | tr -d '\n' \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/redirect-storage-v2.patch"
+          test "$(sha256sum "$RUNNER_TEMP/redirect-storage-v2.patch" | awk '{print $1}')" = \
+            'c67dd892fc2571eba9a994540e21981742d62ee11057b6e418b4c8249305bf12'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact tree and push with lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = 'dd26dbe0190307e6eae9e41dfe3a7657a57df489'
+          git -C target apply --index "$RUNNER_TEMP/redirect-storage-v2.patch"
+          git -C target diff --cached --check
+          test "$(git -C target write-tree)" = '21baec5b460141f17e81ee77f0f2c1ad7c444246'
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'feat(editorial): persist and resolve audited redirects'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:dd26dbe0190307e6eae9e41dfe3a7657a57df489' \
+            origin HEAD:refs/heads/develop/editorial-workspace

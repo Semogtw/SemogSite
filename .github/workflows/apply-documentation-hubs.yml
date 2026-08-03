@@ -1,0 +1,81 @@
+name: Apply verified documentation hubs
+
+on:
+  push:
+    branches:
+      - ops/apply-documentation-hubs-v1
+    paths:
+      - .agent-patches/documentation-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-documentation-hubs
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request and assemble patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          request = json.loads(Path('request/.agent-patches/documentation-trigger.json').read_text())
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/editorial-workspace',
+              'expected_head': '37972201ac657d80bc5341f116539945f72f47e3',
+              'base_commit': '37972201ac657d80bc5341f116539945f72f47e3',
+              'patch_sha256': 'd6513e15fb3b16bded7f8de405213790c32c333f4ab5feed57c6c52c3e8e19b8',
+              'expected_tree': '1472ea28024896f48bf274ee6b45d9c151204c16',
+              'commit_message': 'docs: add operational documentation hubs and link guardrail',
+          }
+          if request != expected:
+              raise SystemExit('Request differs from the reviewed fixed contract')
+          PY
+          cat request/.agent-patches/documentation-part-* \
+            | tr -d '\n' \
+            | base64 --decode \
+            | gzip --decompress > "$RUNNER_TEMP/documentation-hubs.patch"
+          test "$(sha256sum "$RUNNER_TEMP/documentation-hubs.patch" | awk '{print $1}')" = \
+            'd6513e15fb3b16bded7f8de405213790c32c333f4ab5feed57c6c52c3e8e19b8'
+
+      - name: Checkout target branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop/editorial-workspace
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply verified tree and push with lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = '37972201ac657d80bc5341f116539945f72f47e3'
+          git -C target reset --hard '37972201ac657d80bc5341f116539945f72f47e3'
+          git -C target apply --index "$RUNNER_TEMP/documentation-hubs.patch"
+          git -C target diff --cached --check
+          test "$(git -C target write-tree)" = '1472ea28024896f48bf274ee6b45d9c151204c16'
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target commit -m 'docs: add operational documentation hubs and link guardrail'
+          git -C target push \
+            --force-with-lease='refs/heads/develop/editorial-workspace:37972201ac657d80bc5341f116539945f72f47e3' \
+            origin HEAD:refs/heads/develop/editorial-workspace
