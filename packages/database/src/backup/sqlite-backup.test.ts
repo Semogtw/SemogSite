@@ -1,8 +1,9 @@
-import type {
-  EditorialApprovalSnapshot,
-  EditorialDocumentSnapshot,
-  EditorialPersistenceEvent,
-  EditorialRevisionSnapshot,
+import {
+  EditorialRedirectService,
+  type EditorialApprovalSnapshot,
+  type EditorialDocumentSnapshot,
+  type EditorialPersistenceEvent,
+  type EditorialRevisionSnapshot,
 } from "@semogtw/domain";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -16,6 +17,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSqliteDatabase, migrate } from "../adapters/sqlite";
 import { SqliteEditorialReadModel } from "../repositories/editorial-read-model";
+import {
+  SqliteEditorialRedirectRepository,
+} from "../repositories/editorial-redirect-repository";
 import { SqliteEditorialWriteRepository } from "../repositories/editorial-write-repository";
 import { SqlitePublishedEditorialReadModel } from "../repositories/published-editorial-read-model";
 import {
@@ -88,7 +92,6 @@ describe("SQLite backup", () => {
     restored.$client.close();
   });
 
-
   it("restores a published editorial revision without exposing its newer private draft", async () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
@@ -98,6 +101,7 @@ describe("SQLite backup", () => {
     const createdAt = "2026-08-02T06:00:00.000Z";
     const reviewedAt = "2026-08-02T06:05:00.000Z";
     const publishedAt = "2026-08-02T06:10:00.000Z";
+    const redirectedAt = "2026-08-02T06:12:00.000Z";
     const draftedAt = "2026-08-02T06:15:00.000Z";
 
     const firstRevision: EditorialRevisionSnapshot = {
@@ -200,6 +204,30 @@ describe("SQLite backup", () => {
       null,
     );
 
+    const redirectResult = await new EditorialRedirectService(
+      new SqliteEditorialRedirectRepository(database),
+    ).create(
+      {
+        sourceSlug: "conteudo-antigo",
+        kind: "note",
+        targetDocumentId: initial.id,
+        reason: "Preservar URL histórica na restauração.",
+        confirmed: true,
+      },
+      {
+        actorId: "owner-1",
+        eventId: "backup-redirect-event-1",
+        idempotencyKey: "backup-redirect-key-1",
+        correlationId: "backup-redirect-correlation-1",
+        now: redirectedAt,
+      },
+    );
+    expect(redirectResult).toMatchObject({
+      ok: true,
+      duplicate: false,
+      event: { action: "created", sourceSlug: "conteudo-antigo" },
+    });
+
     const privateRevision: EditorialRevisionSnapshot = {
       ...firstRevision,
       id: "revision-private",
@@ -230,7 +258,8 @@ describe("SQLite backup", () => {
     database.$client.close();
 
     const restored = createSqliteDatabase(destination);
-    const publicProjection = await new SqlitePublishedEditorialReadModel(restored).findBySlug(
+    const publicReadModel = new SqlitePublishedEditorialReadModel(restored);
+    const publicProjection = await publicReadModel.findBySlug(
       "conteudo-restaurado",
     );
     expect(publicProjection).toMatchObject({
@@ -239,6 +268,9 @@ describe("SQLite backup", () => {
       publishedRevisionId: firstRevision.id,
     });
     expect(JSON.stringify(publicProjection)).not.toContain("PRIVATE_DRAFT");
+    await expect(
+      publicReadModel.resolveRedirect("conteudo-antigo", "note"),
+    ).resolves.toEqual({ targetSlug: "conteudo-restaurado" });
 
     const privateDetail = await new SqliteEditorialReadModel(restored).getDocument(
       initial.id,
@@ -255,6 +287,13 @@ describe("SQLite backup", () => {
     ]);
     expect(privateDetail?.reviews).toHaveLength(1);
     expect(privateDetail?.events).toHaveLength(4);
+    expect(privateDetail?.redirects).toEqual([
+      expect.objectContaining({
+        sourceSlug: "conteudo-antigo",
+        action: "created",
+        sequence: 1,
+      }),
+    ]);
     restored.$client.close();
   });
 
