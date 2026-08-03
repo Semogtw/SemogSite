@@ -1,6 +1,10 @@
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import {
+  ScopeReservationForm,
+  VerificationObligationForm,
+} from "../components/devos/workflow-orchestration-forms";
 import { getWorkflowOrchestrationDashboardFn } from "../server/devos-workflows";
 import { requireOwner } from "../server/require-owner";
 
@@ -89,6 +93,38 @@ function WorkflowOrchestrationPage() {
       </div>
 
       <div className="operations-stack">
+        <Surface>
+          <div className="surface-heading-row">
+            <div>
+              <p className="eyebrow">Nova coordenação</p>
+              <h2>Reservar escopo</h2>
+              <p className="muted-copy">
+                Declare branch, caminhos e finalidade antes de iniciar trabalho
+                substancial. Sobreposição exige confirmação explícita.
+              </p>
+            </div>
+            <Status tone="info">Owner-only</Status>
+          </div>
+          <ScopeReservationForm repositories={dashboard.repositoryOptions} />
+        </Surface>
+
+        <Surface>
+          <div className="surface-heading-row">
+            <div>
+              <p className="eyebrow">Nova dívida de validação</p>
+              <h2>Registrar gate pendente</h2>
+              <p className="muted-copy">
+                Vincule o comando e o ambiente necessário a um SHA completo. O
+                registro não promove o gate para aprovado.
+              </p>
+            </div>
+            <Status tone="info">Commit exato</Status>
+          </div>
+          <VerificationObligationForm
+            repositories={dashboard.repositoryOptions}
+          />
+        </Surface>
+
         <Surface>
           <div className="surface-heading-row">
             <div>
