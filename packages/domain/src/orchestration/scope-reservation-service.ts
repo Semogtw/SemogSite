@@ -120,6 +120,7 @@ export type ScopeReservationValidationError =
   | "EXPECTED_VERSION_INVALID"
   | "REASON_REQUIRED"
   | "REASON_TOO_LONG"
+  | "CONTEXT_RESERVATION_MISMATCH"
   | "CONFIRMATION_REQUIRED";
 
 export type ScopeReservationResult =
@@ -264,6 +265,16 @@ function auditEvent(input: {
   };
 }
 
+function bindReservationContext(
+  reservationId: string,
+  context: ScopeReservationContext,
+  errors: ScopeReservationValidationError[],
+): void {
+  if (text(context.reservationId) !== reservationId) {
+    errors.push("CONTEXT_RESERVATION_MISMATCH");
+  }
+}
+
 export class ScopeReservationService {
   constructor(private readonly repository: ScopeReservationRepository) {}
 
@@ -353,6 +364,7 @@ export class ScopeReservationService {
     const { errors, now } = contextErrors(context);
     const reservationId = text(input.reservationId);
     const runId = text(input.runId);
+    bindReservationContext(reservationId, context, errors);
     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
     if (!idPattern.test(runId)) errors.push("RUN_ID_REQUIRED");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
@@ -399,6 +411,7 @@ export class ScopeReservationService {
     const reservationId = text(input.reservationId);
     const runId = text(input.runId);
     const reason = text(input.reason);
+    bindReservationContext(reservationId, context, errors);
     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
     if (!idPattern.test(runId)) errors.push("RUN_ID_REQUIRED");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
@@ -443,6 +456,7 @@ export class ScopeReservationService {
     const { errors, now } = contextErrors(context);
     const reservationId = text(input.reservationId);
     const reason = text(input.reason);
+    bindReservationContext(reservationId, context, errors);
     if (!input.confirmed) errors.push("CONFIRMATION_REQUIRED");
     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
