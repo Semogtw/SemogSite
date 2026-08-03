@@ -67,11 +67,27 @@ export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqlitePublicProjectSource } from "./repositories/public-project-source";
 export { SqliteRecoverySnapshotRepository } from "./repositories/recovery-snapshot-repository";
+export { SqliteRecoverySnapshotSource } from "./repositories/recovery-snapshot-source";
+export type {
+  RecoverySnapshotSourceInput,
+  RecoverySnapshotSourceResult,
+} from "./repositories/recovery-snapshot-source";
 export { SqliteRepositoryTargetLifecycleRepository } from "./repositories/repository-target-lifecycle-repository";
 export { SqliteRepositoryTargetOptions } from "./repositories/repository-target-options";
-export type { RepositoryTargetProjectOption } from "./repositories/repository-target-options";
+export type {
+  RepositoryTargetProjectOption,
+  WorkflowRepositoryOption,
+} from "./repositories/repository-target-options";
 export { SqliteRepositoryTargetRegistrationRepository } from "./repositories/repository-target-registration-repository";
 export { SqliteRoadmapDataSource } from "./repositories/roadmap-data-source";
+export { SqliteSafeWorkSource } from "./repositories/safe-work-source";
+export type {
+  SafeWorkSourceError,
+  SafeWorkSourceExclusion,
+  SafeWorkSourceExclusionCode,
+  SafeWorkSourceInput,
+  SafeWorkSourceResult,
+} from "./repositories/safe-work-source";
 export { SqliteScopeReservationRepository } from "./repositories/scope-reservation-repository";
 export { SqliteSessionHandoffRepository } from "./repositories/session-handoff-repository";
 export { SqliteStageCompletionRepository } from "./repositories/stage-completion-repository";
