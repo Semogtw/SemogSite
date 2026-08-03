@@ -83,11 +83,13 @@ export type AiResumeTarget = {
 };
 ```
 
-- [ ] Write failing service tests for threshold order, HTTPS/loopback URLs, credential/unsafe-scheme rejection, one default target per scope, baseline deep-link rejection, template size/allowlisted placeholders, retry identity and stale versions.
-- [ ] Run RED: `pnpm --filter @semogtw/domain exec vitest run src/resume/resume-configuration-service.test.ts`.
-- [ ] Implement stable validation codes and allow only: `project_name`, `project_slug`, `repository_full_name`, `branch`, `head_sha`, `commit_time`, `activity_age`, `activity_status`, `stage`, `current_position`, `next_step`, `blocker`, `test_evidence`, `previous_handoff`, `generated_at`, `activity_source`, `confidence`.
-- [ ] Run GREEN and domain typecheck.
-- [ ] Commit: `feat(resume): define policies targets and templates` and push.
+- [x] Write failing service tests for threshold order, HTTPS/loopback URLs, credential/unsafe-scheme rejection, one default target per scope, baseline deep-link rejection, template size/allowlisted placeholders, retry identity and stale versions.
+- [x] Run RED: `pnpm --filter @semogtw/domain exec vitest run src/resume/resume-configuration-service.test.ts`.
+- [x] Implement stable validation codes and allow only: `project_name`, `project_slug`, `repository_full_name`, `branch`, `head_sha`, `commit_time`, `activity_age`, `activity_status`, `stage`, `current_position`, `next_step`, `blocker`, `test_evidence`, `previous_handoff`, `generated_at`, `activity_source`, `confidence`.
+- [x] Run GREEN and domain typecheck.
+- [x] Commit: `feat(resume): define policies targets and templates` and push.
+
+**Observed evidence:** focused RED failed on the missing service module; focused GREEN passed 7/7, all resume tests passed 14/14, domain typecheck passed, and the complete domain suite passed 45 files / 256 tests.
 
 ### Task 3: SQLite persistence
 
