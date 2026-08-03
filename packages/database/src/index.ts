@@ -66,6 +66,7 @@ export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqlitePublicProjectSource } from "./repositories/public-project-source";
+export { SqliteRecoverySnapshotRepository } from "./repositories/recovery-snapshot-repository";
 export { SqliteRepositoryTargetLifecycleRepository } from "./repositories/repository-target-lifecycle-repository";
 export { SqliteRepositoryTargetOptions } from "./repositories/repository-target-options";
 export type { RepositoryTargetProjectOption } from "./repositories/repository-target-options";
