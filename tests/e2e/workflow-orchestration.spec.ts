@@ -75,9 +75,10 @@ test.describe("authenticated workflow orchestration", () => {
   test("re-evaluates safe work only from explicit session capabilities", async ({
     page,
   }) => {
+    const declaredCapabilities = " Node-22, pnpm-10, node-22 ";
     await page
       .getByLabel("Capacidades do runtime atual")
-      .fill(" Node-22, pnpm-10\nnode-22 ");
+      .fill(declaredCapabilities);
     await page.getByRole("button", { name: "Reavaliar trabalho seguro" }).click();
 
     await expect(
@@ -86,7 +87,7 @@ test.describe("authenticated workflow orchestration", () => {
       ),
     ).toBeVisible();
     await expect(page.getByLabel("Capacidades do runtime atual")).toHaveValue(
-      " Node-22, pnpm-10\nnode-22 ",
+      declaredCapabilities,
     );
   });
 
