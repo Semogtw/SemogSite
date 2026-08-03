@@ -53,3 +53,19 @@ export type {
   RecoverySnapshotValidationError,
   RecoveryTestStatus,
 } from "./recovery-snapshot";
+export { SafeWorkService } from "./safe-work-service";
+export type {
+  SafeWorkCandidate,
+  SafeWorkConfidence,
+  SafeWorkEvaluationError,
+  SafeWorkEvaluationInput,
+  SafeWorkEvaluationResult,
+  SafeWorkExclusion,
+  SafeWorkExclusionCode,
+  SafeWorkPriority,
+  SafeWorkRecommendation,
+  SafeWorkRecommendationReason,
+  SafeWorkRisk,
+  SafeWorkState,
+  SafeWorkVerification,
+} from "./safe-work-service";
