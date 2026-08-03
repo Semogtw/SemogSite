@@ -1,0 +1,103 @@
+name: Apply fixed workflow control context patch
+
+on:
+  push:
+    branches:
+      - ops/apply-workflow-control-context-fixes-v2
+    paths:
+      - .agent-patches/workflow-control-context-fixes-trigger.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-workflow-control-context-fixes-v2
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          persist-credentials: false
+          sparse-checkout: .agent-patches/workflow-control-context-fixes-trigger.json
+          sparse-checkout-cone-mode: false
+
+      - name: Validate request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          expected = {
+              'repository': 'Semogtw/SemogSite',
+              'branch': 'develop/workflow-control-core',
+              'expected_head': '128a6e7a2d6612245415a933a843357f228fb9a7',
+              'commit_message': 'fix(orchestration): bind mutation context identities',
+          }
+          actual = json.loads(Path('request/.agent-patches/workflow-control-context-fixes-trigger.json').read_text())
+          if actual != expected:
+              raise SystemExit('Request differs from reviewed contract')
+          PY
+
+      - name: Checkout target
+        uses: actions/checkout@v6
+        with:
+          ref: develop/workflow-control-core
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact replacements
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = '128a6e7a2d6612245415a933a843357f228fb9a7'
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'target/packages/domain/src/orchestration/scope-reservation-service.ts': [
+                  ('  | "REASON_TOO_LONG"\n  | "CONFIRMATION_REQUIRED";', '  | "REASON_TOO_LONG"\n  | "CONTEXT_RESERVATION_MISMATCH"\n  | "CONFIRMATION_REQUIRED";'),
+                  ('    const reservationId = text(input.reservationId);\n    const runId = text(input.runId);\n    if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");', '    const reservationId = text(input.reservationId);\n    const runId = text(input.runId);\n    if (text(context.reservationId) !== reservationId) {\n      errors.push("CONTEXT_RESERVATION_MISMATCH");\n    }\n    if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");'),
+                  ('    const reservationId = text(input.reservationId);\n    const runId = text(input.runId);\n    const reason = text(input.reason);\n    if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");', '    const reservationId = text(input.reservationId);\n    const runId = text(input.runId);\n    const reason = text(input.reason);\n    if (text(context.reservationId) !== reservationId) {\n      errors.push("CONTEXT_RESERVATION_MISMATCH");\n    }\n    if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");'),
+                  ('    const reservationId = text(input.reservationId);\n    const reason = text(input.reason);\n    if (!input.confirmed) errors.push("CONFIRMATION_REQUIRED");', '    const reservationId = text(input.reservationId);\n    const reason = text(input.reason);\n    if (text(context.reservationId) !== reservationId) {\n      errors.push("CONTEXT_RESERVATION_MISMATCH");\n    }\n    if (!input.confirmed) errors.push("CONFIRMATION_REQUIRED");'),
+              ],
+              'target/packages/domain/src/orchestration/verification-obligation-service.ts': [
+                  ('  | "REASON_TOO_LONG"\n  | "CONFIRMATION_REQUIRED";', '  | "REASON_TOO_LONG"\n  | "CONTEXT_OBLIGATION_MISMATCH"\n  | "CONFIRMATION_REQUIRED";'),
+                  ('    const nextAction = text(input.nextAction);\n    const evidence = normalizeEvidenceUrls(input.evidenceUrls);\n\n    if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");', '    const nextAction = text(input.nextAction);\n    const evidence = normalizeEvidenceUrls(input.evidenceUrls);\n    if (text(context.obligationId) !== obligationId) {\n      errors.push("CONTEXT_OBLIGATION_MISMATCH");\n    }\n\n    if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");'),
+                  ('    const obligationId = text(input.obligationId);\n    const reason = text(input.reason);\n    if (status === "waived" && !confirmed) errors.push("CONFIRMATION_REQUIRED");', '    const obligationId = text(input.obligationId);\n    const reason = text(input.reason);\n    if (text(context.obligationId) !== obligationId) {\n      errors.push("CONTEXT_OBLIGATION_MISMATCH");\n    }\n    if (status === "waived" && !confirmed) errors.push("CONFIRMATION_REQUIRED");'),
+              ],
+              'target/packages/database/src/backup/sqlite-backup.test.ts': [
+                  ('  "0010_editorial_redirect_registry.sql",\n] as const;', '  "0010_editorial_redirect_registry.sql",\n  "0011_scope_reservations.sql",\n  "0012_verification_obligations.sql",\n] as const;'),
+              ],
+          }
+
+          for name, pairs in replacements.items():
+              path = Path(name)
+              content = path.read_text()
+              for old, new in pairs:
+                  if content.count(old) != 1:
+                      raise SystemExit(f'{name}: exact replacement precondition failed')
+                  content = content.replace(old, new, 1)
+              path.write_text(content)
+          PY
+          git -C target diff --check
+          test "$(git -C target diff --name-only | sort | tr '\n' ' ')" = 'packages/database/src/backup/sqlite-backup.test.ts packages/domain/src/orchestration/scope-reservation-service.ts packages/domain/src/orchestration/verification-obligation-service.ts '
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C target config user.name 'Arthur Almeida'
+          git -C target config user.email 'arthurgva1602@gmail.com'
+          git -C target add packages/database/src/backup/sqlite-backup.test.ts packages/domain/src/orchestration/scope-reservation-service.ts packages/domain/src/orchestration/verification-obligation-service.ts
+          git -C target commit -m 'fix(orchestration): bind mutation context identities'
+          git -C target push --force-with-lease='refs/heads/develop/workflow-control-core:128a6e7a2d6612245415a933a843357f228fb9a7' origin HEAD:refs/heads/develop/workflow-control-core
