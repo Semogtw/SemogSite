@@ -19,7 +19,8 @@ Narrow domain rules remain owned by their existing specifications. In particular
 - Growth owns goals, checkpoints, evidence and the progress formula;
 - remote MCP/Spark owns OAuth and Streamable HTTP;
 - workflow orchestration owns reservations, exact-SHA obligations and recovery snapshots;
-- the platform foundation owns visual tokens, package boundaries and private/public separation.
+- the platform foundation owns visual tokens, package boundaries and private/public separation;
+- `DEPLOYMENT.md` owns the observed host capability state and must continue to say production is unavailable until verified.
 
 ## Execution order
 
@@ -57,9 +58,13 @@ These plans remain authoritative for their current read-only/domain slices.
    - adds development requests, branch/SHA/scope reservations, checkpoints and verification evidence;
    - does not yet grant an executor raw repository or deployment access.
 
-6. [`2026-08-03-semogtw-development-executor-deployment.md`](./2026-08-03-semogtw-development-executor-deployment.md)
-   - adds constrained signed executor jobs, repository/path/network/tool policy, PR/merge/deploy and rollback;
-   - requires Plans 2–5 and an explicit owner implementation approval.
+6. [`2026-08-03-semogtw-development-executor.md`](./2026-08-03-semogtw-development-executor.md)
+   - adds signed constrained jobs, separately authenticated worker, verified sandbox, scoped Git workspaces, checkpoint pushes, allowlisted exact-SHA gates and exact-head draft PR creation;
+   - never merges or deploys.
+
+7. [`2026-08-03-semogtw-deployment-rollback.md`](./2026-08-03-semogtw-deployment-rollback.md)
+   - adds exact-head merge approval, immutable artifacts, typed deployment adapters, local-container preview, observed health and artifact rollback;
+   - keeps production visibly disabled until a separate provider-specific adapter plan passes after host selection.
 
 ## Hard gates
 
@@ -87,15 +92,30 @@ No critical command executes until:
 
 ### Development executor gate
 
-No executor receives repository, shell, deployment or secret-reference access until:
+No executor receives repository, agent-provider or secret-reference access until:
 
 - Development Request lifecycle and cooperative scope reservation are implemented;
 - signed job envelopes are verified;
+- a host-enforced rootless sandbox profile passes filesystem/process/network/resource tests;
 - repository, branch and path allowlists fail closed;
 - exact-SHA verification evidence is mandatory;
-- executor and deployment kill switches work;
-- preview/rollback evidence is available;
-- explicit owner approval exists for the concrete repository/environment.
+- executor kill switches, lease loss, credential rotation and cleanup work;
+- the target repository/policy/agent adapter is explicitly approved by the owner.
+
+A plain Node child process is never treated as sufficient isolation. Ordinary UI/MCP clients never receive raw shell, filesystem or Git credentials.
+
+### Deployment gate
+
+No merge/deploy/rollback executes until:
+
+- exact-head PR, required gates and current approval are revalidated;
+- immutable artifact and known rollback target exist where required;
+- deployment adapter ID/version/capabilities are statically registered and verified;
+- environment/switch/config/secret references are owner-approved;
+- health checks and external reconciliation are implemented;
+- production additionally has a selected host, provider-specific adapter, capability evidence, recent owner authentication and critical approval.
+
+The general deployment plan implements a real local preview adapter but does not authorize or pretend to provide production hosting.
 
 ### Spark email wake gate
 
@@ -122,14 +142,15 @@ Current planning reserves:
 0018_agent_authorization.sql
 0019_command_approvals.sql
 0020_development_requests.sql
-0021_development_executor_deployments.sql
+0021_development_executor.sql
+0022_deployment_control.sql
 ```
 
 This is a reservation, not permission to create migrations blindly. Before implementing any plan:
 
 ```bash
 ls packages/database/migrations
-rg "00(14|15|16|17|18|19|20|21)_" packages/database/migrations docs/superpowers
+rg "00(14|15|16|17|18|19|20|21|22)_" packages/database/migrations docs/superpowers
 ```
 
 If another migration landed, renumber every unimplemented affected plan/spec together before code.
@@ -145,8 +166,9 @@ If another migration landed, renumber every unimplemented affected plan/spec tog
 - Immutable history is corrected through append-only supersede/compensation.
 - Every write has authorization, resource resolution, risk, idempotency, conflict and audit semantics.
 - Critical operations require DevOS recent-auth approval.
-- Public loaders/DTOs never expose private command, approval, agent, Growth, executor or event-wake state.
+- Public loaders/DTOs never expose private command, approval, agent, Growth, executor, deployment or event-wake state.
 - Imported email/repository/provider content is data, not instruction.
+- External acceptance/adapter/provider success is not claimed from a request being queued or accepted.
 - Each task ends with focused tests, a reviewable commit and push.
 
 ## Required agent handoff
