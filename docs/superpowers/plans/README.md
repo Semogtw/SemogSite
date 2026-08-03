@@ -91,21 +91,27 @@ The first slice is complete on `develop/workflow-control-core`: cooperative scop
 
 Current evidence is recorded in [`../../testing/2026-08-03-workflow-orchestration-test-matrix.md`](../../testing/2026-08-03-workflow-orchestration-test-matrix.md). Campaigns, CI clustering, divergence guidance, execution profiles and capability catalogs require separate follow-up plans.
 
-### 11. Editorial workflow and publication approval
+### 11. Provider-agnostic project resume launcher
 
-Create a dedicated plan for private draft generation, sensitive-data review, preview, approval, publication and rollback.
+[`2026-08-03-provider-agnostic-project-resume-launcher.md`](./2026-08-03-provider-agnostic-project-resume-launcher.md)
 
-### 12. Scheduled reconciliation, webhooks and insights
+Implements the approved clipboard-and-open baseline for conservative inactivity classification, repository/project policies, generic AI destinations, deterministic prompts and audited continuation handoffs. Webhooks and verified provider deep links remain separate adapter plans.
+
+### 12. Editorial workflow and publication approval
+
+The editorial lifecycle, publication approval, rollback and audited redirects are already integrated in `main`; retain the historical plan as evidence rather than creating a duplicate implementation phase.
+
+### 13. Scheduled reconciliation, webhooks and insights
 
 Create a dedicated plan only after the selected host proves scheduler/webhook behavior or an external adapter is selected.
 
-### 13. Host verification and controlled publication
+### 14. Host verification and controlled publication
 
 Use the Sites capability assessment and direct deployment evidence. Save and inspect a version before every production deployment. Keep MCP and scheduled work separately deployable when the host does not pass those gates.
 
 ## Current code checkpoint
 
-`develop/workflow-control-core` is the most advanced consolidated development line. It contains the platform foundation, editorial lifecycle and redirects, cooperative run ledger, GitHub read observations, recovery snapshots, safe-work evaluation and owner-only workflow orchestration.
+`main` at merge commit `e8aa08e9b105209de87ddcbd047cf0868ea7ede8` is the integrated baseline. The next active development line is `develop/provider-agnostic-resume-launcher`, created from that exact commit for the approved portable continuation feature.
 
 Observed on August 3, 2026 with the verified offline toolchain:
 
