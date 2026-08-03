@@ -77,4 +77,10 @@ export { SqliteStageCompletionRepository } from "./repositories/stage-completion
 export { SqliteStageRepository } from "./repositories/stage-repository";
 export { SqliteTodayDataSource } from "./repositories/today-data-source";
 export { SqliteVerificationObligationRepository } from "./repositories/verification-obligation-repository";
+export { SqliteWorkflowOrchestrationReadModel } from "./repositories/workflow-orchestration-read-model";
+export type {
+  WorkflowOrchestrationDashboard,
+  WorkflowReservationView,
+  WorkflowVerificationView,
+} from "./repositories/workflow-orchestration-read-model";
 export * as schema from "./schema";
