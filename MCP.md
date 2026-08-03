@@ -20,9 +20,9 @@ McpServer instance
 
 `apps/mcp` composes the chain from an already-open, already-migrated `SqliteDatabase`. It does not open stdio, HTTP, SSE or another listener.
 
-An authenticated remote MCP surface is now specified and planned, but no listener, OAuth endpoint, migration `0014` or remote client connection has been implemented yet.
+Authenticated remote MCP, workflow/recovery reads and Growth reads are specified/planned, but no listener, OAuth endpoint, migration `0014`–`0016`, Growth table or remote client connection has been implemented yet.
 
-## Catalog
+## Implemented catalog
 
 ### Resources
 
@@ -73,7 +73,7 @@ Successful tools return:
 
 The adapter serializes the logical JSON before returning it. A representation larger than **256 KiB** is rejected instead of truncated or duplicated into a large protocol response.
 
-Stable adapter errors:
+Stable adapter errors currently include:
 
 - `DEVOS_READ_FAILED`;
 - `PROJECT_INVALID_INPUT`;
@@ -83,7 +83,7 @@ Stable adapter errors:
 
 Unexpected exception messages, SQL, filesystem paths, tokens and private response bodies are never copied into protocol errors.
 
-The MCP SDK may reject structurally invalid protocol arguments before a tool handler runs. Semantically invalid but structurally valid project/roadmap inputs are normalized and rejected again by `DevOSReadService`.
+The MCP SDK may reject structurally invalid protocol arguments before a tool handler runs. Semantically invalid but structurally valid inputs are normalized and rejected again by provider-neutral services.
 
 ## Input bounds
 
@@ -96,7 +96,7 @@ The MCP SDK may reject structurally invalid protocol arguments before a tool han
 - deterministic trimming and deduplication;
 - no data-source call after invalid input.
 
-The protocol schema also bounds string and array sizes before the domain service.
+Future workflow/Growth tools preserve the same closed-world pattern, collection maximum 50 and existing logical response bound.
 
 ## Transport boundary
 
@@ -109,7 +109,7 @@ The protocol schema also bounds string and array sizes before the domain service
 
 `InMemoryTransport` remains allowed for protocol tests.
 
-The guardrail is part of both `test:guardrails` and `pnpm check`. It must remain deny-by-default. The approved remote implementation may narrow the allowlist only for the exact reviewed network and Streamable HTTP adapter files under `apps/mcp-http`; `packages/mcp`, `apps/mcp`, web and API remain listener-free.
+The guardrail is part of both `test:guardrails` and `pnpm check`. It must remain deny-by-default. The approved remote implementation may narrow the allowlist only for exact reviewed adapter files under `apps/mcp-http`; `packages/mcp`, `apps/mcp`, web and API remain listener-free.
 
 ## Tests
 
@@ -127,7 +127,7 @@ Committed specifications cover:
 - SQLite-to-MCP reads against the migrated demo state;
 - transport-boundary guardrail fixtures.
 
-The dependency-complete workflow-core baseline includes the MCP suites in the repository-wide verified gate. Remote implementation must nevertheless rerun focused MCP package/app tests, record the exact installed SDK API, and produce fresh HTTP/OAuth/client evidence tied to the implementation head.
+The dependency-complete workflow-core baseline includes the MCP suites in the repository-wide verified gate. Remote/new catalog implementation must nevertheless rerun focused package/app tests, record the exact SDK API and produce fresh HTTP/OAuth/client evidence tied to the implementation head.
 
 ## Approved remote MCP design and plans
 
@@ -149,15 +149,15 @@ The remote design uses a separately deployable Mode B bridge with:
 - audience/resource-bound opaque access and rotating refresh tokens persisted only as digests;
 - private owner client management and consent;
 - OAuth protected-resource and authorization-server discovery;
-- an independent remote kill switch;
+- independent remote kill switch;
 - authenticated stateless Streamable HTTP;
 - generic MCP-client verification before Gemini Spark acceptance.
 
-Gemini Spark is an intended compatibility client, not a domain dependency. The owner currently has Spark through Google AI Pro in Brazil, but **Custom apps for Spark** remains a separate account capability that must be observed in the real account. Its absence is an external dependency, not a code failure and not permission to bypass the gate with browser automation.
+Gemini Spark is an intended compatibility client, not a domain dependency. The owner currently has Spark through Google AI Pro in Brazil, but **Custom apps for Spark** remains a separate account capability that must be observed. Its absence is an external dependency, not a code failure or permission to automate the provider UI.
 
 ## Planned workflow/recovery reads
 
-After the original catalog passes authenticated remote gates, the approved read-only expansion adds exactly:
+After the original catalog passes its relevant gates, the approved expansion adds exactly:
 
 ```text
 devos_get_workflow_summary
@@ -168,7 +168,7 @@ devos_get_recovery_snapshot
 devos_get_project_resume_context
 ```
 
-This phase adds no new resources and no mutation tools.
+This phase adds no resources and no mutation tools.
 
 Required semantics:
 
@@ -177,12 +177,70 @@ Required semantics:
 - explicit verification classifications preserved;
 - safe-work capabilities default to an empty set and are not persisted;
 - recovery Markdown is bounded and opt-in;
-- all collections are bounded and deterministically ordered;
-- existing sensitive-output and 256 KiB limits remain active.
+- collections are bounded/deterministically ordered;
+- sensitive-output and 256 KiB limits remain active.
+
+## Planned Growth reads and Spark workflows
+
+Canonical Growth design/overview:
+
+- [`docs/superpowers/specs/2026-08-03-semogtw-learning-growth-evidence-design.md`](docs/superpowers/specs/2026-08-03-semogtw-learning-growth-evidence-design.md)
+- [`docs/LEARNING_GROWTH.md`](docs/LEARNING_GROWTH.md)
+
+Executable plans:
+
+- [`docs/superpowers/plans/2026-08-03-semogtw-learning-goals-core.md`](docs/superpowers/plans/2026-08-03-semogtw-learning-goals-core.md)
+- [`docs/superpowers/plans/2026-08-03-semogtw-learning-evidence-credentials.md`](docs/superpowers/plans/2026-08-03-semogtw-learning-evidence-credentials.md)
+- [`docs/superpowers/plans/2026-08-03-semogtw-learning-mcp-spark-automation.md`](docs/superpowers/plans/2026-08-03-semogtw-learning-mcp-spark-automation.md)
+
+After Growth migrations/services and remote reads pass, add exactly:
+
+```text
+devos_list_learning_goals
+devos_get_learning_goal
+devos_list_due_learning_checkpoints
+devos_get_skill_profile
+devos_list_learning_evidence
+devos_list_credentials
+```
+
+Required semantics:
+
+- progress is derived from checkpoint weights and accepted values, never directly set;
+- evidence list distinguishes proposed/accepted/rejected/superseded;
+- external/model findings do not become canonical progress by themselves;
+- skill stages show evidence basis and do not claim universal mastery;
+- credentials expose bounded status/summary and not attachment refs, Gmail references, raw IDs or provider payloads by default;
+- no Google/Gmail/GitHub credentials pass through the SemogSite MCP;
+- Spark may combine providers on its side and produce read-only reports/manual previews before write authorization.
+
+## Deferred supervised Growth writes
+
+Desired future operations are reserved for a separate post-gate design:
+
+```text
+devos_create_learning_goal
+devos_add_learning_checkpoint
+devos_link_goal_repository
+devos_propose_learning_evidence
+devos_propose_goal_progress
+devos_propose_credential
+```
+
+These names are not implemented or authorized by the planning documents.
+
+Hard safety direction:
+
+- goal/checkpoint creation may become supervised canonical writes;
+- evidence/progress/credential imports create proposals by default;
+- no tool directly sets percentage, completes a goal, accepts evidence, verifies a credential or waives a checkpoint;
+- every future write needs dedicated OAuth scope, consent, confirmation, expected version, idempotency and atomic audit/events;
+- client confirmation is additional UX protection, not server authorization;
+- the separate write specification may begin only after remote/Workflow/Growth read gates, canonical browser flows and rollback are verified.
 
 ## Remote exposure gate
 
-Do not expose the server over HTTP, stdio or another network transport until the 2026-08-03 plan proves:
+Do not expose the server over HTTP, stdio or another network transport until the 2026-08-03 remote plan proves:
 
 - additive OAuth persistence and backup/restore;
 - owner-only preregistration, DCR, consent and revocation;
@@ -196,7 +254,7 @@ Do not expose the server over HTTP, stdio or another network transport until the
 - shared rate limiting when multi-instance;
 - private/no-store caching;
 - sanitized structured logs and correlation IDs;
-- cancellation and disconnect behavior;
+- cancellation/disconnect behavior;
 - credential rotation;
 - endpoint disablement and rollback;
 - generic MCP client compatibility;
@@ -206,14 +264,14 @@ Read-only annotations do not satisfy these requirements.
 
 ## Future writes
 
-A future write tool must call the same audited domain service already used by DevOS. It must preserve:
+Any future write tool must call the same audited domain service already used by DevOS and preserve:
 
 - explicit confirmation;
-- reason;
+- reason where sensitive;
 - optimistic concurrency;
 - idempotency;
 - atomic audit/event insertion;
 - owner authorization;
-- no direct GitHub write unless separately designed and approved.
+- no direct GitHub write unless separately designed/approved.
 
 No write plan may begin merely by adding a handler to `packages/mcp`. No write scope exists in the approved remote design.
