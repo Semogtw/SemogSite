@@ -4,6 +4,27 @@ This directory contains approved product and architecture specifications. Specif
 
 Agents must verify the newest consolidated branch and current code before applying a specification. A specification may describe future work that is not implemented yet.
 
+## Adaptive owner experience direction
+
+### Human-first workflows, deterministic assistance and optional AI
+
+- [`2026-08-03-semogtw-adaptive-owner-experience-design.md`](./2026-08-03-semogtw-adaptive-owner-experience-design.md)
+
+This is the canonical source for owner-facing ease of use. It defines:
+
+- minimal quick-create flows and progressive disclosure;
+- deterministic templates, defaults, weight distribution and calculations that work without AI;
+- automatic, explainable percentages derived from canonical domain inputs;
+- task-oriented cards, checklists, timelines and guided forms rather than spreadsheet-like record editing;
+- explicit separation between deterministic assistance, external AI through MCP and optional internal model providers;
+- truthful AI availability/provenance and complete manual fallbacks;
+- mobile/accessibility requirements;
+- a search-before-write and canonical-document protocol to prevent duplicated or conflicting documentation.
+
+The platform foundation continues to own visual tokens/components, Growth owns the progress formula and domain semantics, and the unified editability specification owns command/risk/UI-MCP parity. Dependent documents should link here rather than restating general human-experience rules.
+
+No implementation plan exists yet. Plans must be written only after owner review of this specification.
+
 ## Unified editability and agent control direction
 
 ### UI/MCP parity, graduated authorization and development control
@@ -23,7 +44,7 @@ The design includes:
 - immutable approval requests bound to payload hashes, entity versions and exact SHAs;
 - atomic database change sets and explicit cross-system saga/compensation behavior;
 - command-specific correction, compensation, rotation and rollback rather than arbitrary history rewriting;
-- easy owner editing, MCP action discovery and visible AI-origin history;
+- owner editing and MCP action discovery governed by the adaptive owner-experience design;
 - modeled theme/navigation/dashboard configuration without executable-code injection;
 - a separate Development Control Plane for code, migrations, tests, branches, merge, deployment and rollback;
 - an isolated executor rather than generic SQL, shell or arbitrary-file tools for normal clients.
@@ -50,6 +71,8 @@ Defines:
 - six future Growth MCP read tools;
 - future Growth writes governed by the unified editability/agent-control design and its post-read security gates;
 - Spark recipes for planning, GitHub evidence review, certificate previews and recurring briefings.
+
+The Growth data model/formula remain canonical here; quick creation, automatic presentation, progressive disclosure and AI-availability behavior are governed by the adaptive owner-experience specification.
 
 Executable plans:
 
@@ -115,9 +138,12 @@ Editorial lifecycle and redirect execution documents currently live under [`../p
 
 - Code and observed tests remain the source of truth for implementation state.
 - Do not mark a future design as implemented merely because the specification exists.
+- Before creating a specification or plan, search the newest consolidated branch for the domain, routes, tools, commands, concepts and synonyms.
+- Prefer updating a canonical document or adding a short linked extension over duplicating cross-cutting requirements.
 - Provider availability, plans, regions and client behavior are external dependencies and must be reverified.
 - Preserve provider-neutral domain contracts; provider-specific compatibility belongs in adapters/evidence.
 - External observations and model classifications are data/proposals, never canonical completion by themselves.
+- Deterministic assistance must not be presented as AI; internal generation requires a configured model/provider and external generation requires an authenticated connected client.
 - Broad editability must use canonical commands, graduated authorization and owner-visible audit; it must not become arbitrary raw access.
 - Security-sensitive surfaces require dedicated implementation plans, tests, preview evidence and rollback.
 - Update the relevant specification only when an architectural decision changes; implementation progress belongs in plans, test matrices, runbooks and changelog.
