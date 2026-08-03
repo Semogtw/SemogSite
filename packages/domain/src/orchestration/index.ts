@@ -53,6 +53,16 @@ export type {
   RecoverySnapshotValidationError,
   RecoveryTestStatus,
 } from "./recovery-snapshot";
+export { RecoverySnapshotService } from "./recovery-snapshot-service";
+export type {
+  RecoverySnapshotAuditEvent,
+  RecoverySnapshotContext,
+  RecoverySnapshotHasher,
+  RecoverySnapshotRecord,
+  RecoverySnapshotRepository,
+  RecoverySnapshotServiceResult,
+  RecoverySnapshotStoreResult,
+} from "./recovery-snapshot-service";
 export { SafeWorkService } from "./safe-work-service";
 export type {
   SafeWorkCandidate,
