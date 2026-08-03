@@ -6,5 +6,6 @@ export * from "./github";
 export * from "./operations";
 export * from "./orchestration";
 export * from "./projects";
+export * from "./recovery";
 export * from "./roadmap";
 export * from "./runs";
