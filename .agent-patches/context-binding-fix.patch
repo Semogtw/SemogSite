@@ -1,0 +1,78 @@
+diff --git a/packages/domain/src/orchestration/scope-reservation-service.ts b/packages/domain/src/orchestration/scope-reservation-service.ts
+index 32b14ec..65639f8 100644
+--- a/packages/domain/src/orchestration/scope-reservation-service.ts
++++ b/packages/domain/src/orchestration/scope-reservation-service.ts
+@@ -120,7 +120,8 @@ export type ScopeReservationValidationError =
+   | "EXPECTED_VERSION_INVALID"
+   | "REASON_REQUIRED"
+   | "REASON_TOO_LONG"
+-  | "CONFIRMATION_REQUIRED";
++  | "CONFIRMATION_REQUIRED"
++  | "CONTEXT_RESERVATION_MISMATCH";
+ 
+ export type ScopeReservationResult =
+   | {
+@@ -354,6 +355,9 @@ export class ScopeReservationService {
+     const reservationId = text(input.reservationId);
+     const runId = text(input.runId);
+     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
++    if (idPattern.test(reservationId) && text(context.reservationId) !== reservationId) {
++      errors.push("CONTEXT_RESERVATION_MISMATCH");
++    }
+     if (!idPattern.test(runId)) errors.push("RUN_ID_REQUIRED");
+     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+       errors.push("EXPECTED_VERSION_INVALID");
+@@ -400,6 +404,9 @@ export class ScopeReservationService {
+     const runId = text(input.runId);
+     const reason = text(input.reason);
+     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
++    if (idPattern.test(reservationId) && text(context.reservationId) !== reservationId) {
++      errors.push("CONTEXT_RESERVATION_MISMATCH");
++    }
+     if (!idPattern.test(runId)) errors.push("RUN_ID_REQUIRED");
+     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+       errors.push("EXPECTED_VERSION_INVALID");
+@@ -445,6 +452,9 @@ export class ScopeReservationService {
+     const reason = text(input.reason);
+     if (!input.confirmed) errors.push("CONFIRMATION_REQUIRED");
+     if (!idPattern.test(reservationId)) errors.push("RESERVATION_ID_REQUIRED");
++    if (idPattern.test(reservationId) && text(context.reservationId) !== reservationId) {
++      errors.push("CONTEXT_RESERVATION_MISMATCH");
++    }
+     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+       errors.push("EXPECTED_VERSION_INVALID");
+     }
+diff --git a/packages/domain/src/orchestration/verification-obligation-service.ts b/packages/domain/src/orchestration/verification-obligation-service.ts
+index 8d7e8fa..e7b50fb 100644
+--- a/packages/domain/src/orchestration/verification-obligation-service.ts
++++ b/packages/domain/src/orchestration/verification-obligation-service.ts
+@@ -166,7 +166,8 @@ export type VerificationObligationValidationError =
+   | "TOO_MANY_EVIDENCE_URLS"
+   | "REASON_REQUIRED"
+   | "REASON_TOO_LONG"
+-  | "CONFIRMATION_REQUIRED";
++  | "CONFIRMATION_REQUIRED"
++  | "CONTEXT_OBLIGATION_MISMATCH";
+ 
+ export type VerificationObligationResult =
+   | {
+@@ -465,6 +466,9 @@ export class VerificationObligationService {
+     const evidence = normalizeEvidenceUrls(input.evidenceUrls);
+ 
+     if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");
++    if (idPattern.test(obligationId) && text(context.obligationId) !== obligationId) {
++      errors.push("CONTEXT_OBLIGATION_MISMATCH");
++    }
+     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+       errors.push("EXPECTED_VERSION_INVALID");
+     }
+@@ -573,6 +577,9 @@ export class VerificationObligationService {
+     const reason = text(input.reason);
+     if (status === "waived" && !confirmed) errors.push("CONFIRMATION_REQUIRED");
+     if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");
++    if (idPattern.test(obligationId) && text(context.obligationId) !== obligationId) {
++      errors.push("CONTEXT_OBLIGATION_MISMATCH");
++    }
+     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+       errors.push("EXPECTED_VERSION_INVALID");
+     }
