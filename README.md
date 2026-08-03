@@ -8,11 +8,13 @@ O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizz
 
 ## Documentação essencial
 
+- [Workflow orchestration core](docs/WORKFLOW_ORCHESTRATION.md) — reservas, gates, recuperação, fila segura, privacidade e evidências atuais.
+- [Matriz de testes do workflow core](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md) — comandos e resultados realmente observados.
 - [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, checksums, remontagem, instalação sem rede, Chromium e SQLite nativo.
 - [Arquitetura e fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md) — fronteiras, composição e decisões estruturais.
 - [Modelo de dados](docs/DATA_MODEL.md) — entidades, projeções, aliases e migrations.
 - [Segurança](docs/security/README.md) — autenticação, privacidade, integrações e threat models.
-- [Testes](docs/TESTING.md) — gates, comandos e evidências observadas.
+- [Testes](docs/TESTING.md) — gates gerais, comandos e evidências observadas.
 - [Runbook do ledger](docs/runbook/2026-08-01-cooperative-run-ledger.md) — operação e recuperação do fluxo cooperativo.
 - [Especificação da fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md).
 - [Plano da fundação](docs/superpowers/plans/2026-08-01-semogtw-platform-foundation.md).
@@ -84,9 +86,18 @@ Uma base nova aplica, em ordem:
 7. `0007_editorial_invariant_triggers.sql`;
 8. `0008_editorial_approval_guards.sql`;
 9. `0009_editorial_document_identity_guards.sql`;
-10. `0010_editorial_redirect_registry.sql`.
+10. `0010_editorial_redirect_registry.sql`;
+11. `0011_scope_reservations.sql`;
+12. `0012_verification_obligations.sql`;
+13. `0013_recovery_snapshots.sql`.
 
 O build web copia esses arquivos somente para o bundle de servidor e falha quando a lista empacotada diverge da fonte. As migrations não são publicadas em `dist/client`.
+
+As migrations `0011`–`0013` adicionam coordenação cooperativa sem reescrever histórico:
+
+- reservas de repositório/branch/escopo e eventos imutáveis;
+- obrigações de verificação vinculadas a SHA completo;
+- snapshots canônicos de recuperação com SHA-256 e idempotência.
 
 ## Semogtw DevOS
 
@@ -98,7 +109,22 @@ As superfícies privadas implementadas incluem:
 - conclusão guardada de etapas;
 - Auditoria paginada;
 - Operação GitHub somente leitura;
-- ledger de execuções cooperativas, checkpoints e comandos locais.
+- ledger de execuções cooperativas, checkpoints e comandos locais;
+- `/devos/workflows` para reservas, gates e próximo trabalho seguro;
+- `/devos/workflows/recovery` para gerar e reutilizar handoffs imutáveis.
+
+### Workflow orchestration
+
+A coordenação de desenvolvimento permanece provider-neutral:
+
+- reservas são soft leases cooperativos, não locks do Git ou do sistema operacional;
+- sobreposição é detectada por repositório, branch e escopo normalizado;
+- override exige sessão owner, CSRF, motivo, confirmação, versão esperada e auditoria;
+- gates diferenciam falha de código de ambiente ausente, timeout, quota, configuração, dependência externa e resultado desconhecido;
+- resultados são vinculados a um SHA completo de 40 caracteres;
+- snapshots usam somente branch aceita e observação GitHub persistida, recusando inventar um head;
+- a fila segura recomenda somente a primeira etapa incompleta de projetos com exatamente um repositório ativo;
+- capacidades de runtime não são presumidas nem persistidas: a reavaliação explícita vale apenas para a sessão exibida.
 
 A sincronização GitHub nunca altera automaticamente branch ativa, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local auditado do DevOS e não escreve no GitHub.
 
@@ -146,17 +172,16 @@ pnpm build
 pnpm test:e2e
 ```
 
-Evidência observada no checkout da branch de desenvolvimento com Node `22.23.1` e o runner offline pnpm `11.15.1` (o `packageManager` do repositório permanece fixado em `10.14.0`):
+O gate focado do workflow core também executa:
 
-- instalação offline com `pnpm-lock.yaml` frozen e zero downloads;
-- guardrails e typechecks de todos os workspaces aprovados;
-- suítes Vitest dos workspaces: **140 arquivos / 529 testes aprovados**;
-- `pnpm test:guardrails`, typechecks e gates de fronteira executados separadamente do total Vitest;
-- `pnpm build`: todos os workspaces, bundle cliente e SSR aprovados;
-- bundle SSR contendo as 10 migrations e nenhuma migration no cliente;
-- SQLite file-backed com `integrity_check=ok`, zero violações de foreign key e backup/restauração verificados;
-- `pnpm test:e2e`: **2 cenários Playwright aprovados**, cobrindo login owner, ciclo editorial completo, checklist incompleto bloqueado, troca atômica da revisão pública, rollback, retirada, isolamento anônimo, canonical/noindex, teclado, console e viewport de 360×800;
-- o adapter Node versionado serve `dist/client` e encaminha as demais requisições ao handler Fetch gerado em `dist/server/server.js`.
+- allowlist efêmera de `better-sqlite3` somente no checkout descartável do runner;
+- scanners de fronteiras e confidencialidade pública;
+- testes de domínio, migrations, backup e repositórios SQLite;
+- typechecks de domínio, banco, UI e web;
+- geração da árvore TanStack e build de produção;
+- Playwright anônimo/autenticado e viewport de 360×800.
+
+A evidência atual, os IDs das execuções e qualquer limitação permanecem registrados em [docs/testing/2026-08-03-workflow-orchestration-test-matrix.md](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md). Não reutilize contagens antigas depois de alterar arquivos cobertos pelo gate.
 
 ## Backup
 
@@ -171,17 +196,18 @@ Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e est
 
 - autenticação e mutações privadas falham fechadas;
 - tokens de sessão são persistidos apenas como digest;
-- CSRF, confirmação, razão e auditoria protegem mutações sensíveis;
+- CSRF, confirmação, razão, versão esperada, idempotência e auditoria protegem mutações sensíveis;
 - respostas públicas usam DTOs allowlist;
-- nomes de repositório, branches, observações, recomendações, runs e payloads MCP permanecem privados;
+- nomes de repositório, branches, observações, recomendações, runs, reservas, gates, snapshots e payloads MCP permanecem privados;
 - GitHub é tratado como fonte não confiável e acessado apenas por GET;
 - nenhum token, authorization header ou corpo bruto do provider é persistido;
+- snapshots rejeitam conteúdo com aparência de credencial e caminhos de documento inseguros;
 - MCP não possui ferramenta de escrita nem transporte remoto;
 - migrations e dependências nativas necessárias ao SSR são verificadas no build.
 
 ## Estado atual
 
-Implementado e verificado:
+Implementado e verificado por gates focados:
 
 - fundação portátil e autenticação local;
 - leituras e escritas operacionais auditadas;
@@ -191,21 +217,24 @@ Implementado e verificado:
 - serviço de leitura compartilhado para adapters;
 - catálogo MCP interno somente leitura;
 - ledger cooperativo de execuções;
+- reservas cooperativas de escopo com expiração e override owner-only;
+- obrigações de verificação com classificação explícita e vínculo a SHA;
+- snapshots de recuperação determinísticos, imutáveis e reutilizáveis;
+- fila conservadora de próximo trabalho seguro e reavaliação por capacidades explícitas da sessão;
 - ciclo editorial owner-only completo com revisions imutáveis, diff textual limitado, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
-- projeções públicas de notas e projetos derivadas exclusivamente da revisão aprovada e publicada;
+- projeções públicas derivadas exclusivamente da revisão aprovada e publicada;
 - renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
-- canonical provider-neutral em índices e projeções publicadas; conteúdo desconhecido ou retirado permanece sem canonical e com `noindex, nofollow`;
-- registry append-only de aliases, com criação/revogação owner-only, resolução canonical-first e redirects `308` sem cache persistente;
-- restauração verificada preservando simultaneamente a projeção pública, um rascunho privado mais novo e o histórico de alias;
-- lockfile determinístico e **529 testes Vitest** distribuídos por 140 arquivos de workspace.
+- canonical provider-neutral em índices e projeções publicadas;
+- registry append-only de aliases e redirects `308` sem cache persistente.
 
-Ainda bloqueado ou pendente de uma fase separada:
+Ainda bloqueado ou pendente de fase separada:
 
 - autenticação e transporte MCP remoto;
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
 - adapter e deploy no host definitivo;
 - migração de conteúdo real do Notion;
-- observabilidade e operação de produção.
+- observabilidade e operação de produção;
+- campanhas, branch-divergence guidance e clustering de falhas CI além do núcleo atual.
 
 ## Referência upstream
 
