@@ -217,6 +217,35 @@ Rules:
 **Interfaces:**
 
 ```ts
+export const EvidenceClaimInputSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("checkpoint_progress"),
+    checkpointId: z.string().min(1).max(200),
+    proposedValue: z.number().finite().nonnegative(),
+    basis: z.string().trim().min(1).max(2000),
+    confidence: z.enum(["high", "medium", "low", "unknown"]),
+  }),
+  z.object({
+    kind: z.literal("checkpoint_completion"),
+    checkpointId: z.string().min(1).max(200),
+    basis: z.string().trim().min(1).max(2000),
+    confidence: z.enum(["high", "medium", "low", "unknown"]),
+  }),
+  z.object({
+    kind: z.literal("skill_stage"),
+    skillId: z.string().min(1).max(200),
+    proposedStage: z.enum(["introduced", "practicing", "applied", "demonstrated"]),
+    basis: z.string().trim().min(1).max(2000),
+    confidence: z.enum(["high", "medium", "low", "unknown"]),
+  }),
+  z.object({
+    kind: z.literal("goal_context"),
+    goalId: z.string().min(1).max(200),
+    basis: z.string().trim().min(1).max(2000),
+    confidence: z.enum(["high", "medium", "low", "unknown"]),
+  }),
+]);
+
 export const ProposeEvidenceInputSchema = z.object({
   sourceKind: z.enum([
     "manual",
@@ -234,11 +263,9 @@ export const ProposeEvidenceInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   neutralSummary: z.string().trim().max(2000),
   metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
-  claims: z.array(/* strict claim schema */).min(1).max(50),
+  claims: z.array(EvidenceClaimInputSchema).min(1).max(50),
 });
 ```
-
-Task 1 must replace the comment marker in the illustrative schema above with the implemented canonical claim schema; no placeholder may remain in code.
 
 Risk:
 
@@ -363,7 +390,7 @@ Scenarios:
 11. public pages/assets contain no Growth/evidence/credential/client data;
 12. 360 px owner review/advanced flows work.
 
-Run focused/full Growth, command, MCP, web/build/Playwright and confidentiality gates; record exact head/results. Update docs by reference and commit.
+Run focused/full Growth, command, MCP, web/build/Playwright/editability/confidentiality gates; record exact head/results. Update docs by reference and commit.
 
 ## Acceptance criteria
 
