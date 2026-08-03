@@ -18,7 +18,7 @@ class MemoryRepository implements RecoverySnapshotRepository {
     audit: RecoverySnapshotAuditEvent,
   ): Promise<RecoverySnapshotStoreResult> {
     if (this.result === "created") {
-      this.records.set(record.snapshot.id, record);
+      this.records.set(record.id, record);
       this.audits.push(audit);
     }
     return this.result;
@@ -85,7 +85,8 @@ describe("RecoverySnapshotService.create", () => {
     expect(result).toMatchObject({
       ok: true,
       record: {
-        snapshot: { id: "snapshot-1", schemaVersion: 1 },
+        id: "snapshot-1",
+        snapshot: { snapshotId: "snapshot-1", schemaVersion: 1 },
         canonicalHash: "b".repeat(64),
         canonicalJson: expect.stringContaining('"schemaVersion":1'),
         markdown: expect.stringContaining("# Recovery snapshot — SemogSite"),
