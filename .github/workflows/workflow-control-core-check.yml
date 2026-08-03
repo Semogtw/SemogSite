@@ -11,13 +11,23 @@ on:
       - pnpm-workspace.yaml
       - package.json
       - .github/workflows/workflow-control-core-check.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - packages/domain/**
+      - packages/database/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+      - .github/workflows/workflow-control-core-check.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: workflow-control-core-${{ github.ref }}
+  group: workflow-control-core-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,14 +38,14 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v6
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
