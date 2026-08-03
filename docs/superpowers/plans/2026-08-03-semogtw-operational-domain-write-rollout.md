@@ -86,9 +86,7 @@ rg -n "ProjectService|StageCompletionService|AttentionLifecycleService|Repositor
 ```
 
 - [ ] Build one coverage row per mutation with command ID/version, capability, resource kind, risk floor/escalation, expected-state strategy, preview, compensation, UI route, MCP tool and current implementation state.
-
 - [ ] Verify every command ID follows the canonical registry convention and every existing mutation is either mapped or explicitly marked historical/superseded.
-
 - [ ] Run current relevant tests and record exact results.
 
 ```bash
@@ -236,15 +234,14 @@ completion → existing high approval flow
 - Create: corresponding tests.
 - Modify existing repository-target services/composition/UI.
 
-**Commands/risk:**
+Commands/risk:
 
 ```text
 repository_targets.register       medium/high
 repository_targets.update_policy  high; critical if broadening private repositories/branches
-a rchive/restore                   medium
+repository_targets.archive        medium
+repository_targets.restore        medium
 ```
-
-Use the correctly spelled IDs `repository_targets.archive` and `repository_targets.restore` in code; the spaced line above is not a command identifier.
 
 Inputs use canonical owner/name, accepted branch, visibility/private status and reviewed observation IDs. They never contain GitHub tokens or cause provider mutation.
 
