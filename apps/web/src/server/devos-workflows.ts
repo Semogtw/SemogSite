@@ -1,5 +1,6 @@
 import {
   SqliteRepositoryTargetOptions,
+  SqliteSafeWorkSource,
   SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
 import { redirect } from "@tanstack/react-router";
@@ -21,10 +22,16 @@ export const getWorkflowOrchestrationDashboardFn = createServerFn({
   const observedAt = new Date().toISOString();
   const model = new SqliteWorkflowOrchestrationReadModel(database);
   const options = new SqliteRepositoryTargetOptions(database);
-  const [dashboard, repositoryOptions] = await Promise.all([
+  const safeWorkSource = new SqliteSafeWorkSource(database);
+  const [dashboard, repositoryOptions, safeWork] = await Promise.all([
     model.getDashboard(observedAt),
     options.listWorkflowRepositories(),
+    safeWorkSource.evaluate({
+      observedAt,
+      availableCapabilities: [],
+      defaultEstimatedMinutes: 60,
+    }),
   ]);
 
-  return { ...dashboard, repositoryOptions };
+  return { ...dashboard, repositoryOptions, safeWork };
 });
