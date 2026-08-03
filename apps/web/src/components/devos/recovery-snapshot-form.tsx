@@ -316,7 +316,7 @@ export function RecoverySnapshotForm({
                 {snapshot.id} · confiança {snapshot.confidence}
               </p>
             </div>
-            <Button type="button" tone="secondary" onClick={copySnapshot}>
+            <Button type="button" tone="neutral" onClick={copySnapshot}>
               Copiar handoff
             </Button>
           </div>
