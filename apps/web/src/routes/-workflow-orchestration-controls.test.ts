@@ -43,7 +43,7 @@ describe("workflow orchestration controls", () => {
 
   it("links the workflow dashboard to the owner-only recovery workspace", () => {
     const route = source("devos.workflows.tsx");
-    const recoveryRoute = source("devos.workflows.recovery.tsx");
+    const recoveryRoute = source("devos.workflows_.recovery.tsx");
     const form = source("../components/devos/recovery-snapshot-form.tsx");
     const server = source("../server/devos-recovery-snapshot.ts");
 
@@ -57,7 +57,7 @@ describe("workflow orchestration controls", () => {
   });
 
   it("lists immutable recovery snapshots with copy fallback", () => {
-    const recoveryRoute = source("devos.workflows.recovery.tsx");
+    const recoveryRoute = source("devos.workflows_.recovery.tsx");
     const history = source("../components/devos/recovery-snapshot-history.tsx");
     const server = source("../server/devos-workflows.ts");
 
