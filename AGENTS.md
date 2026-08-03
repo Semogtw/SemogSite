@@ -51,12 +51,15 @@ adaptive Growth owner UX
 Command Gateway and editability coverage
 agent write authorization
 approvals and change sets
+operational domain UI/MCP write rollout
+Growth domain UI/MCP write rollout
+editorial and appearance UI/MCP write rollout
 Development Requests
 isolated development executor
 merge, deployment health and rollback
 ```
 
-Do not execute a later plan merely because its file exists. Remote MCP writes, critical actions, executor dispatch and deployment each have independent readiness gates.
+Do not execute a later plan merely because its file exists. Authorization infrastructure alone does not make a domain editable: each domain rollout must inventory its supported mutations, migrate owner UI to canonical commands and prove filtered MCP parity. Remote MCP writes, critical actions, executor dispatch and deployment each have independent readiness gates.
 
 ## Documentation rule
 
