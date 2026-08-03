@@ -1,6 +1,8 @@
 import { EmptyState, Status, Surface } from "@semogtw/ui";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { ScopeReservationOverrideForm } from "../components/devos/scope-reservation-override-form";
+import { VerificationObligationResultForm } from "../components/devos/verification-obligation-result-form";
 import {
   ScopeReservationForm,
   VerificationObligationForm,
@@ -21,6 +23,12 @@ export const Route = createFileRoute("/devos/workflows")({
   }),
   component: WorkflowOrchestrationPage,
 });
+
+const terminalObligationStatuses = new Set([
+  "passed",
+  "waived",
+  "superseded",
+]);
 
 function reservationTone(
   freshness: "active" | "expired" | "inactive",
@@ -54,7 +62,14 @@ function WorkflowOrchestrationPage() {
             um commit exato. Nenhum indicador representa telemetria oculta da IA.
           </p>
         </div>
-        <Status tone="info">Observado em {dashboard.observedAt}</Status>
+        <div>
+          <Status tone="info">Observado em {dashboard.observedAt}</Status>
+          <p>
+            <Link className="text-link" to="/devos/workflows/recovery">
+              Gerar snapshot de recuperação
+            </Link>
+          </p>
+        </div>
       </header>
 
       <div className="devos-section-grid">
@@ -164,6 +179,12 @@ function WorkflowOrchestrationPage() {
                   <p className="muted-copy">
                     Renovada em {reservation.renewedAt} · expira em {reservation.expiresAt}
                   </p>
+                  {reservation.persistedState === "active" ? (
+                    <ScopeReservationOverrideForm
+                      reservationId={reservation.id}
+                      expectedVersion={reservation.version}
+                    />
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -217,6 +238,13 @@ function WorkflowOrchestrationPage() {
                   <p className="muted-copy">
                     Próxima ação: {obligation.nextAction}
                   </p>
+                  {terminalObligationStatuses.has(obligation.status) ? null : (
+                    <VerificationObligationResultForm
+                      obligationId={obligation.id}
+                      expectedVersion={obligation.version}
+                      initialNextAction={obligation.nextAction}
+                    />
+                  )}
                 </article>
               ))}
             </div>
