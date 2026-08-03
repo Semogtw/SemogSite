@@ -187,7 +187,7 @@ export function VerificationObligationResultForm({
       </label>
       <Button
         type="submit"
-        tone="secondary"
+        tone="neutral"
         disabled={
           pending ||
           !confirmed ||
