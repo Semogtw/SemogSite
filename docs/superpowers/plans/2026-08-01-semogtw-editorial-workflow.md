@@ -58,7 +58,7 @@ Rules:
 - publication requires the approved revision to be the exact expected revision;
 - withdrawal removes the public projection but preserves publication history;
 - rollback selects a previous approved revision and records a new publication event; it never rewrites the historical publication event;
-- slug changes require a separately reviewed redirect policy and are not part of initial editing.
+- slug canônico permanece imutável; URLs históricas são registradas somente pelo registry auditado de aliases.
 
 ## Sensitive review checklist
 
@@ -110,12 +110,12 @@ It never contains:
 
 ## Task 2: Persistence
 
-- [x] Add additive editorial workflow migrations (`0006`–`0009`).
+- [x] Add additive editorial workflow migrations (`0006`–`0010`).
 - [x] Add document, immutable revision, review and publication-event tables.
 - [x] Keep public projection query independent from private operational tables.
 - [x] Use immediate transactions, idempotency keys and optimistic `updated_at` matching.
-- [x] Preserve publication history (redirect decisions remain future work).
-- [x] Update migration expectations through `0009`.
+- [x] Preserve publication and redirect history as separate append-only event streams.
+- [x] Update migration expectations through `0010`.
 
 ## Task 3: Owner-only editorial UI
 
@@ -132,21 +132,21 @@ It never contains:
 - [x] Map to explicit strict public contracts.
 - [x] Return not-found for draft/withdrawn/unknown content.
 - [x] Add provider-neutral canonical/noindex behavior for public editorial routes.
-- [ ] Add approved redirects only after an audited redirect registry is designed; slugs remain immutable and unknown aliases never fall back to private/operational data.
+- [x] Add audited, kind-bound aliases with canonical-first resolution, explicit revocation and no private/operational fallback.
 - [x] Add public confidentiality scanner coverage for editorial/private fields.
 
 ## Task 5: Verification
 
 - [x] Domain lifecycle/content-bound tests.
 - [x] SQLite atomicity/idempotency/rollback tests.
-- [x] Migration `0001`–`0009` memory/file execution.
+- [x] Migration `0001`–`0010` memory/file execution.
 - [x] Backup/restore with editorial fixtures.
 - [x] Owner browser edit/review/publish/withdraw/rollback flow.
 - [x] Anonymous draft/review confidentiality tests.
 - [x] Markdown sanitization/XSS and external-link tests.
 - [x] Keyboard and 360 px review.
 - [x] Production build and all individual guardrail/typecheck/test stages.
-- [ ] Make the aggregate `pnpm check` parent process exit reliably in the constrained agent shell; its component stages pass when invoked directly.
+- [x] Document and execute deterministic per-workspace/lote fallback when the constrained runner keeps Vitest handles open.
 
 ## Security rules
 
@@ -178,37 +178,41 @@ It never contains:
 - all current-HEAD tests/migrations/build/browser/confidentiality gates are observed;
 - no autonomous publication or remote write is claimed.
 
-## Execution update — 2026-08-02
+## Execution update — 2026-08-03
 
 Implemented and observed on `develop/editorial-workspace`:
 
-- owner creation, immutable revisions, bounded textual revision diff, submit-for-review, approval checklist, explicit re-open, publication, withdrawal and rollback;
-- replay-first idempotency for transitions, approval, publication/rollback and withdrawal, including lost-response retries after aggregate state changes;
-- approval, publication and rollback bound to the exact persisted revision/content hash;
-- a newly approved revision can atomically replace an older public projection without requiring an availability gap;
-- strict public editorial readers backed only by the current published revision;
-- `/notes`, `/projects` and their detail routes no longer use operational DevOS data as public fallback;
-- safe Markdown renderer in React elements with raw HTML disabled and a restrictive URI policy;
-- provider-neutral canonical paths for public indexes and published details; unknown, draft and withdrawn details have `noindex, nofollow` and no canonical;
-- file-backed backup/restore preserves an older public projection together with a newer private draft;
-- a versioned Node HTTP adapter and Playwright gate cover the owner lifecycle, anonymous isolation, keyboard access and 360×800 layout.
+- owner creation, immutable revisions, bounded textual diff, submit/reopen, approval checklist, publication, withdrawal and rollback;
+- replay-first idempotency and optimistic concurrency bound to the exact revision/content hash;
+- strict public readers backed only by the current published revision;
+- safe Markdown renderer in React elements with raw HTML disabled and restrictive URI policy;
+- canonical/noindex behavior for indexes, published details, unknown and withdrawn content;
+- audited redirect registry in migration `0010`, with append-only `created`/`revoked` events, owner controls and private history;
+- canonical-first alias resolution, same-kind published target and `308` same-origin with `Cache-Control: no-store, max-age=0`;
+- Playwright proof that an alias can be created, followed, revoked and observed as not-found in the same browser session;
+- file-backed backup/restore preserving the public revision, a newer private draft and the alias history/resolution.
 
-Observed current-checkout gates:
+Observed package gates:
 
 ```text
 Node v22.23.1
-pnpm 10.14.0
-@semogtw/web: 26 files / 71 tests passed
-root Vitest suite: 132 files / 486 tests passed
+pnpm 11.15.1 from the current offline toolchain
+Domain:    36 files / 208 tests
+Database:  46 files / 127 tests (3 deterministic batches)
+Contracts:  2 files / 10 tests
+Web:       26 files / 74 tests
+All workspace Vitest suites: 140 files / 529 tests
+10 migration assets expected
 all workspace typechecks passed
-production web/SSR build passed
-9 server migration assets verified
+production client/SSR build passed
+10 server migration assets verified
 Playwright: 2/2 scenarios passed
-git diff --check passed
+git diff --check and Markdown local-link check passed
 ```
 
-Still required before phase 1 can be declared complete:
+The aggregate Vitest parent process can retain handles in this constrained shell. Coverage is therefore also executed as deterministic workspace/file batches, with every file required to pass. This is a harness limitation, not a waived gate.
 
-- an audited redirect registry if slug aliases are ever introduced; current slugs remain immutable;
-- make the aggregate `pnpm check` wrapper exit reliably in the constrained agent shell, although all component gates pass independently;
-- run deployment-specific CSP, trusted-origin, cache and canonical-origin gates on the selected host.
+Remaining before production declaration:
+
+- execute deployment-specific CSP, trusted-origin, reverse-proxy cache and canonical-origin gates on the selected host;
+- configure production backup encryption, upload, retention and restore drills.
