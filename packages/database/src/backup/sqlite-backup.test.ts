@@ -39,6 +39,9 @@ const expectedMigrations = [
   "0008_editorial_approval_guards.sql",
   "0009_editorial_document_identity_guards.sql",
   "0010_editorial_redirect_registry.sql",
+  "0011_scope_reservations.sql",
+  "0012_verification_obligations.sql",
+  "0013_recovery_snapshots.sql",
 ] as const;
 
 function temporaryDirectory(): string {

@@ -23,6 +23,7 @@ export type {
   CaptureValidationError,
 } from "./capture/capture-service";
 export * from "./editorial";
+export * from "./orchestration";
 export { EvidenceService } from "./evidence/evidence-service";
 export type {
   AttachManualEvidenceInput,
