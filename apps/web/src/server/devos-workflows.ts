@@ -1,4 +1,7 @@
-import { SqliteWorkflowOrchestrationReadModel } from "@semogtw/database";
+import {
+  SqliteRepositoryTargetOptions,
+  SqliteWorkflowOrchestrationReadModel,
+} from "@semogtw/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { resolveCurrentOwner } from "./current-owner.server";
@@ -15,6 +18,13 @@ export const getWorkflowOrchestrationDashboardFn = createServerFn({
     throw new Error("WORKFLOW_ORCHESTRATION_STORAGE_UNAVAILABLE");
   }
 
+  const observedAt = new Date().toISOString();
   const model = new SqliteWorkflowOrchestrationReadModel(database);
-  return model.getDashboard(new Date().toISOString());
+  const options = new SqliteRepositoryTargetOptions(database);
+  const [dashboard, repositoryOptions] = await Promise.all([
+    model.getDashboard(observedAt),
+    options.listWorkflowRepositories(),
+  ]);
+
+  return { ...dashboard, repositoryOptions };
 });
