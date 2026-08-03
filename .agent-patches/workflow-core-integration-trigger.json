@@ -1,0 +1,6 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/workflow-control-core",
+  "expected_head": "1bfa719a807ca9fcb16b11666cd1f812d4638fdf",
+  "commit_message": "chore(orchestration): reconcile root exports and migrations"
+}
