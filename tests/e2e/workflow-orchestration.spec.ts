@@ -106,7 +106,7 @@ test.describe("authenticated workflow orchestration", () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test("writes reservations and gates while recovery without observation fails closed", async ({
+  test("writes and resolves orchestration records while recovery without observation fails closed", async ({
     page,
   }) => {
     await page.goto("/devos/operations");
@@ -148,7 +148,11 @@ test.describe("authenticated workflow orchestration", () => {
     await expect(
       page.getByText("Escopo reservado de forma cooperativa."),
     ).toBeVisible();
-    await expect(page.getByText("Reserva E2E de escopo")).toBeVisible();
+
+    const reservationArticle = page
+      .getByText("Reserva E2E de escopo", { exact: true })
+      .locator("xpath=ancestor::article");
+    await expect(reservationArticle).toBeVisible();
 
     const gateForm = page
       .getByRole("button", { name: "Registrar gate pendente" })
@@ -168,7 +172,42 @@ test.describe("authenticated workflow orchestration", () => {
     await expect(
       page.getByText("Gate pendente registrado para o commit exato."),
     ).toBeVisible();
-    await expect(page.getByText("Gate E2E de domínio")).toBeVisible();
+
+    const obligationArticle = page
+      .getByRole("heading", { name: "Gate E2E de domínio" })
+      .locator("xpath=ancestor::article");
+    await expect(obligationArticle).toBeVisible();
+
+    const overrideForm = reservationArticle
+      .getByRole("button", { name: "Encerrar reserva" })
+      .locator("xpath=ancestor::form");
+    await overrideForm
+      .getByLabel("Motivo do encerramento")
+      .fill("Reserva E2E concluída e histórico preservado.");
+    await overrideForm.getByRole("checkbox").check();
+    await overrideForm.getByRole("button", { name: "Encerrar reserva" }).click();
+    await expect(
+      reservationArticle.getByRole("button", { name: "Encerrar reserva" }),
+    ).toHaveCount(0);
+    await expect(reservationArticle.getByText("inactive", { exact: true })).toBeVisible();
+
+    const resultForm = obligationArticle
+      .getByRole("button", { name: "Registrar resultado" })
+      .locator("xpath=ancestor::form");
+    await resultForm.getByLabel("Resultado observado").selectOption("blocked");
+    await resultForm
+      .getByLabel("Classificação")
+      .selectOption("environment_missing");
+    await resultForm
+      .getByLabel("Resumo observado")
+      .fill("O runner não possui a capacidade externa exigida pelo gate.");
+    await resultForm
+      .getByLabel("Próxima ação")
+      .fill("Executar o gate em um runtime com a dependência instalada.");
+    await resultForm.getByRole("checkbox").check();
+    await resultForm.getByRole("button", { name: "Registrar resultado" }).click();
+    await expect(obligationArticle.getByText("blocked", { exact: true })).toBeVisible();
+    await expect(obligationArticle.getByText("environment_missing")).toBeVisible();
 
     await page.getByRole("link", { name: "Gerar snapshot de recuperação" }).click();
     const recoveryForm = page
@@ -188,6 +227,6 @@ test.describe("authenticated workflow orchestration", () => {
         "A branch aceita ainda não possui um SHA observado. Sincronize o GitHub antes de gerar o snapshot.",
       ),
     ).toBeVisible();
-    await expect(page.getByText("Snapshot preservado")).toHaveCount(0);
+    await expect(page.getByText("Nenhum snapshot preservado")).toBeVisible();
   });
 });
