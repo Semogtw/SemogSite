@@ -1,0 +1,9 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/editorial-workspace",
+  "expected_head": "3ac5a9ec8b525a47fc1cac965a1eb9eca04009ad",
+  "patch_sha256": "55ea8317fb8e8a4158299d9b59caf3fc67e811c2f7faf8b728214368838a60be",
+  "expected_tree": "98e9a193c4653a33d6f32c1bd6c196dccf5a1fde",
+  "part_count": 3,
+  "commit_message": "feat(editorial): add owner redirect controls"
+}
