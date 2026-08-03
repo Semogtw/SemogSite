@@ -11,9 +11,8 @@ on:
       - apps/web/**
       - tests/e2e/**
       - playwright.config.ts
-      - scripts/prepare-e2e.mjs
-      - scripts/check-boundaries.mjs
-      - scripts/check-public-confidentiality.mjs
+      - vitest.workspace.ts
+      - scripts/**
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -28,9 +27,8 @@ on:
       - apps/web/**
       - tests/e2e/**
       - playwright.config.ts
-      - scripts/prepare-e2e.mjs
-      - scripts/check-boundaries.mjs
-      - scripts/check-public-confidentiality.mjs
+      - vitest.workspace.ts
+      - scripts/**
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
@@ -47,7 +45,7 @@ concurrency:
 jobs:
   focused-gates:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout branch
         uses: actions/checkout@v6
@@ -118,6 +116,9 @@ jobs:
 
       - name: Typecheck web route tree
         run: pnpm --filter @semogtw/web typecheck
+
+      - name: Run full monorepo check
+        run: pnpm check
 
       - name: Build web application
         run: pnpm --filter @semogtw/web build
