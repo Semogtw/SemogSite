@@ -75,11 +75,18 @@ jobs:
           src/repositories/scope-reservation-repository.test.ts
           src/repositories/verification-obligation-repository.test.ts
           src/repositories/recovery-snapshot-repository.test.ts
+          src/repositories/recovery-snapshot-source.test.ts
           src/repositories/workflow-orchestration-read-model.test.ts
           src/adapters/sqlite-migrations.test.ts
+          src/backup/sqlite-backup.test.ts
 
       - name: Typecheck database
         run: pnpm --filter @semogtw/database typecheck
+
+      - name: Test workflow orchestration controls
+        run: >-
+          pnpm --filter @semogtw/web exec vitest run
+          src/routes/-workflow-orchestration-controls.test.ts
 
       - name: Typecheck UI
         run: pnpm --filter @semogtw/ui typecheck
