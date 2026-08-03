@@ -25,6 +25,7 @@ describe("SQLite migrations", () => {
       { name: "0010_editorial_redirect_registry.sql" },
       { name: "0011_scope_reservations.sql" },
       { name: "0012_verification_obligations.sql" },
+      { name: "0013_recovery_snapshots.sql" },
     ]);
     expect(
       database.$client
@@ -70,12 +71,14 @@ describe("SQLite migrations", () => {
              'scope_reservations',
              'scope_reservation_events',
              'verification_obligations',
-             'verification_obligation_events'
+             'verification_obligation_events',
+             'recovery_snapshots'
            )
            ORDER BY name ASC`,
         )
         .all(),
     ).toEqual([
+      { name: "recovery_snapshots" },
       { name: "scope_reservation_events" },
       { name: "scope_reservations" },
       { name: "verification_obligation_events" },
