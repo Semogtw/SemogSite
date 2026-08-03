@@ -1,0 +1,60 @@
+name: Workflow control core gate
+
+on:
+  push:
+    branches:
+      - develop/workflow-control-core
+    paths:
+      - packages/domain/**
+      - packages/database/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+      - .github/workflows/workflow-control-core-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-control-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test orchestration domain
+        run: >-
+          pnpm --filter @semogtw/domain exec vitest run
+          src/orchestration/scope-reservation.test.ts
+          src/orchestration/scope-reservation-service.test.ts
+
+      - name: Typecheck domain
+        run: pnpm --filter @semogtw/domain typecheck
+
+      - name: Test orchestration persistence
+        run: >-
+          pnpm --filter @semogtw/database exec vitest run
+          src/orchestration-migrations.test.ts
+          src/repositories/scope-reservation-repository.test.ts
+          src/adapters/sqlite-migrations.test.ts
+
+      - name: Typecheck database
+        run: pnpm --filter @semogtw/database typecheck
