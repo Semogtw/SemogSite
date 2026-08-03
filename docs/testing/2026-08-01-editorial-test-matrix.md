@@ -41,11 +41,11 @@ The tests and migrations below are committed specifications until observed on th
 
 ## Database migrations
 
-Execute migrations `0001`–`0009` in memory and file-backed SQLite.
+Execute migrations `0001`–`0010` in memory and file-backed SQLite.
 
 Verify:
 
-- four editorial tables and indexes;
+- documents, revisions, reviews, publication events and redirect events with their indexes;
 - initial document/revision/event transaction;
 - immutable revisions/reviews/events;
 - document deletion forbidden;
@@ -96,6 +96,7 @@ Verify:
 - events ordered append-only;
 - malformed tags/before/after JSON marked explicitly;
 - unknown document returns null;
+- redirect history ordered append-only and visible only privately;
 - no public serializer reuse.
 
 ## Public read model and contracts
@@ -107,11 +108,14 @@ Verify:
 - malformed tags/hash/date/raw HTML omitted;
 - kind filter and list limit bounded;
 - strict DTO rejects extra private fields;
+- canonical lookup precedes alias lookup;
+- only the latest active, kind-bound alias to a published target resolves;
+- revoked/unknown aliases return not-found;
 - public confidentiality and editorial schema scanners pass.
 
-## Future owner UI
+## Owner UI and browser gate
 
-Before public release, browser tests must cover:
+The versioned `pnpm test:e2e` gate currently covers:
 
 1. owner creates document/revision;
 2. preview is authenticated;
@@ -123,10 +127,12 @@ Before public release, browser tests must cover:
 8. create new draft while old revision remains public;
 9. withdraw makes anonymous route not found;
 10. rollback restores prior approved revision with a new event;
-11. stale two-tab form conflicts;
-12. lost-response exact retry does not duplicate;
-13. changed intent same idempotency key conflicts;
-14. long content, keyboard and 360×800 layout remain usable.
+11. keyboard navigation and 360×800 layout remain usable;
+12. private routes redirect anonymously and retain `noindex`;
+13. create an audited alias and verify `308`, `Location` and `Cache-Control: no-store`;
+14. revoke the alias and observe not-found/noindex in the same browser session.
+
+Deterministic domain/database suites continue to cover stale two-tab snapshots, lost-response exact retries and changed intent under the same idempotency key. Long-content stress and CSP behavior remain host/runtime gates.
 
 ## Renderer/security
 
@@ -137,6 +143,7 @@ Before public release, browser tests must cover:
 - images/assets only from approved references;
 - code blocks and tables bounded/responsive;
 - no review notes or private metadata in rendered source;
+- alias responses are same-origin and do not persist in browser cache;
 - CSP behavior verified in selected host.
 
 ## Backup/restore
@@ -146,12 +153,13 @@ A file-backed fixture must contain:
 - published revision A;
 - private working revision B;
 - review for A;
-- publication and draft events;
+- publication, draft and redirect events;
 - unrelated existing DevOS/GitHub/run-ledger records.
 
 After verified backup/restore:
 
 - public adapter returns revision A and publication timestamp;
+- active alias resolves to the canonical slug after restore;
 - owner adapter returns both revisions and history;
 - triggers remain installed;
 - no migration is missing;
@@ -171,6 +179,7 @@ pnpm --filter @semogtw/database typecheck
 pnpm --filter @semogtw/database test -- editorial
 pnpm check
 pnpm build
+pnpm test:e2e
 ```
 
 Adapt Vitest filters to the installed CLI when necessary; do not skip the full package suite after focused tests.

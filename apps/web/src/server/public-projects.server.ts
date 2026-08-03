@@ -1,28 +1,26 @@
-import {
-  toPublicProjectDto,
-  type PublicProjectDto,
-} from "@semogtw/contracts";
-import {
-  SqlitePublicProjectSource,
-  type SqliteDatabase,
-} from "@semogtw/database";
+import type { PublicEditorialDocument } from "@semogtw/contracts";
+import type { SqliteDatabase } from "@semogtw/database";
 import { getNodeDatabase } from "./node-database.server";
+import {
+  createPublicEditorialReader,
+  type PublicEditorialReader,
+  type PublicEditorialRouteResolution,
+} from "./public-editorial.server";
 
 export type PublicProjectReader = {
-  list(): Promise<readonly PublicProjectDto[]>;
-  findBySlug(slug: string): Promise<PublicProjectDto | null>;
+  list(): Promise<readonly PublicEditorialDocument[]>;
+  findBySlug(slug: string): Promise<PublicEditorialDocument | null>;
+  resolveBySlug(slug: string): Promise<PublicEditorialRouteResolution>;
 };
 
 export function createPublicProjectReader(
   database: SqliteDatabase,
 ): PublicProjectReader {
-  const source = new SqlitePublicProjectSource(database);
+  const editorial: PublicEditorialReader = createPublicEditorialReader(database);
   return {
-    list: async () => (await source.listListed()).map(toPublicProjectDto),
-    findBySlug: async (slug) => {
-      const project = await source.findPublishableBySlug(slug);
-      return project === null ? null : toPublicProjectDto(project);
-    },
+    list: () => editorial.list({ kind: "project", limit: 100 }),
+    findBySlug: (slug) => editorial.findBySlug(slug, "project"),
+    resolveBySlug: (slug) => editorial.resolveBySlug(slug, "project"),
   };
 }
 
@@ -31,14 +29,28 @@ async function getReader(): Promise<PublicProjectReader | null> {
   return database === null ? null : createPublicProjectReader(database);
 }
 
-export async function readPublicProjects(): Promise<readonly PublicProjectDto[]> {
+export async function readPublicProjects(): Promise<
+  readonly PublicEditorialDocument[]
+> {
   const reader = await getReader();
   return reader?.list() ?? [];
 }
 
-export async function readPublicProjectBySlug(
+export async function readPublicProject(
   slug: string,
-): Promise<PublicProjectDto | null> {
+): Promise<PublicEditorialDocument | null> {
   const reader = await getReader();
   return reader?.findBySlug(slug) ?? null;
+}
+
+export async function readPublicProjectRoute(
+  slug: string,
+): Promise<PublicEditorialRouteResolution> {
+  const reader = await getReader();
+  return (
+    (await reader?.resolveBySlug(slug)) ?? {
+      document: null,
+      redirectSlug: null,
+    }
+  );
 }

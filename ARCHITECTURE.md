@@ -2,9 +2,9 @@
 
 ## Decision
 
-Semogtw Platform uses a pnpm TypeScript monorepo. The web surface is TanStack Start; the versioned HTTP surface is Hono. Business rules are isolated from both frameworks.
+Semogtw Platform is a pnpm TypeScript monorepo. TanStack Start provides the public site and private DevOS; Hono provides the versioned HTTP surface. Domain rules remain independent from frameworks, storage engines, AI providers and hosting products.
 
-Production hosting is not selected. The current executable baseline is Node with SQLite. Cloudflare D1, PostgreSQL, serverless, edge runtimes and ChatGPT Sites remain adapter decisions rather than domain dependencies.
+Production hosting is not selected. The executable baseline is Node.js 22 with SQLite. Cloudflare D1, PostgreSQL, serverless/edge runtimes and ChatGPT Sites remain adapter choices rather than domain dependencies.
 
 ## Dependency direction
 
@@ -28,102 +28,125 @@ packages/config ─> Zod only
 packages/domain ─> no framework, ORM or runtime adapter
 ```
 
-The script `scripts/check-boundaries.mjs` rejects TanStack, Hono, Drizzle, SQLite, Wrangler, React and application imports inside `packages/domain`.
+`scripts/check-boundaries.mjs` rejects TanStack, Hono, Drizzle, SQLite, Wrangler, React and application imports inside `packages/domain`. Additional guardrails prevent MCP transport/runtime code from crossing package and browser boundaries.
 
-## Import protection
+## Import and runtime protection
 
-Node-specific composition lives in `.server.ts` files or dedicated runtime application packages. TanStack server functions import Node modules only inside server-function compilation boundaries. `better-sqlite3` is excluded from dependency optimization and externalized from the Vite SSR bundle.
+Node-specific composition lives in `.server.ts` modules or dedicated runtime applications. TanStack server functions import Node modules only inside server compilation boundaries. `better-sqlite3` is externalized from Vite SSR dependency optimization and its native artifact is verified in CI.
 
-Client-safe modules contain only:
+Client-safe modules contain only components, browser helpers, generated `createServerFn` RPC stubs, public contracts and serialized data. SQLite, the MCP SDK, secrets, migrations and server composition must never enter the browser bundle.
 
-- components and browser helpers;
-- generated RPC stubs from `createServerFn`;
-- public contracts and serialized data.
-
-The MCP SDK and SQLite composition are server-only and must never enter the browser bundle.
+The production build verifies that all 13 migrations exist in the SSR bundle and none exist in `dist/client`.
 
 ## Surfaces
 
 ### Public web
 
-Routes render only approved public data. Dynamic project and note routes do not use private records as fallback. Unknown/unpublished items are `noindex`. `robots.txt` excludes `/devos` and `/api/v1/private`, but authentication remains the real boundary.
+Public routes render only approved editorial projections. Dynamic project and note routes never fall back to private operational records. Unknown, draft, withdrawn and unpublished items are not indexed. `robots.txt` excludes `/devos` and `/api/v1/private`, but owner authentication is the actual boundary.
 
 ### Semogtw DevOS
 
-Every private route calls a server-side owner guard before rendering. Every server function that reads private data resolves the current owner again before opening a read model.
+Every private route invokes a server-side owner guard before rendering. Every private server function resolves the owner again before opening a read model or performing a mutation. Mutations also validate CSRF, confirmation and bounded input.
 
-The private read models use the canonical SQLite database:
+Canonical private read services include Overview, Today, Projects, Roadmap, GitHub Operations, cooperative runs, workflow orchestration and editorial administration.
 
-- Overview through `OverviewService`;
-- Today through `TodayService`;
-- Projects and project hubs through `ProjectService`;
-- Roadmap through `RoadmapService`.
+The workflow orchestration surface is split into sibling routes:
 
-`DevOSReadService` composes those same four services for non-HTTP adapters. It validates project slugs and bounded roadmap filters but does not duplicate the underlying DTOs or ordering rules.
+```text
+/devos/workflows
+/devos/workflows/recovery
+```
 
-The login route remains intentionally outside the private route guard and performs no operational read.
+`devos.workflows_.recovery.tsx` deliberately escapes the file-route parent relationship while preserving the URL. This prevents the recovery page from depending on an `<Outlet>` in the dashboard route.
+
+### Workflow orchestration core
+
+The core is provider-neutral and is composed from four bounded units.
+
+#### Scope reservations
+
+Reservations are cooperative soft leases over repository, branch and normalized scope. They are not Git, filesystem or provider locks. Overlap detection is deterministic; expiration is derived at read time, so no scheduler is required. Lifecycle transitions are optimistic, idempotent, audited and transactional. Owner override preserves immutable history.
+
+#### Verification obligations
+
+A verification obligation binds an exact command and required capabilities to a full 40-character commit SHA. `environment_missing`, `timeout`, `quota`, configuration and external dependency are distinct from `code_failure`. Recording a result requires observed evidence and an explicit classification for failed or blocked outcomes.
+
+#### Recovery snapshots
+
+A recovery snapshot is an immutable canonical handoff. The source accepts only the persisted active branch and its latest matching GitHub observation. Missing branch evidence fails closed rather than substituting a default branch or fabricated SHA. Canonical JSON is hashed with SHA-256 and rendered to bounded Markdown. Recent snapshots are exposed only in the private recovery workspace.
+
+#### Safe-work evaluation
+
+`SqliteSafeWorkSource` composes projects, roadmap stages, repository targets, reservations and verification obligations. It considers only the first unfinished stage and requires exactly one active repository. Ambiguous or missing relationships become explicit exclusions.
+
+The initial web read supplies an empty capability set. An owner may re-evaluate with capabilities typed for the current session; those values are normalized, not persisted and never treated as proof that a command ran.
 
 ### API
 
 - `/api/v1/public/*`: public serializers only;
-- `/api/v1/private/*`: authentication middleware before route handlers and `no-store` headers;
+- `/api/v1/private/*`: authentication before handlers and private/no-store headers;
 - `/health`: infrastructure health without private state.
 
-The Hono application is currently an embeddable adapter. Runtime-specific Node, edge or Sites bindings remain separate work.
+The Hono application remains an embeddable adapter. Node, edge and hosted-function bindings are separate deployment work.
 
 ### MCP read adapter
 
-`packages/mcp` adapts `DevOSReadService` to the stable v1.x MCP TypeScript SDK. Its initial catalog contains four static resources and five tools for overview, Today, project portfolio/project hubs and roadmap queries.
+`packages/mcp` adapts `DevOSReadService` to the reviewed stable v1 MCP SDK. The current catalog contains four static resources and five read-only tools. It has no SQLite, HTTP, cookie, token or transport logic.
 
-The adapter:
+`apps/mcp` accepts an already-open migrated database and returns an `McpServer`; it opens no listener. Stdio and Streamable HTTP are not enabled. A remote transport requires a separate reviewed adapter proving authentication, authorization, session isolation, origin/host policy, TLS, rate limits, timeouts, private caching, observability and rollback.
 
-- registers only read tools;
-- marks tools read-only, non-destructive, idempotent and closed-world;
-- returns structured content plus a textual JSON representation;
-- sanitizes expected and unexpected failures into stable codes;
-- contains no SQLite, HTTP, cookie, token or transport logic.
+Future MCP writes must call the same audited domain services used by the DevOS UI. Tool annotations do not authorize mutation.
 
-`apps/mcp` is the current server-side composition boundary. It accepts an already-open, already-migrated `SqliteDatabase`, creates the canonical read service and returns an `McpServer` instance.
+## Authentication and mutation composition
 
-No listener is opened. Stdio and Streamable HTTP are not selected or exposed. A remote MCP endpoint requires a separate adapter proving authentication, authorization, session isolation, origin policy, TLS, rate limits, private cache behavior, observability and host compatibility before any route is enabled.
+`AuthProvider` is the authentication boundary. The local adapter validates configuration fail-closed, verifies PBKDF2-SHA256 password hashes, persists only token digests, enforces absolute session expiry/revocation and binds CSRF tokens to server-side sessions.
 
-### Future MCP writes
+Private writes use a shared pattern:
 
-Any future write tool must call the existing audited domain services. It must not contain independent completion, publication, branch-selection or authorization rules. Read-only annotations do not authorize writes, and no mutation tool exists in the current catalog.
+1. validate schema;
+2. resolve owner and CSRF server-side;
+3. open the canonical database;
+4. call a domain service with server-generated actor, audit, correlation and idempotency identities;
+5. perform entity/event/audit writes in one immediate transaction;
+6. reject stale versions and context/entity mismatches before persistence mutation;
+7. invalidate the route only after a committed response.
 
-## Authentication
+## Storage and migrations
 
-`AuthProvider` is the application boundary. The local implementation:
+The canonical schema is SQLite-compatible. Drizzle maps tables while raw SQL migrations remain inspectable and additive. The domain never imports Drizzle.
 
-- parses configuration with a fail-closed Zod schema;
-- creates/migrates the SQLite database on first server-side use;
-- verifies a PBKDF2-SHA256 encoded password hash;
-- generates 32 random bytes per session;
-- persists only SHA-256 of the raw token;
-- supports 14-day absolute expiry and revocation;
-- transactionally revokes sessions when the password hash changes;
-- binds CSRF tokens to the server-side session ID;
-- uses generic authentication failures and rate limiting;
-- refuses active-session logout when CSRF validation fails.
+The current migration line is:
 
-A future ChatGPT, GitHub or OAuth provider replaces the adapter without changing private route/data contracts. The current browser session implementation is not automatically an MCP transport authentication scheme.
+```text
+0001 foundation
+0002 demonstration seed
+0003 GitHub observations
+0004 GitHub sync runs
+0005 cooperative run ledger
+0006–0010 editorial workflow and redirects
+0011 scope reservations
+0012 verification obligations
+0013 recovery snapshots
+```
 
-## Storage
+Expiration and staleness are derived at read time. No semantic state depends on a cron job. Backups preserve all migrations, private operational rows, append-only events and canonical snapshots.
 
-The canonical schema is SQLite-compatible. Drizzle maps tables, while raw SQL migrations remain inspectable and portable. Repository/read-model adapters depend on domain ports and service inputs; the domain never imports Drizzle.
+The demonstration seed is low-confidence private sample data. It is not treated as migrated Notion content, verified GitHub state or real project progress, and the safe-work source excludes it.
 
-The seed is explicitly `seed_demo`. It is private, low-confidence and never presented as migrated Notion data, GitHub state or measured production progress.
+## External observations
 
-MCP reads use the same storage snapshot as DevOS. The adapter does not cache or replicate private records independently.
+GitHub remains read-only. Provider responses are structurally validated and normalized before persistence. Commit messages and other instruction-bearing provider text are not used as commands. Synchronization never changes active branch, project progress, stage state, repository role or target lifecycle automatically.
+
+Silence or absence of commits is evidence of inactivity only, never proof that an AI session completed. Any future inactivity detector must consume persisted observations and present probabilistic language.
 
 ## Deployment modes
 
-- **A:** web, API, storage and authenticated MCP share a compatible host;
-- **B:** web/API/storage stay together and a minimal authenticated external MCP bridge calls shared contracts;
-- **C:** web is separated from external API/storage/MCP.
+- **A — Unified:** web, API, storage and authenticated MCP on one compatible host;
+- **B — External MCP bridge:** web/API/storage together with a minimal authenticated MCP bridge;
+- **C — External backend:** frontend separated from API/storage/MCP.
 
-No mode is considered selected until storage, secrets, auth, API routes, MCP transport, deployment/versioning and rollback are verified in the target host.
+A mode is unselected until storage, secrets, authentication, routes, transport, versioning, backup and rollback are verified in the target runtime.
 
 ## Time
 
-Values are persisted as UTC ISO 8601 strings. Presentation converts to `America/Bahia`. Domain ordering accepts timestamps as data but does not depend on the machine timezone.
+Values are persisted as UTC ISO 8601 strings. Presentation converts to `America/Bahia`. Domain ordering accepts timestamps as data and does not depend on the machine timezone.

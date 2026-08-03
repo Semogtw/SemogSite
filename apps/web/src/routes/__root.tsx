@@ -10,9 +10,11 @@ import {
 import type { ReactNode } from "react";
 import auditCss from "../styles/audit.css?url";
 import captureCss from "../styles/capture.css?url";
+import editorialCss from "../styles/editorial.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
+import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
 import repositoryTargetCss from "../styles/repository-target.css?url";
@@ -43,6 +45,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: surfacesCss },
       { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: evidenceCss },
+      { rel: "stylesheet", href: editorialCss },
       { rel: "stylesheet", href: stageCompletionCss },
       { rel: "stylesheet", href: auditCss },
       { rel: "stylesheet", href: githubSyncCss },
@@ -51,6 +54,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: roadmapCss },
       { rel: "stylesheet", href: runsCss },
       { rel: "stylesheet", href: publicProjectsCss },
+      { rel: "stylesheet", href: publicEditorialCss },
     ],
   }),
   component: RootComponent,

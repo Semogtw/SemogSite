@@ -212,3 +212,54 @@ export const editorialEvents = sqliteTable(
     check("editorial_events_sequence_positive", sql`${table.sequence} >= 1`),
   ],
 );
+
+const editorialRedirectActions = ["created", "revoked"] as const;
+
+export const editorialRedirectEvents = sqliteTable(
+  "editorial_redirect_events",
+  {
+    id: text("id").primaryKey(),
+    sourceSlug: text("source_slug").notNull(),
+    kind: text("kind", { enum: editorialKinds }).notNull(),
+    targetDocumentId: text("target_document_id")
+      .notNull()
+      .references(() => editorialDocuments.id, { onDelete: "restrict" }),
+    sequence: integer("sequence").notNull(),
+    action: text("action", { enum: editorialRedirectActions }).notNull(),
+    actor: text("actor").notNull(),
+    reason: text("reason").notNull(),
+    occurredAt: text("occurred_at").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    correlationId: text("correlation_id").notNull(),
+  },
+  (table) => [
+    uniqueIndex("editorial_redirect_events_source_sequence_unique").on(
+      table.sourceSlug,
+      table.sequence,
+    ),
+    uniqueIndex("editorial_redirect_events_idempotency_unique").on(
+      table.idempotencyKey,
+    ),
+    index("editorial_redirect_events_source_occurred_index").on(
+      table.sourceSlug,
+      table.occurredAt,
+      table.sequence,
+    ),
+    index("editorial_redirect_events_target_index").on(
+      table.targetDocumentId,
+      table.occurredAt,
+    ),
+    check(
+      "editorial_redirect_events_sequence_positive",
+      sql`${table.sequence} >= 1`,
+    ),
+    check(
+      "editorial_redirect_events_reason_length",
+      sql`length(trim(${table.reason})) BETWEEN 1 AND 2000`,
+    ),
+    check(
+      "editorial_redirect_events_source_slug_length",
+      sql`length(${table.sourceSlug}) BETWEEN 1 AND 120`,
+    ),
+  ],
+);

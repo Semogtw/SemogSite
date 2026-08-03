@@ -2,6 +2,7 @@ import type {
   EditorialDocumentSnapshot,
   EditorialEventKind,
   EditorialRevisionSnapshot,
+  EditorialRedirectEventSnapshot,
   EditorialSensitiveReviewChecks,
   JsonValue,
 } from "@semogtw/domain";
@@ -55,6 +56,7 @@ export type EditorialDocumentDetail = {
   revisions: readonly EditorialRevisionView[];
   reviews: readonly EditorialReviewView[];
   events: readonly EditorialHistoryEvent[];
+  redirects: readonly EditorialRedirectEventSnapshot[];
 };
 
 type DocumentRow = {
@@ -119,6 +121,20 @@ type EventRow = {
   before_json: string | null;
   after_json: string;
   occurred_at: string;
+  correlation_id: string;
+};
+
+type RedirectRow = {
+  id: string;
+  source_slug: string;
+  kind: EditorialRedirectEventSnapshot["kind"];
+  target_document_id: string;
+  sequence: number;
+  action: EditorialRedirectEventSnapshot["action"];
+  actor: string;
+  reason: string;
+  occurred_at: string;
+  idempotency_key: string;
   correlation_id: string;
 };
 
@@ -217,6 +233,23 @@ function toReview(row: ReviewRow): EditorialReviewView {
   };
 }
 
+
+function toRedirect(row: RedirectRow): EditorialRedirectEventSnapshot {
+  return {
+    id: row.id,
+    sourceSlug: row.source_slug,
+    kind: row.kind,
+    targetDocumentId: row.target_document_id,
+    sequence: row.sequence,
+    action: row.action,
+    actor: row.actor,
+    reason: row.reason,
+    occurredAt: row.occurred_at,
+    idempotencyKey: row.idempotency_key,
+    correlationId: row.correlation_id,
+  };
+}
+
 export class SqliteEditorialReadModel {
   constructor(private readonly database: SqliteDatabase) {}
 
@@ -291,11 +324,22 @@ export class SqliteEditorialReadModel {
          LIMIT 200`,
       )
       .all(documentId) as EventRow[];
+    const redirectRows = this.database.$client
+      .prepare(
+        `SELECT id, source_slug, kind, target_document_id, sequence, action,
+                actor, reason, occurred_at, idempotency_key, correlation_id
+         FROM editorial_redirect_events
+         WHERE target_document_id = ?
+         ORDER BY occurred_at DESC, source_slug ASC, sequence DESC
+         LIMIT 200`,
+      )
+      .all(documentId) as RedirectRow[];
 
     return {
       document: toDocument(row),
       revisions: revisionRows.map(toRevision),
       reviews: reviewRows.map(toReview),
+      redirects: redirectRows.map(toRedirect),
       events: eventRows.map((event): EditorialHistoryEvent => {
         const before = parseHistorical(event.before_json);
         const after = parseHistorical(event.after_json);

@@ -83,35 +83,38 @@ Adds cooperative run registration, checkpoints, event history, stale detection, 
 
 This phase depends on an approved remote MCP surface and does not claim direct access to normal ChatGPT conversations, hidden model state or instant message injection.
 
-### 10. Editorial workflow and publication approval
+### 10. Provider-agnostic workflow orchestration core
+
+[`2026-08-03-workflow-orchestration-core.md`](./2026-08-03-workflow-orchestration-core.md)
+
+The first slice is complete on `develop/workflow-control-core`: cooperative scope reservations, exact-SHA verification obligations, immutable recovery snapshots, conservative safe-work evaluation, owner-only DevOS composition and authenticated/anonymous browser coverage.
+
+Current evidence is recorded in [`../../testing/2026-08-03-workflow-orchestration-test-matrix.md`](../../testing/2026-08-03-workflow-orchestration-test-matrix.md). Campaigns, CI clustering, divergence guidance, execution profiles and capability catalogs require separate follow-up plans.
+
+### 11. Editorial workflow and publication approval
 
 Create a dedicated plan for private draft generation, sensitive-data review, preview, approval, publication and rollback.
 
-### 11. Scheduled reconciliation, webhooks and insights
+### 12. Scheduled reconciliation, webhooks and insights
 
 Create a dedicated plan only after the selected host proves scheduler/webhook behavior or an external adapter is selected.
 
-### 12. Host verification and controlled publication
+### 13. Host verification and controlled publication
 
 Use the Sites capability assessment and direct deployment evidence. Save and inspect a version before every production deployment. Keep MCP and scheduled work separately deployable when the host does not pass those gates.
 
 ## Current code checkpoint
 
-The `develop/foundation-bootstrap` branch contains implementation for operational writes, GitHub read observations, target registration/lifecycle, branch decisions, audit review, verified backup and the internal MCP read adapter.
+`develop/workflow-control-core` is the most advanced consolidated development line. It contains the platform foundation, editorial lifecycle and redirects, cooperative run ledger, GitHub read observations, recovery snapshots, safe-work evaluation and owner-only workflow orchestration.
 
-Static review has reconciled:
+Observed on August 3, 2026 with the verified offline toolchain:
 
-- canonical repository column `github_url` versus observation `html_url`;
-- canonical roles `product`, `core`, `integration`, `infrastructure`, `academic`, `experiment`;
-- legacy and extended `sync_runs` fields through migration `0004`;
-- package barrel exports, web workspace dependency and Operations route/style composition;
-- partial provider semantics and default-branch no-op handling;
-- shared DevOS read projections across web/database/MCP adapters;
-- MCP success/error envelopes, output bounds and absence of mutation tools;
-- separation between the MCP server factory and any future transport;
-- Node-native guardrails blocking transport imports/listeners across `packages/mcp` and every `apps/mcp-*` namespace.
+- all guardrails and package typechecks passed;
+- all package suites passed: 157 files / 600 tests;
+- production web build passed with 13 migrations server-only;
+- workflow orchestration Playwright passed 6/6, including privacy, 360 px layout and real owner mutations.
 
-These changes are committed remotely but are not called passing until install, typecheck, Vitest, build, browser and protocol gates run in a dependency-complete environment.
+Plans remain historical execution contracts, but code plus observed output are authoritative. Do not reopen completed boxes merely because an older handoff names `develop/foundation-bootstrap` or claims dependency gates are unavailable.
 
 ## Cross-plan rules
 

@@ -49,4 +49,46 @@ describe("SqliteRepositoryTargetOptions", () => {
     );
     database.$client.close();
   });
+
+  it("lists active workflow repository options with the effective branch", async () => {
+    const database = createSqliteDatabase(":memory:");
+    migrate(database);
+    database.$client
+      .prepare(
+        `INSERT INTO repositories (
+          id, project_id, owner, name, full_name, role, visibility, status,
+          default_branch, active_branch, github_url, github_node_id,
+          sync_enabled, last_synced_at, data_source, created_at, updated_at
+        ) VALUES
+          ('repository-active', 'demo-project-platform', 'Semogtw', 'SemogSite',
+           'Semogtw/SemogSite', 'product', 'private', 'active', 'main',
+           'develop/workflow-control-core', 'https://github.com/Semogtw/SemogSite',
+           NULL, 1, NULL, 'manual', ?, ?),
+          ('repository-default', NULL, 'Semogtw', 'Offline-Toolchains',
+           'Semogtw/Offline-Toolchains', 'infrastructure', 'public', 'active',
+           'main', NULL, 'https://github.com/Semogtw/Offline-Toolchains',
+           NULL, 1, NULL, 'manual', ?, ?),
+          ('repository-paused', NULL, 'Semogtw', 'Old', 'Semogtw/Old',
+           'experiment', 'private', 'paused', 'main', NULL,
+           'https://github.com/Semogtw/Old', NULL, 0, NULL, 'manual', ?, ?)`,
+      )
+      .run(now, now, now, now, now, now);
+    const options = new SqliteRepositoryTargetOptions(database);
+
+    await expect(options.listWorkflowRepositories()).resolves.toEqual([
+      {
+        id: "repository-default",
+        projectId: null,
+        fullName: "Semogtw/Offline-Toolchains",
+        branch: "main",
+      },
+      {
+        id: "repository-active",
+        projectId: "demo-project-platform",
+        fullName: "Semogtw/SemogSite",
+        branch: "develop/workflow-control-core",
+      },
+    ]);
+    database.$client.close();
+  });
 });

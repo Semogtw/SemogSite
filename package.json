@@ -25,9 +25,11 @@
     "check:mcp-package-boundaries": "node scripts/check-mcp-package-boundaries.mjs",
     "check:mcp-node-runtime-boundary": "node scripts/check-mcp-node-runtime-boundary.mjs",
     "check:run-ledger-guardrails": "node scripts/check-run-ledger-guardrails.mjs",
-    "check:editorial-guardrails": "node scripts/check-editorial-guardrails.mjs"
+    "check:editorial-guardrails": "node scripts/check-editorial-guardrails.mjs",
+    "test:e2e": "node scripts/prepare-e2e.mjs && pnpm --filter @semogtw/web build && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"

@@ -1,0 +1,133 @@
+name: Workflow control core gate
+
+on:
+  push:
+    branches:
+      - develop/workflow-control-core
+    paths:
+      - packages/domain/**
+      - packages/database/**
+      - packages/ui/**
+      - apps/web/**
+      - tests/e2e/**
+      - playwright.config.ts
+      - vitest.workspace.ts
+      - scripts/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+      - .github/workflows/workflow-control-core-check.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - packages/domain/**
+      - packages/database/**
+      - packages/ui/**
+      - apps/web/**
+      - tests/e2e/**
+      - playwright.config.ts
+      - vitest.workspace.ts
+      - scripts/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+      - .github/workflows/workflow-control-core-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-control-core-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Configure reviewed CI-only native build
+        run: |
+          cat >> pnpm-workspace.yaml <<'YAML'
+
+          # Ephemeral runner-only allowlist. This checkout is discarded after the job.
+          onlyBuiltDependencies:
+            - better-sqlite3
+          YAML
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify native SQLite dependency
+        run: >-
+          test -f
+          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+
+      - name: Check package boundaries
+        run: pnpm check:boundaries
+
+      - name: Check public confidentiality
+        run: pnpm check:public-confidentiality
+
+      - name: Test orchestration domain
+        run: pnpm --filter @semogtw/domain exec vitest run src/orchestration
+
+      - name: Typecheck domain
+        run: pnpm --filter @semogtw/domain typecheck
+
+      - name: Test orchestration persistence
+        run: >-
+          pnpm --filter @semogtw/database exec vitest run
+          src/orchestration-migrations.test.ts
+          src/repositories/scope-reservation-repository.test.ts
+          src/repositories/verification-obligation-repository.test.ts
+          src/repositories/recovery-snapshot-read-model.test.ts
+          src/repositories/recovery-snapshot-repository.test.ts
+          src/repositories/recovery-snapshot-source.test.ts
+          src/repositories/safe-work-source.test.ts
+          src/repositories/workflow-orchestration-read-model.test.ts
+          src/adapters/sqlite-migrations.test.ts
+          src/backup/sqlite-backup.test.ts
+
+      - name: Typecheck database
+        run: pnpm --filter @semogtw/database typecheck
+
+      - name: Test workflow orchestration controls
+        run: >-
+          pnpm --filter @semogtw/web exec vitest run
+          src/routes/-workflow-orchestration-controls.test.ts
+          src/components/devos/safe-work-capability-evaluator.test.ts
+
+      - name: Typecheck UI
+        run: pnpm --filter @semogtw/ui typecheck
+
+      - name: Typecheck web route tree
+        run: pnpm --filter @semogtw/web typecheck
+
+      - name: Run full monorepo check
+        run: pnpm check
+
+      - name: Build web application
+        run: pnpm --filter @semogtw/web build
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Prepare isolated E2E database
+        run: node scripts/prepare-e2e.mjs
+
+      - name: Test workflow privacy and mobile navigation
+        run: pnpm exec playwright test tests/e2e/workflow-orchestration.spec.ts

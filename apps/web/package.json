@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build && node ../../scripts/check-web-server-bundle.mjs",
     "dev": "vite dev",
-    "start": "node .output/server/index.mjs",
+    "start": "node ../../scripts/start-web-server.mjs",
     "test": "vitest run",
     "typecheck": "tsr generate && tsc -p tsconfig.json --noEmit"
   },

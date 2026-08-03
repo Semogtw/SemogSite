@@ -58,7 +58,7 @@ Rules:
 - publication requires the approved revision to be the exact expected revision;
 - withdrawal removes the public projection but preserves publication history;
 - rollback selects a previous approved revision and records a new publication event; it never rewrites the historical publication event;
-- slug changes require a separately reviewed redirect policy and are not part of initial editing.
+- slug canônico permanece imutável; URLs históricas são registradas somente pelo registry auditado de aliases.
 
 ## Sensitive review checklist
 
@@ -100,51 +100,53 @@ It never contains:
 
 ## Task 1: Pure domain contracts
 
-- [ ] Define document, revision, review and publication-event contracts.
-- [ ] Define lifecycle and optimistic-concurrency invariants.
-- [ ] Define bounded draft/revision creation.
-- [ ] Define submit/reopen/approve/publish/withdraw/rollback commands.
-- [ ] Define public projection from published content only.
-- [ ] Add focused tests before implementation.
-- [ ] Export from `@semogtw/domain`.
+- [x] Define document, revision, review and publication-event contracts.
+- [x] Define lifecycle and optimistic-concurrency invariants.
+- [x] Define bounded draft/revision creation.
+- [x] Define submit/reopen/approve/publish/withdraw/rollback commands.
+- [x] Define public projection from published content only.
+- [x] Add focused tests before implementation.
+- [x] Export from `@semogtw/domain`.
 
 ## Task 2: Persistence
 
-- [ ] Add additive migration `0006_editorial_workflow.sql`.
-- [ ] Add document, immutable revision, review and publication-event tables.
-- [ ] Keep public projection query independent from private operational tables.
-- [ ] Use immediate transactions, idempotency keys and optimistic `updated_at` matching.
-- [ ] Preserve publication history and redirect decisions.
-- [ ] Update backup/migration expectations through `0006`.
+- [x] Add additive editorial workflow migrations (`0006`–`0010`).
+- [x] Add document, immutable revision, review and publication-event tables.
+- [x] Keep public projection query independent from private operational tables.
+- [x] Use immediate transactions, idempotency keys and optimistic `updated_at` matching.
+- [x] Preserve publication and redirect history as separate append-only event streams.
+- [x] Update migration expectations through `0010`.
 
 ## Task 3: Owner-only editorial UI
 
-- [ ] Add private document list/detail/editor routes.
-- [ ] Add revision diff/preview.
-- [ ] Add sensitive-review checklist and approval reason.
-- [ ] Add publish/withdraw/rollback confirmation flows.
-- [ ] Add responsive/keyboard-safe editor controls.
-- [ ] Never expose review/draft payloads through public loaders.
+- [x] Add private document list/detail/editor routes.
+- [x] Add bounded owner-only revision diff; authenticated preview remains available.
+- [x] Add sensitive-review checklist and approval reason.
+- [x] Add publish/withdraw/rollback confirmation flows.
+- [x] Add responsive and keyboard-operable editor controls with Playwright verification at 360×800.
+- [x] Never expose review/draft payloads through public loaders.
 
 ## Task 4: Public reads
 
-- [ ] Add public read model backed only by current published revision.
-- [ ] Map to explicit public contracts.
-- [ ] Return not-found for draft/withdrawn/unknown content.
-- [ ] Add canonical/noindex behavior and approved redirects.
-- [ ] Add public confidentiality scanner coverage for editorial/private fields.
+- [x] Add public read model backed only by current published revision.
+- [x] Map to explicit strict public contracts.
+- [x] Return not-found for draft/withdrawn/unknown content.
+- [x] Add provider-neutral canonical/noindex behavior for public editorial routes.
+- [x] Add audited, kind-bound aliases with canonical-first resolution, explicit revocation and no private/operational fallback.
+- [x] Add public confidentiality scanner coverage for editorial/private fields.
 
 ## Task 5: Verification
 
-- [ ] Domain lifecycle/content-bound tests.
-- [ ] SQLite atomicity/idempotency/rollback tests.
-- [ ] Migration `0001`–`0006` memory/file execution.
-- [ ] Backup/restore with editorial fixtures.
-- [ ] Owner browser edit/review/publish/withdraw/rollback flow.
-- [ ] Anonymous draft/review confidentiality tests.
-- [ ] Markdown sanitization/XSS and external-link tests.
-- [ ] Keyboard and 360 px review.
-- [ ] Full `pnpm check` and build.
+- [x] Domain lifecycle/content-bound tests.
+- [x] SQLite atomicity/idempotency/rollback tests.
+- [x] Migration `0001`–`0010` memory/file execution.
+- [x] Backup/restore with editorial fixtures.
+- [x] Owner browser edit/review/publish/withdraw/rollback flow.
+- [x] Anonymous draft/review confidentiality tests.
+- [x] Markdown sanitization/XSS and external-link tests.
+- [x] Keyboard and 360 px review.
+- [x] Production build and all individual guardrail/typecheck/test stages.
+- [x] Document and execute deterministic per-workspace/lote fallback when the constrained runner keeps Vitest handles open.
 
 ## Security rules
 
@@ -175,3 +177,42 @@ It never contains:
 - previous published revisions remain immutable/recoverable;
 - all current-HEAD tests/migrations/build/browser/confidentiality gates are observed;
 - no autonomous publication or remote write is claimed.
+
+## Execution update — 2026-08-03
+
+Implemented and observed on `develop/editorial-workspace`:
+
+- owner creation, immutable revisions, bounded textual diff, submit/reopen, approval checklist, publication, withdrawal and rollback;
+- replay-first idempotency and optimistic concurrency bound to the exact revision/content hash;
+- strict public readers backed only by the current published revision;
+- safe Markdown renderer in React elements with raw HTML disabled and restrictive URI policy;
+- canonical/noindex behavior for indexes, published details, unknown and withdrawn content;
+- audited redirect registry in migration `0010`, with append-only `created`/`revoked` events, owner controls and private history;
+- canonical-first alias resolution, same-kind published target and `308` same-origin with `Cache-Control: no-store, max-age=0`;
+- Playwright proof that an alias can be created, followed, revoked and observed as not-found in the same browser session;
+- file-backed backup/restore preserving the public revision, a newer private draft and the alias history/resolution.
+
+Observed package gates:
+
+```text
+Node v22.23.1
+pnpm 11.15.1 from the current offline toolchain
+Domain:    36 files / 208 tests
+Database:  46 files / 127 tests (3 deterministic batches)
+Contracts:  2 files / 10 tests
+Web:       26 files / 74 tests
+All workspace Vitest suites: 140 files / 529 tests
+10 migration assets expected
+all workspace typechecks passed
+production client/SSR build passed
+10 server migration assets verified
+Playwright: 2/2 scenarios passed
+git diff --check and Markdown local-link check passed
+```
+
+The aggregate Vitest parent process can retain handles in this constrained shell. Coverage is therefore also executed as deterministic workspace/file batches, with every file required to pass. This is a harness limitation, not a waived gate.
+
+Remaining before production declaration:
+
+- execute deployment-specific CSP, trusted-origin, reverse-proxy cache and canonical-origin gates on the selected host;
+- configure production backup encryption, upload, retention and restore drills.

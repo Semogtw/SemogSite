@@ -37,6 +37,22 @@ export type {
 } from "./repositories/cooperative-run-read-model";
 export { SqliteCooperativeRunRegistrationRepository } from "./repositories/cooperative-run-registration-repository";
 export { SqliteCooperativeRunTransitionRepository } from "./repositories/cooperative-run-transition-repository";
+export { SqliteEditorialRedirectRepository } from "./repositories/editorial-redirect-repository";
+export { SqliteEditorialReadModel } from "./repositories/editorial-read-model";
+export type {
+  EditorialDocumentDetail,
+  EditorialDocumentListItem,
+  EditorialHistoryEvent,
+  EditorialHistoryEventKind,
+  EditorialReviewView,
+  EditorialRevisionView,
+} from "./repositories/editorial-read-model";
+export { SqliteEditorialWriteRepository } from "./repositories/editorial-write-repository";
+export { SqlitePublishedEditorialReadModel } from "./repositories/published-editorial-read-model";
+export type {
+  PublishedEditorialProjection,
+  PublishedEditorialProjectionKind,
+} from "./repositories/published-editorial-read-model";
 export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteGitHubObservationRepository } from "./repositories/github-observation-repository";
 export { SqliteGitHubSyncReadModel } from "./repositories/github-sync-read-model";
@@ -50,13 +66,40 @@ export { SqliteOverviewDataSource } from "./repositories/overview-data-source";
 export { SqliteProjectDataSource } from "./repositories/project-data-source";
 export { SqliteProjectRepository } from "./repositories/project-repository";
 export { SqlitePublicProjectSource } from "./repositories/public-project-source";
+export { SqliteRecoverySnapshotReadModel } from "./repositories/recovery-snapshot-read-model";
+export type { RecoverySnapshotView } from "./repositories/recovery-snapshot-read-model";
+export { SqliteRecoverySnapshotRepository } from "./repositories/recovery-snapshot-repository";
+export { SqliteRecoverySnapshotSource } from "./repositories/recovery-snapshot-source";
+export type {
+  RecoverySnapshotSourceInput,
+  RecoverySnapshotSourceResult,
+} from "./repositories/recovery-snapshot-source";
 export { SqliteRepositoryTargetLifecycleRepository } from "./repositories/repository-target-lifecycle-repository";
 export { SqliteRepositoryTargetOptions } from "./repositories/repository-target-options";
-export type { RepositoryTargetProjectOption } from "./repositories/repository-target-options";
+export type {
+  RepositoryTargetProjectOption,
+  WorkflowRepositoryOption,
+} from "./repositories/repository-target-options";
 export { SqliteRepositoryTargetRegistrationRepository } from "./repositories/repository-target-registration-repository";
 export { SqliteRoadmapDataSource } from "./repositories/roadmap-data-source";
+export { SqliteSafeWorkSource } from "./repositories/safe-work-source";
+export type {
+  SafeWorkSourceError,
+  SafeWorkSourceExclusion,
+  SafeWorkSourceExclusionCode,
+  SafeWorkSourceInput,
+  SafeWorkSourceResult,
+} from "./repositories/safe-work-source";
+export { SqliteScopeReservationRepository } from "./repositories/scope-reservation-repository";
 export { SqliteSessionHandoffRepository } from "./repositories/session-handoff-repository";
 export { SqliteStageCompletionRepository } from "./repositories/stage-completion-repository";
 export { SqliteStageRepository } from "./repositories/stage-repository";
 export { SqliteTodayDataSource } from "./repositories/today-data-source";
+export { SqliteVerificationObligationRepository } from "./repositories/verification-obligation-repository";
+export { SqliteWorkflowOrchestrationReadModel } from "./repositories/workflow-orchestration-read-model";
+export type {
+  WorkflowOrchestrationDashboard,
+  WorkflowReservationView,
+  WorkflowVerificationView,
+} from "./repositories/workflow-orchestration-read-model";
 export * as schema from "./schema";

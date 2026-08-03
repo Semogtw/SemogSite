@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteDatabase, migrate } from "./sqlite";
 
 describe("SQLite migrations", () => {
-  it("applies every committed migration including the cooperative run ledger", () => {
+  it("applies every committed migration including workflow orchestration", () => {
     const database = createSqliteDatabase(":memory:");
 
     migrate(database);
@@ -22,6 +22,10 @@ describe("SQLite migrations", () => {
       { name: "0007_editorial_invariant_triggers.sql" },
       { name: "0008_editorial_approval_guards.sql" },
       { name: "0009_editorial_document_identity_guards.sql" },
+      { name: "0010_editorial_redirect_registry.sql" },
+      { name: "0011_scope_reservations.sql" },
+      { name: "0012_verification_obligations.sql" },
+      { name: "0013_recovery_snapshots.sql" },
     ]);
     expect(
       database.$client
@@ -58,6 +62,27 @@ describe("SQLite migrations", () => {
       { name: "cooperative_run_commands" },
       { name: "cooperative_run_events" },
       { name: "cooperative_runs" },
+    ]);
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name IN (
+             'scope_reservations',
+             'scope_reservation_events',
+             'verification_obligations',
+             'verification_obligation_events',
+             'recovery_snapshots'
+           )
+           ORDER BY name ASC`,
+        )
+        .all(),
+    ).toEqual([
+      { name: "recovery_snapshots" },
+      { name: "scope_reservation_events" },
+      { name: "scope_reservations" },
+      { name: "verification_obligation_events" },
+      { name: "verification_obligations" },
     ]);
 
     const syncRunColumns = new Set(
