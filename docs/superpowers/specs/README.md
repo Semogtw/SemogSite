@@ -44,7 +44,7 @@ Provider-neutral scope reservations, exact-SHA verification obligations, immutab
 
 Conservative activity classification, trustworthy continuation context and clipboard/open-destination behavior without provider UI scraping or automatic submission.
 
-## Platform and editorial specifications
+## Platform specification
 
 ### Platform foundation
 
@@ -52,17 +52,7 @@ Conservative activity classification, trustworthy continuation context and clipb
 
 Portable TypeScript platform, public/editorial site, private DevOS, relational persistence, authentication and adapter boundaries.
 
-### Editorial workflow
-
-- [`2026-08-01-semogtw-editorial-workflow.md`](./2026-08-01-semogtw-editorial-workflow.md)
-
-Owner-only draft/revision/review/publication/withdrawal/rollback workflow and safe public projection rules.
-
-### Editorial redirects
-
-- [`2026-08-03-semogtw-editorial-redirect-registry.md`](./2026-08-03-semogtw-editorial-redirect-registry.md)
-
-Append-only aliases and audited canonical redirect behavior.
+Editorial lifecycle and redirect execution documents currently live under [`../plans/README.md`](../plans/README.md); do not invent specification links for plan-only files.
 
 ## Specification rules
 
