@@ -1,0 +1,6 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/workflow-control-core",
+  "expected_head": "128a6e7a2d6612245415a933a843357f228fb9a7",
+  "commit_message": "fix(orchestration): bind mutation context identities"
+}
