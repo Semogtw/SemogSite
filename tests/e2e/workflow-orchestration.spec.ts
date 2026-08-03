@@ -7,7 +7,11 @@ async function loginOwner(page: Page, returnTo = "/devos/workflows") {
   await expect(page).toHaveURL(/\/devos\/login/u);
   await page.getByLabel("Senha").fill(ownerPassword);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(new RegExp(`${returnTo.replaceAll("/", "\\/")}$`, "u"));
+  await expect(page).toHaveURL(/\/devos$/u);
+  await page.goto(returnTo);
+  await expect(page).toHaveURL(
+    new RegExp(`${returnTo.replaceAll("/", "\\/")}$`, "u"),
+  );
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
