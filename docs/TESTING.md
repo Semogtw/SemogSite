@@ -1,6 +1,6 @@
 # Testes e gates
 
-A política do projeto é evidência antes de declaração. Código, migrations ou documentação não tornam uma fase “aprovada” até que os gates relevantes sejam executados no HEAD correspondente.
+A política do projeto é **evidência antes de declaração**. Código, migrations ou documentação não tornam uma fase aprovada até que os gates relevantes sejam executados no head correspondente.
 
 ## Preparação
 
@@ -9,7 +9,9 @@ corepack enable
 pnpm install --frozen-lockfile
 ```
 
-Em ambiente sem rede, use `docs/OFFLINE_TOOLCHAIN.md`. O artifact fornece Node, pnpm, store, `better-sqlite3` e Chromium; a instalação deve usar o lockfile frozen e zero downloads.
+Em ambiente sem rede, siga `docs/OFFLINE_TOOLCHAIN.md`. O artifact offline deve fornecer Node, pnpm/store, a dependência nativa `better-sqlite3` e Chromium compatíveis com o lockfile.
+
+O workflow focado adiciona `better-sqlite3` à allowlist somente no checkout efêmero do runner. A política de supply chain comprometida no repositório não é ampliada.
 
 ## Gate agregado
 
@@ -17,93 +19,144 @@ Em ambiente sem rede, use `docs/OFFLINE_TOOLCHAIN.md`. O artifact fornece Node, 
 pnpm check
 ```
 
-O comando executa guardrails, fronteiras de pacote, confidencialidade, typechecks e Vitest. Em runners muito restritos, o processo Vitest agregado pode manter handles abertos. Isso não autoriza pular cobertura: execute os workspaces em lotes determinísticos com pool de threads e registre cada saída.
+O comando executa:
 
-Exemplo estável:
+- fixtures de guardrails;
+- identidade upstream limpa;
+- fronteiras do domínio;
+- fronteiras de transporte, pacote e runtime MCP;
+- guardrails do ledger cooperativo e editorial;
+- scanner de confidencialidade pública;
+- typecheck de todos os workspaces;
+- Vitest de todo o monorepo.
 
-```bash
-pnpm --filter @semogtw/domain exec vitest run --pool=threads --maxWorkers=4 --minWorkers=1
-pnpm --filter @semogtw/contracts exec vitest run --pool=threads --maxWorkers=4 --minWorkers=1
-pnpm --filter @semogtw/web exec vitest run --pool=threads --maxWorkers=4 --minWorkers=1
-```
+Timeout ou handle órfão do harness não equivale a teste aprovado nem a regressão. Quando um ambiente realmente não consegue concluir a suíte agregada, os workspaces devem ser executados em lotes determinísticos e cada saída registrada. O CI atual conclui o agregado normalmente.
 
-A suíte de banco pode ser dividida por arquivos quando o processo agregado não encerra. Todos os lotes precisam passar; timeout do parent process não equivale a teste aprovado nem a teste falho.
+## Evidência observada do workflow core
 
-## Evidência observada em 2026-08-03
+Run `30841132598`, commit `94956d10f805e13af7f11e5e2e4f63e8e4abe4b8`, em 3 de agosto de 2026:
 
-Checkpoint remoto de código e backup: `1190f738b303912174f69267b2c961037202669f`.
+| Gate | Resultado observado |
+|---|---|
+| instalação frozen + SQLite nativo | aprovado |
+| fronteiras de pacotes | aprovado |
+| confidencialidade pública | aprovado |
+| domínio de orquestração | 7 arquivos, 34 testes aprovados |
+| persistência focada | 10 arquivos, 33 testes aprovados |
+| controles web focados | 2 arquivos, 8 testes aprovados |
+| typecheck de domínio, banco, UI e web | aprovado |
+| `pnpm check` completo | 151 arquivos, 576 testes aprovados |
+| build cliente/SSR | aprovado |
+| migrations no SSR | 13 arquivos |
+| migrations no cliente | nenhuma |
+| Playwright do workflow core | 6 de 6 aprovados |
 
-| Workspace | Arquivos | Testes | Resultado |
-| --- | ---: | ---: | --- |
-| `@semogtw/domain` | 36 | 208 | aprovado |
-| `@semogtw/database` | 46 | 127 | aprovado em 3 lotes determinísticos |
-| `@semogtw/contracts` | 2 | 10 | aprovado |
-| `@semogtw/web` | 26 | 74 | aprovado |
-| `@semogtw/api` | 4 | 9 | aprovado |
-| `@semogtw/mcp-app` | 1 | 1 | aprovado |
-| `@semogtw/auth` | 3 | 7 | aprovado |
-| `@semogtw/config` | 1 | 2 | aprovado |
-| `@semogtw/github` | 6 | 24 | aprovado |
-| `@semogtw/mcp` | 13 | 65 | aprovado |
-| `@semogtw/ui` | 2 | 2 | aprovado |
-| **Total dos workspaces** | **140** | **529** | **aprovado** |
+Essa execução ocorreu antes dos commits finais de documentação. O merge exige uma nova execução integral no head documental final.
 
-Os scripts Node de guardrail foram executados separadamente por `pnpm test:guardrails` e não estão incluídos nessa contagem Vitest. Todos os typechecks de workspace passaram; o build cliente/SSR confirmou 10 migrations no servidor; o Playwright passou 2/2 após remover um processo de servidor órfão deixado por uma interrupção do harness.
+A matriz detalhada e as invariantes por módulo estão em `docs/testing/2026-08-03-workflow-orchestration-test-matrix.md`.
 
-## Gates editoriais especializados
+## Cobertura especializada do workflow core
 
-A matriz detalhada está em `docs/testing/2026-08-01-editorial-test-matrix.md`. Os gates cobrem:
+### Domínio
 
-- lifecycle, hash exato e concorrência otimista;
-- atomicidade e replay idempotente no SQLite;
-- confidencialidade entre draft privado e projeção pública;
-- renderer Markdown sem HTML bruto e links restritos;
-- canonical/noindex;
-- registry append-only de aliases;
-- redirect `308` same-origin com `no-store`;
-- revogação observável no mesmo navegador;
-- backup/restauração com alias, publicação e draft privado.
+- normalização e overlap de escopos;
+- expiração derivada e estados persistidos;
+- aquisição, renovação, release e override;
+- idempotência e concorrência otimista;
+- binding entre contexto e entidade antes do acesso ao repositório;
+- gates ligados a SHA completo;
+- classificação de falha/bloqueio;
+- canonicalização, limites e rejeição de credenciais em snapshots;
+- ranking e exclusões conservadoras de trabalho seguro.
 
-## Build e migrations SSR
+### SQLite e backup
+
+- migrations `0001`–`0013` em banco novo e de forma idempotente;
+- constraints de reservas, obrigações e snapshots;
+- atomicidade entidade/evento/auditoria;
+- rollback quando evento ou audit falha;
+- retries idempotentes e conflitos por intenção alterada;
+- histórico imutável de recuperação;
+- backup/restauração com integridade, foreign keys e conjunto exato de migrations.
+
+### Web e servidor
+
+- owner guard em leituras e mutações;
+- CSRF e confirmação explícita;
+- formulários somente para estados mutáveis;
+- rota de recuperação como sibling route;
+- capabilities vazias por padrão;
+- reavaliação de capabilities somente na sessão;
+- build das server functions e árvore TanStack.
+
+### Browser
+
+`tests/e2e/workflow-orchestration.spec.ts` observa:
+
+1. redirect anônimo de `/devos/workflows` e `/devos/workflows/recovery` antes de conteúdo privado;
+2. ausência de marcadores de workflow na home pública;
+3. login owner e navegação entre dashboard e recuperação;
+4. reavaliação de trabalho seguro com capabilities explicitamente digitadas;
+5. ausência de overflow horizontal em 360 × 800 nas duas rotas;
+6. cadastro de alvo privado, criação e override de reserva, criação de gate, resultado `blocked/environment_missing` e snapshot recusado sem observação GitHub.
+
+O teste E2E usa banco isolado preparado por `scripts/prepare-e2e.mjs`. Nenhum repositório GitHub real é alterado.
+
+## Gates editoriais
+
+A matriz editorial permanece em `docs/testing/2026-08-01-editorial-test-matrix.md`. Ela cobre lifecycle, hash exato, concorrência, publicação, rollback, aliases append-only, redirect `308`, canonical/noindex, Markdown seguro e separação draft/público.
+
+## Build
 
 ```bash
 pnpm build
 ```
 
-O gate precisa confirmar:
+O build precisa confirmar:
 
-- build de todos os workspaces;
+- todos os workspaces relevantes;
 - bundle cliente e SSR;
-- 10 migrations no servidor;
-- nenhuma migration no cliente;
-- dependências nativas exigidas pelo runtime Node.
+- 13 migrations somente no servidor;
+- dependências nativas necessárias ao runtime Node;
+- ausência de SQLite, migrations e secrets no bundle público.
 
-## Browser gate
+O gate focado também executa:
+
+```bash
+pnpm --filter @semogtw/web build
+```
+
+seguido de `scripts/check-web-server-bundle.mjs`.
+
+## Browser completo
 
 ```bash
 pnpm test:e2e
 ```
 
-O Playwright versionado cobre login owner, criação/review/aprovação, publicação, novo draft sem vazamento, rollback, retirada, canonical/noindex, teclado, viewport de 360×800 e o ciclo de alias: criar, receber `308`/`Location`/`no-store`, navegar pela URL antiga, revogar e observar not-found na mesma sessão.
+Além do workflow core, a suíte versionada cobre fluxos editoriais, login owner, canonical/noindex, teclado, viewport de 360 × 800 e aliases. Gates focados podem executar arquivos individuais para produzir feedback rápido, mas o merge final deve preservar evidência do agregado relevante.
 
-## Backup gate
+## Backup
 
 ```bash
 pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw.sqlite
 pnpm verify:backup -- ./backups/semogtw.sqlite ./data/semogtw.sqlite
 ```
 
-Além do comando operacional, a fixture `packages/database/src/backup/sqlite-backup.test.ts` restaura publicação, draft privado, review, eventos e alias append-only.
+A implementação recusa overwrite e verifica integridade, foreign keys e migrations `0001`–`0013`. As fixtures restauram conteúdo editorial e dados operacionais de orquestração.
 
 ## Registro de passagem
 
 Uma passagem deve registrar:
 
-- commit e árvore Git exatos;
+- branch, commit e árvore de merge exatos;
 - versões de Node e pnpm;
 - comandos e códigos de saída;
-- contagem de arquivos/testes por workspace;
-- migrations presentes no SSR;
+- contagem de arquivos/testes;
+- migrations presentes no SSR e ausentes no cliente;
 - rotas, viewport e navegador usados no Playwright;
-- resultado de integridade/foreign keys do backup;
-- qualquer timeout de harness separado de falhas reais.
+- integridade/foreign keys do backup;
+- falhas reais separadas de indisponibilidade do ambiente;
+- IDs de workflow usados como evidência.
+
+Não reutilize contagens ou run IDs antigos depois de modificar arquivos cobertos pelo gate.
