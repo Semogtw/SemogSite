@@ -54,15 +54,27 @@ These plans remain authoritative for their current read-only/domain slices.
 4. [`2026-08-03-semogtw-approvals-change-sets.md`](./2026-08-03-semogtw-approvals-change-sets.md)
    - adds immutable approvals, recent-auth critical decisions, atomic database change sets and explicit external sagas.
 
-5. [`2026-08-03-semogtw-development-requests-control-plane.md`](./2026-08-03-semogtw-development-requests-control-plane.md)
+5. [`2026-08-03-semogtw-operational-domain-write-rollout.md`](./2026-08-03-semogtw-operational-domain-write-rollout.md)
+   - migrates Projects, Roadmap, Attention, repository-target and workflow-orchestration mutations to canonical commands;
+   - adds specific resource-scoped MCP tools without GitHub writes or generic mutation.
+
+6. [`2026-08-03-semogtw-growth-domain-write-rollout.md`](./2026-08-03-semogtw-growth-domain-write-rollout.md)
+   - adds complete goal/checkpoint/skill/evidence/credential command and MCP parity;
+   - preserves derived progress and proposal/review semantics.
+
+7. [`2026-08-03-semogtw-editorial-appearance-write-rollout.md`](./2026-08-03-semogtw-editorial-appearance-write-rollout.md)
+   - adds draft/revision/publication commands and typed appearance/navigation/dashboard configuration;
+   - forbids executable HTML/JavaScript/CSS and generic settings mutation.
+
+8. [`2026-08-03-semogtw-development-requests-control-plane.md`](./2026-08-03-semogtw-development-requests-control-plane.md)
    - adds development requests, branch/SHA/scope reservations, checkpoints and verification evidence;
    - does not yet grant an executor raw repository or deployment access.
 
-6. [`2026-08-03-semogtw-development-executor.md`](./2026-08-03-semogtw-development-executor.md)
+9. [`2026-08-03-semogtw-development-executor.md`](./2026-08-03-semogtw-development-executor.md)
    - adds signed constrained jobs, separately authenticated worker, verified sandbox, scoped Git workspaces, checkpoint pushes, allowlisted exact-SHA gates and exact-head draft PR creation;
    - never merges or deploys.
 
-7. [`2026-08-03-semogtw-deployment-rollback.md`](./2026-08-03-semogtw-deployment-rollback.md)
+10. [`2026-08-03-semogtw-deployment-rollback.md`](./2026-08-03-semogtw-deployment-rollback.md)
    - adds exact-head merge approval, immutable artifacts, typed deployment adapters, local-container preview, observed health and artifact rollback;
    - keeps production visibly disabled until a separate provider-specific adapter plan passes after host selection.
 
@@ -89,6 +101,17 @@ No critical command executes until:
 - recent owner authentication is verified independently of page-session age;
 - stale/expired/revoked approvals fail closed;
 - the owner UI shows exact effects and non-reversibility.
+
+### Domain rollout gate
+
+No domain is declared UI/MCP-editable merely because authorization infrastructure exists. Its rollout plan must:
+
+- inventory every current supported mutation;
+- register specific commands/manifests/previews;
+- migrate owner UI through the same gateway;
+- add filtered resource-scoped MCP tools;
+- prove derived/immutable/secret values cannot be overwritten;
+- pass public confidentiality, idempotency, conflict, audit and approval tests.
 
 ### Development executor gate
 
@@ -146,6 +169,8 @@ Current planning reserves:
 0022_deployment_control.sql
 ```
 
+The domain rollout plans reuse existing domain migrations unless their Task 1 inventory proves a strictly necessary additive change. They may not consume a migration number without reconciling this stack first.
+
 This is a reservation, not permission to create migrations blindly. Before implementing any plan:
 
 ```bash
@@ -161,7 +186,7 @@ If another migration landed, renumber every unimplemented affected plan/spec tog
 - Human UI is guided and task-oriented; command schemas are not rendered as raw forms.
 - Core CRUD, templates and deterministic calculations remain usable without AI.
 - AI output is an untrusted proposal with authenticated-client/provider provenance.
-- Derived percentages are never arbitrary writable fields.
+- Derived percentages and evidence-derived skill states are never arbitrary writable fields.
 - Secrets are write-only/replace-only and never returned through MCP.
 - Immutable history is corrected through append-only supersede/compensation.
 - Every write has authorization, resource resolution, risk, idempotency, conflict and audit semantics.
