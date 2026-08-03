@@ -183,6 +183,8 @@ O gate focado do workflow core também executa:
 
 A evidência atual, os IDs das execuções e qualquer limitação permanecem registrados em [docs/testing/2026-08-03-workflow-orchestration-test-matrix.md](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md). Não reutilize contagens antigas depois de alterar arquivos cobertos pelo gate.
 
+O checkpoint offline observado em 3 de agosto de 2026 passou 157 arquivos / 600 testes, build de produção, validação das 13 migrations no SSR e 6/6 cenários Playwright do workflow core. O `pnpm check` agregado excedeu o limite externo somente durante a suíte monorepo; os mesmos testes passaram integralmente por workspace.
+
 ## Backup
 
 ```bash

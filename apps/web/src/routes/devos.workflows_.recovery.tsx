@@ -6,7 +6,7 @@ import { RecoverySnapshotHistory } from "../components/devos/recovery-snapshot-h
 import { getWorkflowOrchestrationDashboardFn } from "../server/devos-workflows";
 import { requireOwner } from "../server/require-owner";
 
-export const Route = createFileRoute("/devos/workflows/recovery")({
+export const Route = createFileRoute("/devos/workflows_/recovery")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),

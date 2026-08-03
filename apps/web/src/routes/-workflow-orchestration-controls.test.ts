@@ -48,6 +48,9 @@ describe("workflow orchestration controls", () => {
     const server = source("../server/devos-recovery-snapshot.ts");
 
     expect(route).toContain('to="/devos/workflows/recovery"');
+    expect(recoveryRoute).toContain(
+      'createFileRoute("/devos/workflows_/recovery")',
+    );
     expect(route).toContain("Gerar snapshot de recuperação");
     expect(recoveryRoute).toContain("requireOwner");
     expect(recoveryRoute).toContain("RecoverySnapshotForm");
