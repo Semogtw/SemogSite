@@ -124,7 +124,7 @@ It defines:
 - future idempotent claim/complete commands behind the unified write gates;
 - direct webhook/provider adapters as a future replacement without changing domain contracts.
 
-The addendum does not modify the current remote MCP implementation plan. It requires account-level verification of Gmail monitor behavior, custom-app availability, latency and write confirmation before any implementation plan is created.
+The addendum does not modify the current remote MCP implementation plan. It requires account-level verification of Gmail monitor behavior, custom-app availability, latency and write confirmation before any implementation plan is created. Public documentation and observed account behavior may differ by plan, location, language and rollout stage, so observed account behavior is the acceptance source of truth.
 
 The historical 2026-08-01 Streamable HTTP plan is not the current execution source.
 
