@@ -1,0 +1,8 @@
+{
+  "repository": "Semogtw/SemogSite",
+  "branch": "develop/workflow-control-core",
+  "expected_head": "8593576d0dcc5c2e65d14e322618e3a4f5ba70dd",
+  "patch_sha256": "061de5e0a6a20e46b893491a54244a4256f313cc0a90b0f1632f14b91c3cd27b",
+  "expected_tree": "60e3ae4676fb33df44fb3d2e9e786d95fe201418",
+  "commit_message": "fix(domain): bind orchestration context identity"
+}
