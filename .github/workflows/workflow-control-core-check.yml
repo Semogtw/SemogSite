@@ -80,6 +80,7 @@ jobs:
           src/orchestration-migrations.test.ts
           src/repositories/scope-reservation-repository.test.ts
           src/repositories/verification-obligation-repository.test.ts
+          src/repositories/recovery-snapshot-read-model.test.ts
           src/repositories/recovery-snapshot-repository.test.ts
           src/repositories/recovery-snapshot-source.test.ts
           src/repositories/safe-work-source.test.ts
