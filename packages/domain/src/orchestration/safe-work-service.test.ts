@@ -234,10 +234,12 @@ describe("SafeWorkService.evaluate", () => {
           }),
         ], { observedAt: "invalid" }),
       ),
-    ).toEqual({
+    ).toMatchObject({
       ok: false,
       code: "VALIDATION_FAILED",
       errors: ["OBSERVED_AT_INVALID"],
+      recommendations: [],
+      exclusions: [],
     });
   });
 });
