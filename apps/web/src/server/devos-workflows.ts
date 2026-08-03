@@ -1,4 +1,5 @@
 import {
+  SqliteRecoverySnapshotReadModel,
   SqliteRepositoryTargetOptions,
   SqliteSafeWorkSource,
   SqliteWorkflowOrchestrationReadModel,
@@ -23,15 +24,18 @@ export const getWorkflowOrchestrationDashboardFn = createServerFn({
   const model = new SqliteWorkflowOrchestrationReadModel(database);
   const options = new SqliteRepositoryTargetOptions(database);
   const safeWorkSource = new SqliteSafeWorkSource(database);
-  const [dashboard, repositoryOptions, safeWork] = await Promise.all([
-    model.getDashboard(observedAt),
-    options.listWorkflowRepositories(),
-    safeWorkSource.evaluate({
-      observedAt,
-      availableCapabilities: [],
-      defaultEstimatedMinutes: 60,
-    }),
-  ]);
+  const snapshotReadModel = new SqliteRecoverySnapshotReadModel(database);
+  const [dashboard, repositoryOptions, safeWork, recoverySnapshots] =
+    await Promise.all([
+      model.getDashboard(observedAt),
+      options.listWorkflowRepositories(),
+      safeWorkSource.evaluate({
+        observedAt,
+        availableCapabilities: [],
+        defaultEstimatedMinutes: 60,
+      }),
+      snapshotReadModel.listRecent(20),
+    ]);
 
-  return { ...dashboard, repositoryOptions, safeWork };
+  return { ...dashboard, repositoryOptions, safeWork, recoverySnapshots };
 });
