@@ -72,6 +72,24 @@ test.describe("authenticated workflow orchestration", () => {
     await expect(page.getByRole("link", { name: "Voltar aos fluxos" })).toBeVisible();
   });
 
+  test("re-evaluates safe work only from explicit session capabilities", async ({
+    page,
+  }) => {
+    await page
+      .getByLabel("Capacidades do runtime atual")
+      .fill(" Node-22, pnpm-10\nnode-22 ");
+    await page.getByRole("button", { name: "Reavaliar trabalho seguro" }).click();
+
+    await expect(
+      page.getByText(
+        "Avaliação atualizada apenas com as capacidades declaradas nesta sessão.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByLabel("Capacidades do runtime atual")).toHaveValue(
+      " Node-22, pnpm-10\nnode-22 ",
+    );
+  });
+
   test("remains usable at a 360 pixel viewport", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/devos/workflows");
