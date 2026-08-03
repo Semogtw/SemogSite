@@ -166,6 +166,7 @@ export type VerificationObligationValidationError =
   | "TOO_MANY_EVIDENCE_URLS"
   | "REASON_REQUIRED"
   | "REASON_TOO_LONG"
+  | "CONTEXT_OBLIGATION_MISMATCH"
   | "CONFIRMATION_REQUIRED";
 
 export type VerificationObligationResult =
@@ -250,7 +251,9 @@ function normalizeCapabilities(
     .sort((left, right) => left.localeCompare(right));
   return {
     values: normalized,
-    valid: normalized.length > 0 && normalized.every((value) => capabilityPattern.test(value)),
+    valid:
+      normalized.length > 0 &&
+      normalized.every((value) => capabilityPattern.test(value)),
   };
 }
 
@@ -275,7 +278,9 @@ function normalizeEvidenceUrls(
     }
   }
   return {
-    values: [...new Set(normalized)].sort((left, right) => left.localeCompare(right)),
+    values: [...new Set(normalized)].sort((left, right) =>
+      left.localeCompare(right),
+    ),
     valid: true,
     tooMany: false,
   };
@@ -286,7 +291,10 @@ function normalizedFailureSummary(value: string): string {
     .trim()
     .toLowerCase()
     .replaceAll("\\", "/")
-    .replace(/(?:[a-z]:)?\/(?:[^\s:]+\/)*(?=(?:apps|packages|scripts|tests)\/)/giu, "")
+    .replace(
+      /(?:[a-z]:)?\/(?:[^\s:]+\/)*(?=(?:apps|packages|scripts|tests)\/)/giu,
+      "",
+    )
     .replace(/:\d+(?::\d+)?/gu, ":#")
     .replace(/\s+/gu, " ");
 }
@@ -321,6 +329,16 @@ function contextErrors(
   const now = normalizedIso(context.now);
   if (now === null) errors.push("NOW_INVALID");
   return { errors, now };
+}
+
+function bindObligationContext(
+  obligationId: string,
+  context: VerificationObligationContext,
+  errors: VerificationObligationValidationError[],
+): void {
+  if (text(context.obligationId) !== obligationId) {
+    errors.push("CONTEXT_OBLIGATION_MISMATCH");
+  }
 }
 
 function auditEvent(input: {
@@ -463,6 +481,7 @@ export class VerificationObligationService {
     const resultSummary = text(input.resultSummary);
     const nextAction = text(input.nextAction);
     const evidence = normalizeEvidenceUrls(input.evidenceUrls);
+    bindObligationContext(obligationId, context, errors);
 
     if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
@@ -571,6 +590,7 @@ export class VerificationObligationService {
     const { errors, now } = contextErrors(context);
     const obligationId = text(input.obligationId);
     const reason = text(input.reason);
+    bindObligationContext(obligationId, context, errors);
     if (status === "waived" && !confirmed) errors.push("CONFIRMATION_REQUIRED");
     if (!idPattern.test(obligationId)) errors.push("OBLIGATION_ID_REQUIRED");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
@@ -595,7 +615,10 @@ export class VerificationObligationService {
       ...before,
       status,
       resultSummary: reason,
-      nextAction: status === "superseded" ? "Create a gate for the current commit." : before.nextAction,
+      nextAction:
+        status === "superseded"
+          ? "Create a gate for the current commit."
+          : before.nextAction,
       resolvedAt: now,
       version: before.version + 1,
     };
