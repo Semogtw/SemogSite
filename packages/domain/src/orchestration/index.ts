@@ -43,3 +43,13 @@ export type {
   VerificationObligationValidationError,
   WaiveVerificationObligationInput,
 } from "./verification-obligation-service";
+export { buildRecoverySnapshot } from "./recovery-snapshot";
+export type {
+  RecoveryConfidence,
+  RecoveryPushState,
+  RecoverySnapshot,
+  RecoverySnapshotInput,
+  RecoverySnapshotResult,
+  RecoverySnapshotValidationError,
+  RecoveryTestStatus,
+} from "./recovery-snapshot";
