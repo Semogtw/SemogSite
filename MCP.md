@@ -20,6 +20,8 @@ McpServer instance
 
 `apps/mcp` composes the chain from an already-open, already-migrated `SqliteDatabase`. It does not open stdio, HTTP, SSE or another listener.
 
+An authenticated remote MCP surface is now specified and planned, but no listener, OAuth endpoint, migration `0014` or remote client connection has been implemented yet.
+
 ## Catalog
 
 ### Resources
@@ -107,7 +109,7 @@ The protocol schema also bounds string and array sizes before the domain service
 
 `InMemoryTransport` remains allowed for protocol tests.
 
-The guardrail is part of both `test:guardrails` and `pnpm check`. Its Node-native fixture suite and a representative permitted-tree scan were observed passing on 2026-08-01. The remote PR diff was separately inspected; forbidden transport names appear only inside the guardrail implementation and its rejection fixtures, not in the production MCP server/composition files.
+The guardrail is part of both `test:guardrails` and `pnpm check`. It must remain deny-by-default. The approved remote implementation may narrow the allowlist only for the exact reviewed network and Streamable HTTP adapter files under `apps/mcp-http`; `packages/mcp`, `apps/mcp`, web and API remain listener-free.
 
 ## Tests
 
@@ -122,20 +124,74 @@ Committed specifications cover:
 - project not-found and invalid-input errors;
 - unexpected-failure sanitization;
 - 256 KiB output bounds;
-- SQLite-to-MCP reads against the demo migration state;
+- SQLite-to-MCP reads against the migrated demo state;
 - transport-boundary guardrail fixtures.
 
-The MCP SDK could not be installed in the current shell because `registry.npmjs.org` does not resolve. Therefore the SDK-backed protocol/typecheck suites remain unexecuted. Official v1.29.0 package/source signatures were reviewed through connected official sources for static alignment.
+The dependency-complete workflow-core baseline includes the MCP suites in the repository-wide verified gate. Remote implementation must nevertheless rerun focused MCP package/app tests, record the exact installed SDK API, and produce fresh HTTP/OAuth/client evidence tied to the implementation head.
+
+## Approved remote MCP design and plans
+
+Canonical design:
+
+- [`docs/superpowers/specs/2026-08-03-semogtw-remote-mcp-spark-design.md`](docs/superpowers/specs/2026-08-03-semogtw-remote-mcp-spark-design.md)
+
+Executable plans:
+
+- [`docs/superpowers/plans/2026-08-03-semogtw-remote-mcp-spark.md`](docs/superpowers/plans/2026-08-03-semogtw-remote-mcp-spark.md)
+- [`docs/superpowers/plans/2026-08-03-semogtw-workflow-mcp-read-catalog.md`](docs/superpowers/plans/2026-08-03-semogtw-workflow-mcp-read-catalog.md)
+
+The remote design uses a separately deployable Mode B bridge with:
+
+- framework-free `packages/mcp-auth`;
+- additive migration `0014_mcp_oauth.sql`;
+- owner-managed preregistration and Dynamic Client Registration;
+- authorization code with mandatory PKCE S256;
+- audience/resource-bound opaque access and rotating refresh tokens persisted only as digests;
+- private owner client management and consent;
+- OAuth protected-resource and authorization-server discovery;
+- an independent remote kill switch;
+- authenticated stateless Streamable HTTP;
+- generic MCP-client verification before Gemini Spark acceptance.
+
+Gemini Spark is an intended compatibility client, not a domain dependency. The owner currently has Spark through Google AI Pro in Brazil, but **Custom apps for Spark** remains a separate account capability that must be observed in the real account. Its absence is an external dependency, not a code failure and not permission to bypass the gate with browser automation.
+
+## Planned workflow/recovery reads
+
+After the original catalog passes authenticated remote gates, the approved read-only expansion adds exactly:
+
+```text
+devos_get_workflow_summary
+devos_get_safe_next_work
+devos_list_scope_reservations
+devos_list_verification_obligations
+devos_get_recovery_snapshot
+devos_get_project_resume_context
+```
+
+This phase adds no new resources and no mutation tools.
+
+Required semantics:
+
+- accepted branch and full matching persisted SHA only;
+- no completion inferred from commit silence;
+- explicit verification classifications preserved;
+- safe-work capabilities default to an empty set and are not persisted;
+- recovery Markdown is bounded and opt-in;
+- all collections are bounded and deterministically ordered;
+- existing sensitive-output and 256 KiB limits remain active.
 
 ## Remote exposure gate
 
-Do not expose the server over HTTP, stdio or ChatGPT until a separate plan proves:
+Do not expose the server over HTTP, stdio or another network transport until the 2026-08-03 plan proves:
 
-- owner authentication and revocation;
-- authorization before private reads;
-- per-session/client isolation;
+- additive OAuth persistence and backup/restore;
+- owner-only preregistration, DCR, consent and revocation;
+- authorization code + PKCE S256;
+- exact resource/audience, scope, expiry and refresh rotation;
+- authorization before private database/MCP composition;
+- per-request client/auth/MCP isolation;
 - TLS and canonical URL;
-- Host/Origin and DNS-rebinding policy where applicable;
+- Host/Origin and trusted-proxy policy;
 - request, concurrency and timeout limits;
 - shared rate limiting when multi-instance;
 - private/no-store caching;
@@ -143,7 +199,8 @@ Do not expose the server over HTTP, stdio or ChatGPT until a separate plan prove
 - cancellation and disconnect behavior;
 - credential rotation;
 - endpoint disablement and rollback;
-- compatibility with the intended MCP client and selected host.
+- generic MCP client compatibility;
+- Gemini Spark compatibility when the account exposes custom apps.
 
 Read-only annotations do not satisfy these requirements.
 
@@ -155,8 +212,8 @@ A future write tool must call the same audited domain service already used by De
 - reason;
 - optimistic concurrency;
 - idempotency;
-- atomic audit insertion;
+- atomic audit/event insertion;
 - owner authorization;
 - no direct GitHub write unless separately designed and approved.
 
-No write plan may begin merely by adding a handler to `packages/mcp`.
+No write plan may begin merely by adding a handler to `packages/mcp`. No write scope exists in the approved remote design.
