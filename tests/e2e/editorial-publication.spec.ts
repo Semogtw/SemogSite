@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const password = "semogtw-e2e-owner";
 const slug = "nota-editorial-e2e";
+const aliasSlug = "nota-editorial-e2e-antiga";
 
 async function login(page: Page) {
   await page.goto("/devos/login");
@@ -90,6 +91,56 @@ test.describe.serial("editorial publication lifecycle", () => {
       `/notes/${slug}`,
     );
 
+    await page.goto(detailPath);
+    await page.getByLabel("Slug antigo").fill(aliasSlug);
+    await page
+      .getByLabel("Motivo auditável")
+      .fill("Preservar a URL anterior no gate E2E.");
+    await page.getByRole("checkbox", {
+      name: /Confirmo que esta URL antiga deve redirecionar permanentemente/u,
+    }).check();
+    await page.getByRole("button", { name: "Criar alias auditado" }).click();
+    await expect(page.getByRole("heading", { name: "Aliases ativos" })).toBeVisible();
+
+    const redirectResponse = await page.request.get(`/notes/${aliasSlug}`, {
+      maxRedirects: 0,
+    });
+    expect(redirectResponse.status()).toBe(308);
+    expect(redirectResponse.headers()["location"]).toBe(`/notes/${slug}`);
+    expect(redirectResponse.headers()["cache-control"]).toContain("no-store");
+
+    await page.goto(`/notes/${aliasSlug}`);
+    await expect(page).toHaveURL(new RegExp(`/notes/${slug}$`, "u"));
+    await expect(
+      page.getByRole("heading", { name: "Nota editorial original" }).first(),
+    ).toBeVisible();
+
+    await page.goto(detailPath);
+    await page
+      .getByLabel("Motivo da revogação")
+      .fill("Encerrar o alias no gate E2E.");
+    await page.getByRole("checkbox", {
+      name: /Confirmo que esta URL antiga deve deixar de redirecionar/u,
+    }).check();
+    await page.getByRole("button", { name: "Revogar alias" }).click();
+    await expect(page.getByText("revogado", { exact: false }).first()).toBeVisible();
+
+    await page.goto(`/notes/${aliasSlug}`);
+    await expect(
+      page.getByRole("heading", {
+        name: /Nenhuma publicação pública corresponde/u,
+      }),
+    ).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /noindex/u,
+    );
+
+    await page.goto(`/notes/${slug}`);
+    await expect(
+      page.getByRole("heading", { name: "Nota editorial original" }).first(),
+    ).toBeVisible();
     await page.goto(detailPath);
     await page.getByLabel("Motivo da reabertura").fill("Preparar revisão atualizada.");
     await page.getByRole("checkbox", {
