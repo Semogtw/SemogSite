@@ -46,6 +46,7 @@ function repository(snapshot = current()) {
     value: input.after,
   }));
   return {
+    findReplay: vi.fn(async () => null),
     getSnapshot: vi.fn(async () => snapshot),
     apply,
   } satisfies CheckpointWeightRebalanceRepository;
