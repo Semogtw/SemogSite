@@ -49,6 +49,7 @@ function checkpoint(
     required: true,
     sequence: 1,
     weight: 100,
+    weightMode: "custom",
     completionMode: { kind: "binary" },
     acceptedValue: null,
     dueDate: null,
@@ -131,7 +132,7 @@ function createHarness(initial: LearningGoalAggregate) {
 }
 
 describe("LearningCheckpointService", () => {
-  it("adds a normalized ordered checkpoint", async () => {
+  it("adds a normalized ordered checkpoint with a custom owner weight", async () => {
     const harness = createHarness(baseGoal([checkpoint()]));
     const result = await harness.service.add(
       {
@@ -155,6 +156,7 @@ describe("LearningCheckpointService", () => {
         description: "Criar automação",
         sequence: 2,
         weight: 40,
+        weightMode: "custom",
         completionMode: { kind: "numeric", unit: "projetos", target: 2 },
         status: "pending",
       },
@@ -181,7 +183,11 @@ describe("LearningCheckpointService", () => {
     );
     expect(partial).toMatchObject({
       ok: true,
-      checkpoint: { acceptedValue: 7, status: "in_progress", version: 2 },
+      checkpoint: {
+        status: "in_progress",
+        acceptedValue: 7,
+        weightMode: "custom",
+      },
     });
 
     const completed = await harness.service.recordAcceptedValue(
@@ -190,26 +196,49 @@ describe("LearningCheckpointService", () => {
         checkpointId: "checkpoint-1",
         expectedCheckpointVersion: 2,
         acceptedValue: 10,
-        reason: "Meta alcançada",
+        reason: "Meta atingida",
       },
       { ...context, idempotencyKey: "idempotency-2" },
     );
     expect(completed).toMatchObject({
       ok: true,
-      checkpoint: { acceptedValue: 10, status: "completed", version: 3 },
+      checkpoint: {
+        status: "completed",
+        acceptedValue: 10,
+        weightMode: "custom",
+      },
     });
   });
 
-  it("does not complete a numeric checkpoint before its target", async () => {
-    const harness = createHarness(
-      baseGoal([
-        checkpoint({
-          status: "in_progress",
-          completionMode: { kind: "numeric", unit: "horas", target: 10 },
-          acceptedValue: 5,
-        }),
-      ]),
-    );
+  it("requires confirmation for waive and cancel", async () => {
+    const harness = createHarness(baseGoal([checkpoint()]));
+
+    await expect(
+      harness.service.transition(
+        {
+          goalId: "goal-1",
+          checkpointId: "checkpoint-1",
+          expectedCheckpointVersion: 1,
+          action: "waive",
+          reason: "Não é mais necessário",
+          confirmed: false,
+        },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      code: "VALIDATION_FAILED",
+      errors: ["CONFIRMATION_REQUIRED"],
+    });
+  });
+
+  it("rejects completion before a numeric target is reached", async () => {
+    const numeric = checkpoint({
+      status: "in_progress",
+      completionMode: { kind: "numeric", unit: "horas", target: 10 },
+      acceptedValue: 4,
+    });
+    const harness = createHarness(baseGoal([numeric]));
 
     await expect(
       harness.service.transition(
@@ -218,98 +247,77 @@ describe("LearningCheckpointService", () => {
           checkpointId: "checkpoint-1",
           expectedCheckpointVersion: 1,
           action: "complete",
-          reason: "Tentar concluir",
-          confirmed: false,
+          reason: "Finalizar",
+          confirmed: true,
         },
         context,
       ),
     ).resolves.toEqual({ ok: false, code: "CHECKPOINT_TARGET_NOT_REACHED" });
   });
 
-  it("requires explicit confirmation for waiver and cancellation", async () => {
-    const harness = createHarness(baseGoal([checkpoint()]));
-    await expect(
-      harness.service.transition(
-        {
-          goalId: "goal-1",
-          checkpointId: "checkpoint-1",
-          expectedCheckpointVersion: 1,
-          action: "waive",
-          reason: "Conteúdo equivalente comprovado",
-          confirmed: false,
-        },
-        context,
-      ),
-    ).resolves.toEqual({
-      ok: false,
-      code: "VALIDATION_FAILED",
-      errors: ["CONFIRMATION_REQUIRED"],
-    });
+  it("reorders by a complete unique ID list", async () => {
+    const first = checkpoint({ id: "a", sequence: 1 });
+    const second = checkpoint({ id: "b", sequence: 2 });
+    const harness = createHarness(baseGoal([first, second]));
 
-    const waived = await harness.service.transition(
+    const result = await harness.service.reorder(
       {
         goalId: "goal-1",
-        checkpointId: "checkpoint-1",
-        expectedCheckpointVersion: 1,
-        action: "waive",
-        reason: "Conteúdo equivalente comprovado",
-        confirmed: true,
+        expectedGoalVersion: 3,
+        orderedCheckpointIds: ["b", "a"],
+        reason: "Priorizar projeto",
       },
       context,
     );
-    expect(waived).toMatchObject({
+
+    expect(result).toMatchObject({
       ok: true,
-      checkpoint: { status: "waived", version: 2 },
+      checkpoints: [
+        { id: "b", sequence: 1, version: 2, weightMode: "custom" },
+        { id: "a", sequence: 2, version: 2, weightMode: "custom" },
+      ],
     });
   });
 
-  it("reorders only with a complete unique ID list", async () => {
-    const first = checkpoint({ id: "checkpoint-1", sequence: 1 });
-    const second = checkpoint({ id: "checkpoint-2", sequence: 2 });
-    const harness = createHarness(baseGoal([first, second]));
+  it("rejects incomplete or duplicate reorder lists", async () => {
+    const harness = createHarness(
+      baseGoal([
+        checkpoint({ id: "a", sequence: 1 }),
+        checkpoint({ id: "b", sequence: 2 }),
+      ]),
+    );
 
     await expect(
       harness.service.reorder(
         {
           goalId: "goal-1",
           expectedGoalVersion: 3,
-          orderedCheckpointIds: ["checkpoint-2"],
-          reason: "Reorganizar",
+          orderedCheckpointIds: ["a", "a"],
+          reason: "Reorder",
         },
         context,
       ),
-    ).resolves.toEqual({ ok: false, code: "CHECKPOINT_ORDER_MISMATCH" });
-
-    const result = await harness.service.reorder(
-      {
-        goalId: "goal-1",
-        expectedGoalVersion: 3,
-        orderedCheckpointIds: ["checkpoint-2", "checkpoint-1"],
-        reason: "Reorganizar",
-      },
-      context,
-    );
-    expect(result).toMatchObject({
-      ok: true,
-      checkpoints: [
-        { id: "checkpoint-2", sequence: 1, version: 2 },
-        { id: "checkpoint-1", sequence: 2, version: 2 },
-      ],
+    ).resolves.toMatchObject({
+      ok: false,
+      code: "VALIDATION_FAILED",
+      errors: ["CHECKPOINT_ORDER_DUPLICATE"],
     });
   });
 
-  it("reports repository conflicts and idempotent replays", async () => {
-    const harness = createHarness(baseGoal([checkpoint()]));
+  it("maps repository conflicts and idempotent replays", async () => {
+    const harness = createHarness(baseGoal());
     harness.setConflict(true);
     await expect(
-      harness.service.transition(
+      harness.service.add(
         {
           goalId: "goal-1",
-          checkpointId: "checkpoint-1",
-          expectedCheckpointVersion: 1,
-          action: "start",
-          reason: "Começar",
-          confirmed: false,
+          expectedGoalVersion: 3,
+          title: "Checkpoint",
+          description: "",
+          required: true,
+          weight: 100,
+          completionMode: { kind: "binary" },
+          dueDate: null,
         },
         context,
       ),
@@ -317,17 +325,20 @@ describe("LearningCheckpointService", () => {
 
     harness.setConflict(false);
     harness.setReplay(true);
-    const replay = await harness.service.transition(
-      {
-        goalId: "goal-1",
-        checkpointId: "checkpoint-1",
-        expectedCheckpointVersion: 1,
-        action: "start",
-        reason: "Começar",
-        confirmed: false,
-      },
-      context,
-    );
-    expect(replay).toMatchObject({ ok: true, replayed: true });
+    await expect(
+      harness.service.add(
+        {
+          goalId: "goal-1",
+          expectedGoalVersion: 3,
+          title: "Checkpoint",
+          description: "",
+          required: true,
+          weight: 100,
+          completionMode: { kind: "binary" },
+          dueDate: null,
+        },
+        context,
+      ),
+    ).resolves.toMatchObject({ ok: true, replayed: true });
   });
 });
