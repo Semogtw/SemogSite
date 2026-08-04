@@ -15,22 +15,30 @@ import type {
   ResourceSelectorMap,
 } from "./types";
 
+const baseSelectors: ResourceSelectorMap = {
+  attention_item: [
+    { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
+  ],
+};
+
 const baseAuthorization: EffectiveAgentAuthorization = {
   clientId: "client_1",
   ownerId: "owner_1",
   capabilities: ["attention.write"],
-  resourceSelectors: {
-    attention_item: [{ kind: "exact_ids", ids: ["attention_1", "attention_2"] }],
-  },
+  resourceSelectors: baseSelectors,
   capabilityResourceSelectors: {
-    "attention.write": {
-      attention_item: [
-        { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
-      ],
-    },
+    "attention.write": baseSelectors,
   },
   riskCeiling: "medium",
   riskCeilingByCapability: { "attention.write": "medium" },
+  authorizationClauses: [
+    {
+      grantId: "grant_1",
+      capability: "attention.write",
+      resourceSelectors: baseSelectors,
+      riskCeiling: "medium",
+    },
+  ],
   grantIds: ["grant_1"],
   trustSessionIds: [],
 };
@@ -165,6 +173,14 @@ describe("agent trust-session bounds", () => {
       ...baseAuthorization,
       riskCeiling: "low",
       riskCeilingByCapability: { "attention.write": "low" },
+      authorizationClauses: [
+        {
+          grantId: "grant_1",
+          capability: "attention.write",
+          resourceSelectors: baseSelectors,
+          riskCeiling: "low",
+        },
+      ],
     };
     expect(() =>
       validateTrustSessionRequest({
