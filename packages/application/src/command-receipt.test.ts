@@ -122,6 +122,13 @@ describe("command receipt contracts", () => {
       }),
     ).toThrow("COMMAND_RECEIPT_INVALID");
     expect(() =>
+      createReceiptClaim(prepared(), {
+        receiptId: "receipt-1",
+        claimedAt: "2026-02-31T05:00:00.000Z",
+        leaseExpiresAt: "2026-03-03T05:05:00.000Z",
+      }),
+    ).toThrow("COMMAND_RECEIPT_INVALID");
+    expect(() =>
       createReceiptFailure({
         receiptId: "receipt-1",
         requestHash: "c".repeat(64),
@@ -147,6 +154,22 @@ describe("command receipt contracts", () => {
         requestHash: "c".repeat(64),
         summary: { value: "x".repeat(5000) },
         completedAt: "2026-08-04T05:01:00.000Z",
+      }),
+    ).rejects.toThrow("COMMAND_RECEIPT_INVALID");
+    await expect(
+      createReceiptSuccess({
+        receiptId: "receipt-1",
+        requestHash: "c".repeat(64),
+        summary: { value: "é".repeat(3000) },
+        completedAt: "2026-08-04T05:01:00.000Z",
+      }),
+    ).rejects.toThrow("COMMAND_RECEIPT_INVALID");
+    await expect(
+      createReceiptSuccess({
+        receiptId: "receipt-1",
+        requestHash: "c".repeat(64),
+        summary: { ok: true },
+        completedAt: "2026-02-31T05:01:00.000Z",
       }),
     ).rejects.toThrow("COMMAND_RECEIPT_INVALID");
   });
