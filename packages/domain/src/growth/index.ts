@@ -10,6 +10,12 @@ export type {
   SkillRecord,
   SkillStage,
 } from "./model";
+export type {
+  CheckpointProgressInput,
+  GoalProgressExplanation,
+  GoalProgressProjection,
+} from "./progress";
+export { deriveGoalProgress } from "./progress";
 export {
   normalizeCheckpointWeight,
   normalizeLearningGoalSlug,
