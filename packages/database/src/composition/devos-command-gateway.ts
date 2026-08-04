@@ -148,7 +148,7 @@ export function createSqliteDevOSCommandGateway(input: {
     async execute(envelope) {
       let prepared: PreparedCommand;
       try {
-        prepared = preparation.prepare(envelope);
+        prepared = await preparation.prepare(envelope);
       } catch (error) {
         return preparationFailure(error);
       }
