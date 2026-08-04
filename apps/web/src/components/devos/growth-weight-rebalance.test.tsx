@@ -23,7 +23,7 @@ describe("GrowthWeightRebalance", () => {
 
     expect(screen.getByText("Total proposto: 100 pontos")).toBeInTheDocument();
     expect(screen.getByText("Fundamentos")).toBeInTheDocument();
-    expect(screen.getAllByText("50 → 50 pontos")).toHaveLength(2);
+    expect(screen.getAllByText("50 → 50 pontos · automático")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "Aplicar redistribuição" }));
     await waitFor(() => expect(onApply).toHaveBeenCalledWith({ confirmed: true }));
   });
@@ -46,6 +46,7 @@ describe("GrowthWeightRebalance", () => {
       />,
     );
 
+    expect(screen.getByText("100 → 50 pontos · personalizado")).toBeInTheDocument();
     expect(
       screen.getByText("Esta redistribuição altera um peso personalizado."),
     ).toBeInTheDocument();
