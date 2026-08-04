@@ -48,7 +48,7 @@ export function GrowthGoalDetail({
   ).length;
 
   return (
-    <main className="growth-page">
+    <div className="growth-page">
       <header className="growth-page__header">
         <h1>{goal.title}</h1>
         {goal.description.length > 0 ? <p>{goal.description}</p> : null}
@@ -128,6 +128,6 @@ export function GrowthGoalDetail({
           </ul>
         )}
       </section>
-    </main>
+    </div>
   );
 }
