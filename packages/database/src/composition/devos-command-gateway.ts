@@ -5,6 +5,7 @@ import {
   transitionAttentionCommand,
   type CommandEnvelope,
   type CommandError,
+  type CommandReceiptClaim,
   type CommandResult,
   type JsonValue,
   type PreparedCommand,
@@ -185,7 +186,7 @@ export function createSqliteDevOSCommandGateway(input: {
         );
       }
 
-      let claim;
+      let claim: CommandReceiptClaim;
       let payload: TransitionAttentionPayload;
       try {
         claim = createReceiptClaim(prepared, {
