@@ -11,6 +11,7 @@ export type {
 } from "./repositories/growth-read-model";
 export { SqliteLearningCheckpointRepository } from "./repositories/learning-checkpoint-repository";
 export { SqliteLearningGoalRepository } from "./repositories/learning-goal-repository";
+export { SqliteQuickLearningGoalRepository } from "./repositories/quick-learning-goal-repository";
 export { SqliteSkillRepository } from "./repositories/skill-repository";
 export {
   learningCheckpointEvents,
