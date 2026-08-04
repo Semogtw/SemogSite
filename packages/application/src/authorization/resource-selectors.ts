@@ -50,8 +50,41 @@ export const reviewedResourceKinds = [
 
 const reviewedResourceKindSet = new Set<string>(reviewedResourceKinds);
 
-function boundedCanonicalId(value: string): boolean {
+function plainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  return Reflect.ownKeys(value).every((key) => {
+    if (typeof key !== "string") return false;
+    const descriptor = descriptors[key];
+    return (
+      descriptor !== undefined &&
+      descriptor.enumerable &&
+      "value" in descriptor &&
+      descriptor.get === undefined &&
+      descriptor.set === undefined
+    );
+  });
+}
+
+function exactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
   return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === [...expected].sort()[index])
+  );
+}
+
+function stringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function boundedCanonicalId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
     value.length >= 1 &&
     value.length <= 200 &&
     value.trim() === value &&
@@ -62,19 +95,21 @@ function boundedCanonicalId(value: string): boolean {
 }
 
 function uniqueBoundedValues(
-  values: readonly string[],
+  values: unknown,
   minimum: number,
   maximum: number,
-): boolean {
+): values is readonly string[] {
   return (
+    stringArray(values) &&
     values.length >= minimum &&
     values.length <= maximum &&
     new Set(values).size === values.length
   );
 }
 
-function canonicalPrefixValid(prefix: string): boolean {
+function canonicalPrefixValid(prefix: unknown): prefix is string {
   if (
+    typeof prefix !== "string" ||
     prefix.length < 1 ||
     prefix.length > 200 ||
     prefix.trim() !== prefix ||
@@ -105,26 +140,35 @@ function canonicalPrefixValid(prefix: string): boolean {
   );
 }
 
-function resourceKindKnown(resourceKind: string): boolean {
+function resourceKindKnown(resourceKind: unknown): resourceKind is string {
   return (
+    typeof resourceKind === "string" &&
     resourceKindPattern.test(resourceKind) &&
     reviewedResourceKindSet.has(resourceKind)
   );
 }
 
-function parentRefValid(parentRef: CommandResourceParentRef): boolean {
-  return resourceKindKnown(parentRef.kind) && boundedCanonicalId(parentRef.id);
+function parentRefValid(parentRef: unknown): parentRef is CommandResourceParentRef {
+  return (
+    plainRecord(parentRef) &&
+    exactKeys(parentRef, ["id", "kind"]) &&
+    resourceKindKnown(parentRef.kind) &&
+    boundedCanonicalId(parentRef.id)
+  );
 }
 
-function commandResourceValid(resource: CommandResource): boolean {
+function commandResourceValid(resource: unknown): resource is CommandResource {
+  if (!plainRecord(resource)) return false;
   return (
+    exactKeys(resource, ["id", "kind", "lifecycleState", "parentRefs"]) &&
     resourceKindKnown(resource.kind) &&
     boundedCanonicalId(resource.id) &&
     Array.isArray(resource.parentRefs) &&
     resource.parentRefs.length <= 50 &&
     resource.parentRefs.every(parentRefValid) &&
     (resource.lifecycleState === null ||
-      (resource.lifecycleState.length >= 1 &&
+      (typeof resource.lifecycleState === "string" &&
+        resource.lifecycleState.length >= 1 &&
         resource.lifecycleState.length <= 80 &&
         resource.lifecycleState.trim() === resource.lifecycleState))
   );
@@ -138,15 +182,24 @@ export function validateResourceSelectorForKind(input: {
   if (!resourceKindKnown(input.resourceKind)) {
     throw new Error("RESOURCE_KIND_UNKNOWN");
   }
+  if (!plainRecord(input.selector) || typeof input.selector.kind !== "string") {
+    throw new Error("RESOURCE_SELECTOR_INVALID");
+  }
 
   switch (input.selector.kind) {
     case "all":
+      if (!exactKeys(input.selector, ["kind"])) {
+        throw new Error("RESOURCE_SELECTOR_INVALID");
+      }
       if (input.explicitOwnerSelection !== true) {
         throw new Error("ALL_SELECTOR_REQUIRES_OWNER_SELECTION");
       }
       return;
 
     case "exact_ids":
+      if (!exactKeys(input.selector, ["ids", "kind"])) {
+        throw new Error("RESOURCE_SELECTOR_INVALID");
+      }
       if (
         !uniqueBoundedValues(input.selector.ids, 1, 200) ||
         !input.selector.ids.every(boundedCanonicalId)
@@ -156,6 +209,9 @@ export function validateResourceSelectorForKind(input: {
       return;
 
     case "canonical_prefixes":
+      if (!exactKeys(input.selector, ["kind", "prefixes"])) {
+        throw new Error("RESOURCE_SELECTOR_INVALID");
+      }
       if (input.resourceKind !== "repository_path") {
         throw new Error("RESOURCE_SELECTOR_KIND_UNSUPPORTED");
       }
@@ -168,6 +224,9 @@ export function validateResourceSelectorForKind(input: {
       return;
 
     case "lifecycle_states": {
+      if (!exactKeys(input.selector, ["kind", "states"])) {
+        throw new Error("RESOURCE_SELECTOR_INVALID");
+      }
       const allowedStates = lifecycleStatesByResourceKind[input.resourceKind];
       if (allowedStates === undefined) {
         throw new Error("RESOURCE_SELECTOR_KIND_UNSUPPORTED");
@@ -180,6 +239,9 @@ export function validateResourceSelectorForKind(input: {
       }
       return;
     }
+
+    default:
+      throw new Error("RESOURCE_SELECTOR_INVALID");
   }
 }
 
@@ -193,7 +255,8 @@ export function selectorMatchesResource(input: {
     validateResourceSelectorForKind({
       resourceKind: input.resource.kind,
       selector: input.selector,
-      explicitOwnerSelection: input.selector.kind === "all",
+      explicitOwnerSelection:
+        plainRecord(input.selector) && input.selector.kind === "all",
     });
   } catch {
     return false;
@@ -215,5 +278,7 @@ export function selectorMatchesResource(input: {
         input.resource.lifecycleState !== null &&
         input.selector.states.includes(input.resource.lifecycleState)
       );
+    default:
+      return false;
   }
 }
