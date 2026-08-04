@@ -148,12 +148,12 @@ export function createReceiptClaim(
   };
 }
 
-export function createReceiptSuccess(input: {
+export async function createReceiptSuccess(input: {
   receiptId: string;
   requestHash: string;
   summary: Readonly<Record<string, JsonValue>>;
   completedAt: string;
-}): CommandReceiptSuccess {
+}): Promise<CommandReceiptSuccess> {
   if (
     !bounded(input.receiptId, 200) ||
     !hashPattern.test(input.requestHash) ||
@@ -167,7 +167,7 @@ export function createReceiptSuccess(input: {
     kind: "success",
     receiptId: input.receiptId,
     requestHash: input.requestHash,
-    resultHash: canonicalSha256(input.summary),
+    resultHash: await canonicalSha256(input.summary),
     resultSummaryJson,
     stableErrorCode: null,
     retryable: null,
