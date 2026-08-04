@@ -80,7 +80,7 @@ describe("QuickLearningGoalService", () => {
     });
   });
 
-  it("materializes a template into five ordered checkpoint records and events", async () => {
+  it("materializes a template into five automatic ordered checkpoints and events", async () => {
     const harness = createHarness();
     const result = await harness.service.create(
       {
@@ -100,6 +100,11 @@ describe("QuickLearningGoalService", () => {
     expect(harness.captured?.checkpoints.map((value) => value.sequence)).toEqual([
       1, 2, 3, 4, 5,
     ]);
+    expect(
+      harness.captured?.checkpoints.every(
+        (checkpoint) => checkpoint.weightMode === "automatic",
+      ),
+    ).toBe(true);
     expect(
       harness.captured?.checkpoints.reduce(
         (total, checkpoint) => total + checkpoint.weight,
