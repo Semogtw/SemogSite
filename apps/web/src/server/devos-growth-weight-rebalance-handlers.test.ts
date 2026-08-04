@@ -47,7 +47,10 @@ describe("DevOS Growth weight rebalance handlers", () => {
     const handlers = createDevOSGrowthWeightRebalanceHandlers(deps);
     await expect(handlers.preview({ goalId: "goal-1" })).resolves.toEqual(previewResult);
     expect(deps.resolveOwner).toHaveBeenCalledOnce();
-    expect(deps.createService).toHaveBeenCalledAfter(deps.resolveOwner);
+    expect(deps.createService).toHaveBeenCalledOnce();
+    expect(deps.resolveOwner.mock.invocationCallOrder[0]).toBeLessThan(
+      deps.createService.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("rejects invalid CSRF before opening storage", async () => {
