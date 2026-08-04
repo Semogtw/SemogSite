@@ -11,7 +11,6 @@ export type OwnerEntityActionAvailability =
   | "planned";
 
 export type OwnerEntityAction = {
-  commandId: string;
   labelPtBr: string;
   risk: RiskTier;
   reversible: boolean;
@@ -21,6 +20,11 @@ export type OwnerEntityAction = {
 type CatalogCommandLabel = {
   commandId: string;
   labelPtBr: string;
+};
+
+type InternalOwnerEntityAction = {
+  commandId: string;
+  action: OwnerEntityAction;
 };
 
 const commandLabels = new Map(
@@ -46,6 +50,18 @@ function availableFromDecision(
   }
 }
 
+function contextShapeValid(context: CommandContext): boolean {
+  return (
+    typeof context === "object" &&
+    context !== null &&
+    typeof context.ownerId === "string" &&
+    typeof context.actor === "object" &&
+    context.actor !== null &&
+    typeof context.actor.kind === "string" &&
+    typeof context.actor.actorId === "string"
+  );
+}
+
 export function listOwnerEntityActions(input: {
   registry: CommandRegistry;
   manifests: readonly EditabilityManifest[];
@@ -60,7 +76,8 @@ export function listOwnerEntityActions(input: {
     input.resourceType.length > 120 ||
     input.resourceId.trim() !== input.resourceId ||
     input.resourceId.length < 1 ||
-    input.resourceId.length > 200
+    input.resourceId.length > 200 ||
+    !contextShapeValid(input.context)
   ) {
     return [];
   }
@@ -68,7 +85,7 @@ export function listOwnerEntityActions(input: {
   const manifestedCommands = new Set(
     input.manifests.flatMap((manifest) => manifest.commands),
   );
-  const actions: OwnerEntityAction[] = [];
+  const actions: InternalOwnerEntityAction[] = [];
   for (const command of input.registry.listManifests()) {
     if (
       command.resourceType !== input.resourceType ||
@@ -97,18 +114,22 @@ export function listOwnerEntityActions(input: {
     }
     actions.push({
       commandId: command.commandId,
-      labelPtBr,
-      risk: command.riskFloor,
-      reversible: command.undoStrategy !== "none",
-      availability,
+      action: {
+        labelPtBr,
+        risk: command.riskFloor,
+        reversible: command.undoStrategy !== "none",
+        availability,
+      },
     });
   }
 
-  return actions.sort((left, right) =>
-    left.commandId < right.commandId
-      ? -1
-      : left.commandId > right.commandId
-        ? 1
-        : 0,
-  );
+  return actions
+    .sort((left, right) =>
+      left.commandId < right.commandId
+        ? -1
+        : left.commandId > right.commandId
+          ? 1
+          : 0,
+    )
+    .map((entry) => entry.action);
 }
