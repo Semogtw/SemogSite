@@ -1,3 +1,4 @@
+export { createAttentionTransitionCommandRunner } from "./command-runners/attention-transition-command-runner";
 export {
   SqliteCommandReceiptRepository,
 } from "./repositories/command-receipt-repository";
