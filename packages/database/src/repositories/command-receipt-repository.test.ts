@@ -119,7 +119,7 @@ describe("SqliteCommandReceiptRepository", () => {
       kind: "success",
       receiptId: "receipt-1",
       requestHash: "a".repeat(64),
-      resultHash: "899a19d40bf2a57456d63ba695f19cb5ecae00bbf0f8baa0216cf889f97715bb",
+      resultHash: "06c6563a152c2d5064cd718e375c354a11b4a165170f9306fc107bf73a5952b4",
       resultSummaryJson: '{"status":"acknowledged"}',
       stableErrorCode: null,
       retryable: null,
