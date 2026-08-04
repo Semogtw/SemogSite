@@ -43,7 +43,7 @@ describe("learning goals migration", () => {
     );
     expect(migrationNames).not.toContain("0014_mcp_oauth.sql");
     expect(migrationNames.at(-1)).toBe(
-      "0015a_learning_checkpoint_weight_modes.sql",
+      "0017a_command_receipt_semantic_key.sql",
     );
 
     database.$client.close();

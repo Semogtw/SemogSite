@@ -27,6 +27,7 @@ export type TodayAttentionItem = {
   title: string;
   impact: "high" | "medium" | "low";
   nextAction: string;
+  updatedAt: string;
 };
 
 export type TodayActivityItem = {

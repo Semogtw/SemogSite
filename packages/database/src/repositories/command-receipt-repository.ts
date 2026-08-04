@@ -1,0 +1,431 @@
+import {
+  canonicalJson,
+  isCanonicalUtcTimestamp,
+} from "@semogtw/application";
+import { createHash } from "node:crypto";
+import type { SqliteDatabase } from "../adapters/sqlite";
+
+export type CommandReceiptClaimInput = {
+  id: string;
+  ownerId: string;
+  commandId: string;
+  commandVersion: number;
+  capability: string;
+  resourceType: string;
+  resourceId: string;
+  actorKind: "owner_ui" | "mcp_client" | "system" | "external_adapter";
+  actorId: string;
+  clientId: string;
+  requestHash: string;
+  claimedAt: string;
+  leaseExpiresAt: string;
+  correlationId: string;
+  idempotencyKey: string;
+};
+
+export type CommandReceiptRecord = CommandReceiptClaimInput & {
+  status: "in_progress" | "succeeded" | "failed";
+  statusStorageValue: string;
+  resultHash: string | null;
+  resultSummaryJson: string | null;
+  stableErrorCode: string | null;
+  retryable: boolean | null;
+  retryableStorageValue: number | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommandReceiptFinalization =
+  | {
+      kind: "success";
+      receiptId: string;
+      requestHash: string;
+      resultHash: string;
+      resultSummaryJson: string;
+      stableErrorCode: null;
+      retryable: null;
+      completedAt: string;
+    }
+  | {
+      kind: "failure";
+      receiptId: string;
+      requestHash: string;
+      resultHash: null;
+      resultSummaryJson: null;
+      stableErrorCode: string;
+      retryable: boolean;
+      completedAt: string;
+    };
+
+export type CommandReceiptClaimOutcome =
+  | { kind: "claimed"; recovered: boolean; receipt: CommandReceiptRecord }
+  | { kind: "in_progress"; receipt: CommandReceiptRecord }
+  | { kind: "replay_succeeded"; receipt: CommandReceiptRecord }
+  | { kind: "replay_failed"; receipt: CommandReceiptRecord }
+  | { kind: "corrupt"; receipt: CommandReceiptRecord }
+  | { kind: "conflict" };
+
+type ReceiptRow = {
+  id: string;
+  owner_id: string;
+  command_id: string;
+  command_version: number;
+  capability: string;
+  resource_type: string;
+  resource_id: string;
+  actor_kind: CommandReceiptRecord["actorKind"];
+  actor_id: string;
+  client_id: string;
+  request_hash: string;
+  status: string;
+  result_hash: string | null;
+  result_summary_json: string | null;
+  stable_error_code: string | null;
+  retryable: number | null;
+  claimed_at: string;
+  lease_expires_at: string;
+  completed_at: string | null;
+  correlation_id: string;
+  idempotency_key: string;
+  created_at: string;
+  updated_at: string;
+};
+
+const hashPattern = /^[a-f0-9]{64}$/u;
+const commandPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u;
+const resourceTypePattern = /^[a-z][a-z0-9_-]*$/u;
+const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
+const actorKinds = new Set([
+  "owner_ui",
+  "mcp_client",
+  "system",
+  "external_adapter",
+]);
+const receiptStatuses = new Set(["in_progress", "succeeded", "failed"]);
+
+function fromRow(row: ReceiptRow): CommandReceiptRecord {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    commandId: row.command_id,
+    commandVersion: row.command_version,
+    capability: row.capability,
+    resourceType: row.resource_type,
+    resourceId: row.resource_id,
+    actorKind: row.actor_kind,
+    actorId: row.actor_id,
+    clientId: row.client_id,
+    requestHash: row.request_hash,
+    status: row.status as CommandReceiptRecord["status"],
+    statusStorageValue: row.status,
+    resultHash: row.result_hash,
+    resultSummaryJson: row.result_summary_json,
+    stableErrorCode: row.stable_error_code,
+    retryable:
+      row.retryable === 1 ? true : row.retryable === 0 ? false : null,
+    retryableStorageValue: row.retryable,
+    claimedAt: row.claimed_at,
+    leaseExpiresAt: row.lease_expires_at,
+    completedAt: row.completed_at,
+    correlationId: row.correlation_id,
+    idempotencyKey: row.idempotency_key,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function hash(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function bounded(value: string, maximum: number): boolean {
+  return value.length >= 1 && value.length <= maximum && value.trim() === value;
+}
+
+function claimValid(input: CommandReceiptClaimInput): boolean {
+  if (
+    !bounded(input.id, 200) ||
+    !bounded(input.ownerId, 200) ||
+    !commandPattern.test(input.commandId) ||
+    input.commandId.length > 160 ||
+    !Number.isInteger(input.commandVersion) ||
+    input.commandVersion < 1 ||
+    !commandPattern.test(input.capability) ||
+    input.capability.length > 160 ||
+    !resourceTypePattern.test(input.resourceType) ||
+    input.resourceType.length > 120 ||
+    !bounded(input.resourceId, 500) ||
+    !actorKinds.has(input.actorKind) ||
+    !bounded(input.actorId, 200) ||
+    !hashPattern.test(input.requestHash) ||
+    !isCanonicalUtcTimestamp(input.claimedAt) ||
+    !isCanonicalUtcTimestamp(input.leaseExpiresAt) ||
+    input.leaseExpiresAt <= input.claimedAt ||
+    !bounded(input.correlationId, 200) ||
+    !bounded(input.idempotencyKey, 200)
+  ) {
+    return false;
+  }
+
+  const clientBounded =
+    input.clientId.length <= 200 && input.clientId.trim() === input.clientId;
+  if (!clientBounded) return false;
+  if (
+    input.actorKind === "mcp_client" ||
+    input.actorKind === "external_adapter"
+  ) {
+    return input.clientId.length >= 1;
+  }
+  return input.clientId.length === 0;
+}
+
+function storedReceiptBaseValid(receipt: CommandReceiptRecord): boolean {
+  if (
+    !receiptStatuses.has(receipt.statusStorageValue) ||
+    (receipt.retryableStorageValue !== null &&
+      receipt.retryableStorageValue !== 0 &&
+      receipt.retryableStorageValue !== 1) ||
+    !isCanonicalUtcTimestamp(receipt.claimedAt) ||
+    !isCanonicalUtcTimestamp(receipt.leaseExpiresAt) ||
+    !isCanonicalUtcTimestamp(receipt.createdAt) ||
+    !isCanonicalUtcTimestamp(receipt.updatedAt) ||
+    receipt.createdAt !== receipt.claimedAt ||
+    receipt.leaseExpiresAt <= receipt.claimedAt ||
+    receipt.updatedAt < receipt.claimedAt
+  ) {
+    return false;
+  }
+
+  if (receipt.statusStorageValue === "in_progress") {
+    return (
+      receipt.resultHash === null &&
+      receipt.resultSummaryJson === null &&
+      receipt.stableErrorCode === null &&
+      receipt.retryableStorageValue === null &&
+      receipt.completedAt === null
+    );
+  }
+  return true;
+}
+
+function validSummary(value: string): boolean {
+  if (Buffer.byteLength(value, "utf8") > 4000) return false;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      canonicalJson(parsed) === value
+    );
+  } catch {
+    return false;
+  }
+}
+
+function finalizationValid(input: CommandReceiptFinalization): boolean {
+  if (
+    !hashPattern.test(input.requestHash) ||
+    !isCanonicalUtcTimestamp(input.completedAt)
+  ) {
+    return false;
+  }
+  if (input.kind === "success") {
+    return (
+      hashPattern.test(input.resultHash) &&
+      validSummary(input.resultSummaryJson) &&
+      hash(input.resultSummaryJson) === input.resultHash
+    );
+  }
+  return stableErrorPattern.test(input.stableErrorCode);
+}
+
+function outcomeForExisting(
+  existing: CommandReceiptRecord,
+  requestHash: string,
+): CommandReceiptClaimOutcome {
+  if (!storedReceiptBaseValid(existing)) {
+    return { kind: "corrupt", receipt: existing };
+  }
+  if (existing.requestHash !== requestHash) return { kind: "conflict" };
+  if (existing.statusStorageValue === "succeeded") {
+    return { kind: "replay_succeeded", receipt: existing };
+  }
+  if (existing.statusStorageValue === "failed") {
+    return { kind: "replay_failed", receipt: existing };
+  }
+  return { kind: "in_progress", receipt: existing };
+}
+
+export class SqliteCommandReceiptRepository {
+  constructor(private readonly database: SqliteDatabase) {}
+
+  async claim(
+    input: CommandReceiptClaimInput,
+  ): Promise<CommandReceiptClaimOutcome> {
+    if (!claimValid(input)) {
+      throw new Error("COMMAND_RECEIPT_CLAIM_INVALID");
+    }
+
+    const transaction = this.database.$client.transaction(() => {
+      const existing = this.findBySemanticKey(input);
+      if (existing === null) {
+        this.database.$client
+          .prepare(
+            `INSERT INTO command_receipts (
+              id, owner_id, command_id, command_version, capability,
+              resource_type, resource_id, actor_kind, actor_id, client_id,
+              request_hash, status, result_hash, result_summary_json,
+              stable_error_code, retryable, claimed_at, lease_expires_at,
+              completed_at, correlation_id, idempotency_key, created_at,
+              updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_progress',
+              NULL, NULL, NULL, NULL, ?, ?, NULL, ?, ?, ?, ?)`,
+          )
+          .run(
+            input.id,
+            input.ownerId,
+            input.commandId,
+            input.commandVersion,
+            input.capability,
+            input.resourceType,
+            input.resourceId,
+            input.actorKind,
+            input.actorId,
+            input.clientId,
+            input.requestHash,
+            input.claimedAt,
+            input.leaseExpiresAt,
+            input.correlationId,
+            input.idempotencyKey,
+            input.claimedAt,
+            input.claimedAt,
+          );
+        const inserted = this.findById(input.id);
+        if (inserted === null) throw new Error("COMMAND_RECEIPT_INSERT_FAILED");
+        return { kind: "claimed", recovered: false, receipt: inserted } as const;
+      }
+
+      const existingOutcome = outcomeForExisting(existing, input.requestHash);
+      if (existingOutcome.kind !== "in_progress") return existingOutcome;
+      if (existing.leaseExpiresAt > input.claimedAt) return existingOutcome;
+
+      const updated = this.database.$client
+        .prepare(
+          `UPDATE command_receipts
+           SET lease_expires_at = ?, updated_at = ?
+           WHERE id = ? AND status = 'in_progress'
+             AND request_hash = ? AND lease_expires_at <= ?`,
+        )
+        .run(
+          input.leaseExpiresAt,
+          input.claimedAt,
+          existing.id,
+          input.requestHash,
+          input.claimedAt,
+        );
+      if (updated.changes !== 1) {
+        const current = this.findById(existing.id);
+        if (current === null) return { kind: "conflict" } as const;
+        return outcomeForExisting(current, input.requestHash);
+      }
+      const recovered = this.findById(existing.id);
+      if (recovered === null) throw new Error("COMMAND_RECEIPT_RECOVERY_FAILED");
+      if (!storedReceiptBaseValid(recovered)) {
+        return { kind: "corrupt", receipt: recovered } as const;
+      }
+      return { kind: "claimed", recovered: true, receipt: recovered } as const;
+    });
+
+    try {
+      return transaction.immediate();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        const existing = this.findBySemanticKey(input);
+        if (existing === null) return { kind: "conflict" };
+        return outcomeForExisting(existing, input.requestHash);
+      }
+      throw error;
+    }
+  }
+
+  async finalize(
+    input: CommandReceiptFinalization,
+  ): Promise<CommandReceiptRecord | null> {
+    if (!finalizationValid(input)) return null;
+    const existing = this.findById(input.receiptId);
+    if (
+      existing === null ||
+      !storedReceiptBaseValid(existing) ||
+      existing.statusStorageValue !== "in_progress" ||
+      existing.requestHash !== input.requestHash ||
+      input.completedAt < existing.claimedAt
+    ) {
+      return null;
+    }
+
+    const result =
+      input.kind === "success"
+        ? this.database.$client
+            .prepare(
+              `UPDATE command_receipts
+               SET status = 'succeeded', result_hash = ?,
+                   result_summary_json = ?, completed_at = ?, updated_at = ?
+               WHERE id = ? AND request_hash = ? AND status = 'in_progress'`,
+            )
+            .run(
+              input.resultHash,
+              input.resultSummaryJson,
+              input.completedAt,
+              input.completedAt,
+              input.receiptId,
+              input.requestHash,
+            )
+        : this.database.$client
+            .prepare(
+              `UPDATE command_receipts
+               SET status = 'failed', stable_error_code = ?, retryable = ?,
+                   completed_at = ?, updated_at = ?
+               WHERE id = ? AND request_hash = ? AND status = 'in_progress'`,
+            )
+            .run(
+              input.stableErrorCode,
+              input.retryable ? 1 : 0,
+              input.completedAt,
+              input.completedAt,
+              input.receiptId,
+              input.requestHash,
+            );
+    return result.changes === 1 ? this.findById(input.receiptId) : null;
+  }
+
+  private findById(id: string): CommandReceiptRecord | null {
+    const row = this.database.$client
+      .prepare("SELECT * FROM command_receipts WHERE id = ?")
+      .get(id) as ReceiptRow | undefined;
+    return row === undefined ? null : fromRow(row);
+  }
+
+  private findBySemanticKey(
+    input: CommandReceiptClaimInput,
+  ): CommandReceiptRecord | null {
+    const row = this.database.$client
+      .prepare(
+        `SELECT * FROM command_receipts
+         WHERE owner_id = ? AND actor_kind = ? AND actor_id = ?
+           AND client_id = ? AND command_id = ? AND command_version = ?
+           AND idempotency_key = ?`,
+      )
+      .get(
+        input.ownerId,
+        input.actorKind,
+        input.actorId,
+        input.clientId,
+        input.commandId,
+        input.commandVersion,
+        input.idempotencyKey,
+      ) as ReceiptRow | undefined;
+    return row === undefined ? null : fromRow(row);
+  }
+}

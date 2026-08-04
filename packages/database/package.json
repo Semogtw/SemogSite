@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./commands": "./src/commands.ts",
     "./growth": "./src/growth.ts"
   },
   "scripts": {
@@ -13,6 +14,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@semogtw/application": "workspace:*",
     "@semogtw/auth": "workspace:*",
     "@semogtw/contracts": "workspace:*",
     "@semogtw/domain": "workspace:*",

@@ -2,6 +2,7 @@ import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { EvidenceCaptureForm } from "../components/devos/evidence-capture-form";
+import { OwnerEntityActionsDisclosure } from "../components/devos/owner-entity-actions-disclosure";
 import { StageCompletionForm } from "../components/devos/stage-completion-form";
 import { getProjectHubFn } from "../server/devos-projects";
 import { requireOwner } from "../server/require-owner";
@@ -96,6 +97,10 @@ function ProjectHubPage() {
                       {stage.progress}% · {stage.state}
                     </Status>
                   </div>
+                  <OwnerEntityActionsDisclosure
+                    resourceType="stage"
+                    resourceId={stage.id}
+                  />
                   <StageCompletionForm stageId={stage.id} />
                 </article>
               ))}
