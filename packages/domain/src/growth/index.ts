@@ -46,6 +46,7 @@ export type {
   ApplyCheckpointWeightRebalanceInput,
   ApplyCheckpointWeightRebalanceRecord,
   ApplyCheckpointWeightRebalanceResult,
+  CheckpointWeightReplayRequest,
   CheckpointWeightRebalanceRepository,
   CheckpointWeightSnapshot,
   CheckpointWeightSnapshotItem,
