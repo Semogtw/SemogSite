@@ -2,6 +2,7 @@ import {
   CommandGateway,
   OwnerBrowserPolicy,
   createReceiptClaim,
+  isCanonicalUtcTimestamp,
   transitionAttentionCommand,
   type CommandEnvelope,
   type CommandError,
@@ -24,8 +25,6 @@ export type SqliteDevOSCommandGateway = {
   execute(envelope: CommandEnvelope): Promise<CommandResult>;
 };
 
-const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
-
 function failure(
   code: string,
   message: string,
@@ -41,20 +40,16 @@ function failure(
   };
 }
 
-function timestampValid(value: string): boolean {
-  return isoTimestampPattern.test(value) && Number.isFinite(Date.parse(value));
-}
-
 function expectedUpdatedAt(prepared: PreparedCommand): string | null {
   const expected = prepared.expected;
   const keys = Reflect.ownKeys(expected);
   if (keys.length !== 1 || keys[0] !== "updatedAt") return null;
   const value = expected.updatedAt;
-  return typeof value === "string" && timestampValid(value) ? value : null;
+  return isCanonicalUtcTimestamp(value) ? value : null;
 }
 
 function leaseExpiry(claimedAt: string): string | null {
-  if (!timestampValid(claimedAt)) return null;
+  if (!isCanonicalUtcTimestamp(claimedAt)) return null;
   return new Date(Date.parse(claimedAt) + 5 * 60 * 1000).toISOString();
 }
 
