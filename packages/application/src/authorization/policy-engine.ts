@@ -1,4 +1,7 @@
-import type { PolicyDecision } from "../core";
+import type {
+  ConfirmationOutcome,
+  PolicyDecision,
+} from "../core";
 import { isAgentCapability } from "./capabilities";
 import { selectorMatchesResource } from "./resource-selectors";
 import type {
@@ -21,8 +24,17 @@ const riskRank: Readonly<Record<AgentRiskCeiling, number>> = {
   high: 2,
 };
 
-function bounded(value: string, maximum: number): boolean {
+const confirmationRank: Readonly<Record<ConfirmationOutcome, number>> = {
+  allow: 0,
+  confirm_in_client: 1,
+  prepare_approval: 2,
+  approve_in_devos: 3,
+  deny: 4,
+};
+
+function bounded(value: unknown, maximum: number): value is string {
   return (
+    typeof value === "string" &&
     value.length >= 1 &&
     value.length <= maximum &&
     value.trim() === value
@@ -40,6 +52,36 @@ function commandRiskValid(value: string): value is AgentCommandRisk {
 
 function riskCeilingValid(value: unknown): value is AgentRiskCeiling {
   return value === "low" || value === "medium" || value === "high";
+}
+
+function confirmationValid(value: unknown): value is ConfirmationOutcome {
+  return (
+    value === "allow" ||
+    value === "confirm_in_client" ||
+    value === "prepare_approval" ||
+    value === "approve_in_devos" ||
+    value === "deny"
+  );
+}
+
+function riskDefault(risk: AgentCommandRisk): ConfirmationOutcome {
+  switch (risk) {
+    case "low":
+      return "allow";
+    case "medium":
+      return "confirm_in_client";
+    case "high":
+      return "prepare_approval";
+    case "critical":
+      return "approve_in_devos";
+  }
+}
+
+function stricterConfirmation(
+  left: ConfirmationOutcome,
+  right: ConfirmationOutcome,
+): ConfirmationOutcome {
+  return confirmationRank[left] >= confirmationRank[right] ? left : right;
 }
 
 function decision(input: {
@@ -95,6 +137,7 @@ export function decideAgentCommandDisposition(input: {
     capability: AgentCapability;
     domain: string;
     risk: AgentCommandRisk;
+    confirmation?: ConfirmationOutcome;
     resource: CommandResource;
   };
   writeSwitches: AgentWriteSwitchState;
@@ -126,11 +169,14 @@ export function decideAgentCommandDisposition(input: {
     return deny(safeRisk, "CAPABILITY_DENIED");
   }
 
+  const staticConfirmation = input.command.confirmation;
   if (
     !commandRiskValid(runtimeRisk) ||
     !bounded(input.command.domain, 120) ||
     typeof input.command.resource !== "object" ||
-    input.command.resource === null
+    input.command.resource === null ||
+    (staticConfirmation !== undefined &&
+      !confirmationValid(staticConfirmation))
   ) {
     return deny(safeRisk, "COMMAND_POLICY_INPUT_INVALID");
   }
@@ -155,23 +201,29 @@ export function decideAgentCommandDisposition(input: {
     return deny(runtimeRisk, "RISK_CEILING_EXCEEDED");
   }
 
-  if (runtimeRisk === "critical") {
+  const requiredConfirmation = stricterConfirmation(
+    riskDefault(runtimeRisk),
+    staticConfirmation ?? "allow",
+  );
+
+  if (requiredConfirmation === "deny") {
+    return deny(runtimeRisk, "COMMAND_POLICY_DENIED");
+  }
+  if (requiredConfirmation === "approve_in_devos") {
     return decision({
       outcome: "approve_in_devos",
       risk: runtimeRisk,
       reasonCode: "DEVOS_APPROVAL_REQUIRED",
     });
   }
-
-  if (runtimeRisk === "high") {
+  if (requiredConfirmation === "prepare_approval") {
     return decision({
       outcome: "prepare_approval",
       risk: runtimeRisk,
       reasonCode: "OWNER_APPROVAL_PREPARATION_REQUIRED",
     });
   }
-
-  if (runtimeRisk === "medium") {
+  if (requiredConfirmation === "confirm_in_client") {
     if (input.trustCoversCommand === true) {
       return decision({
         outcome: "allow",
