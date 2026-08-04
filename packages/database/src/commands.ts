@@ -2,6 +2,7 @@ export { createAttentionTransitionCommandRunner } from "./command-runners/attent
 export { createSqliteDevOSCommandGateway } from "./composition/devos-command-gateway";
 export type { SqliteDevOSCommandGateway } from "./composition/devos-command-gateway";
 export { createDevOSCommandRegistry } from "./composition/devos-command-registry";
+export { getOwnerEntityActions } from "./composition/owner-entity-actions";
 export {
   SqliteCommandReceiptRepository,
 } from "./repositories/command-receipt-repository";
