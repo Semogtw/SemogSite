@@ -62,6 +62,7 @@ export type {
 } from "./core";
 export {
   attentionLifecycleManifest,
+  editabilityManifests,
   roadmapStageCompletionManifest,
   validateEditabilityCoverage,
 } from "./editability-manifest";
@@ -72,6 +73,13 @@ export type {
   EditabilityManifest,
   EditabilityMcpExposure,
 } from "./editability-manifest";
+export {
+  listOwnerEntityActions,
+} from "./owner-entity-actions";
+export type {
+  OwnerEntityAction,
+  OwnerEntityActionAvailability,
+} from "./owner-entity-actions";
 export { OwnerBrowserPolicy } from "./owner-browser-policy";
 export { completeStageCommand } from "./roadmap/complete-stage-command";
 export type {
