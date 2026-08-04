@@ -97,6 +97,7 @@ export class SqliteTodayDataSource implements TodayDataSource {
         title: attentionItems.title,
         impact: attentionItems.impact,
         nextAction: attentionItems.nextAction,
+        updatedAt: attentionItems.updatedAt,
       })
       .from(attentionItems)
       .leftJoin(projects, eq(attentionItems.projectId, projects.id))
