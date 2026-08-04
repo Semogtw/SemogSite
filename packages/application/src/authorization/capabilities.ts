@@ -1,5 +1,16 @@
 import type { AgentCapability, OAuthWriteScope } from "./types";
 
+export type AgentAuthorizationDomain =
+  | "appearance"
+  | "attention"
+  | "development"
+  | "editorial"
+  | "growth"
+  | "integrations"
+  | "projects"
+  | "roadmap"
+  | "workflow";
+
 export const agentCapabilities = [
   "appearance.write",
   "attention.write",
@@ -48,6 +59,22 @@ const resourceKindsByCapability: Readonly<
   "workflow.write": ["workflow"],
 };
 
+const domainsByCapability: Readonly<
+  Record<AgentCapability, AgentAuthorizationDomain>
+> = {
+  "appearance.write": "appearance",
+  "attention.write": "attention",
+  "development.request": "development",
+  "editorial.publish": "editorial",
+  "editorial.write": "editorial",
+  "growth.review": "growth",
+  "growth.write": "growth",
+  "integrations.request": "integrations",
+  "projects.write": "projects",
+  "roadmap.write": "roadmap",
+  "workflow.write": "workflow",
+};
+
 export function isAgentCapability(value: string): value is AgentCapability {
   return agentCapabilitySet.has(value);
 }
@@ -64,11 +91,17 @@ export function capabilityForCommand(
 export function oauthScopeForCapability(
   capability: AgentCapability,
 ): OAuthWriteScope {
-  return oauthScopesByCapability[capability];
+  return oauthScopesByCapability[capabilityForCommand(capability)];
 }
 
 export function resourceKindsForCapability(
   capability: AgentCapability,
 ): readonly string[] {
-  return resourceKindsByCapability[capability];
+  return resourceKindsByCapability[capabilityForCommand(capability)];
+}
+
+export function domainForCapability(
+  capability: AgentCapability,
+): AgentAuthorizationDomain {
+  return domainsByCapability[capabilityForCommand(capability)];
 }
