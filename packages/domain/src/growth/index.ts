@@ -34,6 +34,29 @@ export type {
 } from "./progress";
 export { deriveGoalProgress } from "./progress";
 export type {
+  CheckpointWeightInput,
+  CheckpointWeightProposal,
+} from "./checkpoint-weights";
+export {
+  distributeEqualIntegerWeights,
+  proposeCheckpointWeightRebalance,
+} from "./checkpoint-weights";
+export type {
+  LearningGoalTemplate,
+  LearningGoalTemplateCheckpoint,
+  LearningGoalTemplateId,
+  MaterializedLearningGoalTemplate,
+} from "./goal-templates";
+export {
+  listLearningGoalTemplates,
+  materializeLearningGoalTemplate,
+} from "./goal-templates";
+export type {
+  QuickCreateLearningGoalDraft,
+  QuickCreateLearningGoalInput,
+} from "./quick-create";
+export { prepareQuickLearningGoalDraft } from "./quick-create";
+export type {
   CreateLearningGoalInput,
   LearningGoalServiceResult,
   LearningGoalTransitionAction,
