@@ -1,0 +1,89 @@
+export {
+  createAgentCommandPolicy,
+} from "./agent-command-policy";
+export type {
+  AgentCommandPolicyDependencies,
+  AgentCommandPolicyMaterial,
+} from "./agent-command-policy";
+export {
+  agentCapabilities,
+  capabilityForCommand,
+  domainForCapability,
+  isAgentCapability,
+  oauthScopeForCapability,
+  resourceKindsForCapability,
+} from "./capabilities";
+export type { AgentAuthorizationDomain } from "./capabilities";
+export {
+  validateAgentAuthorizationCatalog,
+} from "./catalog-coverage";
+export type {
+  AgentAuthorizationCommandEntry,
+} from "./catalog-coverage";
+export {
+  confirmationChallengeResponseBytes,
+  confirmationChallengeTtlMinutes,
+  createConfirmationChallengeService,
+} from "./confirmation-challenge";
+export type {
+  ConfirmationChallengePublic,
+  ConfirmationChallengeRecord,
+  ConfirmationChallengeRisk,
+  ConfirmationChallengeService,
+  ConfirmationChallengeStatus,
+  ConfirmationChallengeStore,
+} from "./confirmation-challenge";
+export {
+  computeEffectiveAgentAuthorization,
+} from "./effective-grant";
+export {
+  validateAgentGrantRequest,
+} from "./grant-request";
+export type { AgentGrantRequest } from "./grant-request";
+export {
+  decideAgentCommandDisposition,
+} from "./policy-engine";
+export type {
+  AgentCommandPolicyDecision,
+  AgentCommandRisk,
+} from "./policy-engine";
+export {
+  reviewedResourceKinds,
+  selectorMatchesResource,
+  validateResourceSelectorForKind,
+} from "./resource-selectors";
+export {
+  defaultTrustDurationMinutes,
+  defaultTrustMaximumOperations,
+  evaluateTrustSessionState,
+  maximumTrustDurationMinutes,
+  maximumTrustOperations,
+  minimumTrustDurationMinutes,
+  trustSessionCoversCommand,
+  trustSessionFitsAuthorization,
+  validateTrustSessionRequest,
+} from "./trust-session";
+export type {
+  TrustCoveredCommandRisk,
+  TrustSessionState,
+} from "./trust-session";
+export type {
+  AgentCapability,
+  AgentGrantDefinition,
+  AgentGrantStatus,
+  AgentRiskCeiling,
+  AgentTrustSession,
+  CommandResource,
+  CommandResourceParentRef,
+  EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
+  OAuthScope,
+  OAuthWriteScope,
+  ResourceSelector,
+  ResourceSelectorMap,
+  TrustRiskCeiling,
+} from "./types";
+export {
+  writesAllowed,
+} from "./write-switches";
+export type { AgentWriteSwitchState } from "./write-switches";
