@@ -101,6 +101,7 @@ export class QuickLearningGoalService {
           required: checkpoint.required,
           sequence: index + 1,
           weight: checkpoint.weight,
+          weightMode: "automatic",
           completionMode: checkpoint.completionMode,
           acceptedValue: null,
           dueDate: null,
