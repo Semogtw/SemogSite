@@ -37,7 +37,6 @@ describe("DevOS entity action handler", () => {
 
   it("passes only the authenticated owner and exact resource to the resolver", async () => {
     const action: OwnerEntityAction = {
-      commandId: "attention.transition",
       labelPtBr: "Finalizar item",
       risk: "medium",
       reversible: true,
@@ -46,9 +45,12 @@ describe("DevOS entity action handler", () => {
     const deps = dependencies([action]);
     const handler = createDevOSEntityActionsHandler(deps);
 
-    await expect(
-      handler({ resourceType: "attention_item", resourceId: "attention-1" }),
-    ).resolves.toEqual([action]);
+    const result = await handler({
+      resourceType: "attention_item",
+      resourceId: "attention-1",
+    });
+    expect(result).toEqual([action]);
+    expect(JSON.stringify(result)).not.toContain("attention.transition");
     expect(deps.getActions).toHaveBeenCalledWith(
       { marker: "database" },
       {
