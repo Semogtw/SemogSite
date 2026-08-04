@@ -61,6 +61,7 @@ function persistenceInput(input?: {
       required: true,
       sequence: 1,
       weight: 50,
+      weightMode: "automatic" as const,
       completionMode: { kind: "binary" as const },
       acceptedValue: null,
       dueDate: null,
@@ -77,6 +78,7 @@ function persistenceInput(input?: {
       required: true,
       sequence: 2,
       weight: 50,
+      weightMode: "automatic" as const,
       completionMode: { kind: "binary" as const },
       acceptedValue: null,
       dueDate: null,
@@ -137,7 +139,13 @@ describe("SqliteQuickLearningGoalRepository", () => {
 
     expect(result).toMatchObject({
       kind: "applied",
-      value: { id: "goal-1", checkpoints: [{ sequence: 1 }, { sequence: 2 }] },
+      value: {
+        id: "goal-1",
+        checkpoints: [
+          { sequence: 1, weightMode: "automatic" },
+          { sequence: 2, weightMode: "automatic" },
+        ],
+      },
     });
     expect(
       database.$client.prepare("SELECT COUNT(*) AS count FROM learning_goals").get(),
@@ -169,7 +177,10 @@ describe("SqliteQuickLearningGoalRepository", () => {
         templateId: "learn_programming_language",
         templateVersion: 1,
       },
-      checkpoints: [{ title: "Fundamentos" }, { title: "Projeto aplicado" }],
+      checkpoints: [
+        { title: "Fundamentos", weightMode: "automatic" },
+        { title: "Projeto aplicado", weightMode: "automatic" },
+      ],
     });
   });
 
@@ -187,7 +198,12 @@ describe("SqliteQuickLearningGoalRepository", () => {
       ),
     ).resolves.toMatchObject({
       kind: "idempotent",
-      value: { id: "goal-1", checkpoints: [{ id: "goal-1-checkpoint-1" }] },
+      value: {
+        id: "goal-1",
+        checkpoints: [
+          { id: "goal-1-checkpoint-1", weightMode: "automatic" },
+        ],
+      },
     });
   });
 
