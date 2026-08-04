@@ -132,7 +132,7 @@ function createHarness(initial: LearningGoalAggregate) {
 }
 
 describe("LearningCheckpointService", () => {
-  it("adds a normalized ordered checkpoint with a custom owner weight", async () => {
+  it("adds a normalized ordered checkpoint", async () => {
     const harness = createHarness(baseGoal([checkpoint()]));
     const result = await harness.service.add(
       {
@@ -156,14 +156,13 @@ describe("LearningCheckpointService", () => {
         description: "Criar automação",
         sequence: 2,
         weight: 40,
-        weightMode: "custom",
         completionMode: { kind: "numeric", unit: "projetos", target: 2 },
         status: "pending",
       },
     });
   });
 
-  it("records a numeric value and completes at the target", async () => {
+  it("records a numeric value and preserves the checkpoint weight mode", async () => {
     const numeric = checkpoint({
       status: "in_progress",
       completionMode: { kind: "numeric", unit: "horas", target: 10 },
