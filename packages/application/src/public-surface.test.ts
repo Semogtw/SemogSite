@@ -39,6 +39,7 @@ describe("@semogtw/application public surface", () => {
       validateTrustSessionRequest: expect.any(Function),
       evaluateTrustSessionState: expect.any(Function),
       trustSessionFitsAuthorization: expect.any(Function),
+      trustSessionCoversCommand: expect.any(Function),
       writesAllowed: expect.any(Function),
       createConfirmationChallengeService: expect.any(Function),
       decideAgentCommandDisposition: expect.any(Function),
