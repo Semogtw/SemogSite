@@ -43,6 +43,16 @@ export {
   proposeCheckpointWeightRebalance,
 } from "./checkpoint-weights";
 export type {
+  ApplyCheckpointWeightRebalanceInput,
+  ApplyCheckpointWeightRebalanceRecord,
+  ApplyCheckpointWeightRebalanceResult,
+  CheckpointWeightRebalanceRepository,
+  CheckpointWeightSnapshot,
+  CheckpointWeightSnapshotItem,
+  PreviewCheckpointWeightRebalanceResult,
+} from "./checkpoint-weight-rebalance-service";
+export { CheckpointWeightRebalanceService } from "./checkpoint-weight-rebalance-service";
+export type {
   LearningGoalTemplate,
   LearningGoalTemplateCheckpoint,
   LearningGoalTemplateId,
