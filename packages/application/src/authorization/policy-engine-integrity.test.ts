@@ -21,20 +21,27 @@ const switches = {
 };
 
 function authorization(): EffectiveAgentAuthorization {
+  const resourceSelectors = {
+    attention_item: [{ kind: "exact_ids" as const, ids: ["attention_1"] }],
+  };
   return {
     clientId: "client_1",
     ownerId: "owner_1",
     capabilities: ["attention.write"],
-    resourceSelectors: {
-      attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-    },
+    resourceSelectors,
     capabilityResourceSelectors: {
-      "attention.write": {
-        attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-      },
+      "attention.write": resourceSelectors,
     },
     riskCeiling: "medium",
     riskCeilingByCapability: { "attention.write": "medium" },
+    authorizationClauses: [
+      {
+        grantId: "grant_1",
+        capability: "attention.write",
+        resourceSelectors,
+        riskCeiling: "medium",
+      },
+    ],
     grantIds: ["grant_1"],
     trustSessionIds: [],
   };
@@ -53,11 +60,14 @@ describe("agent command policy integrity", () => {
     ).toMatchObject({ outcome: "deny", reasonCode: "NO_EFFECTIVE_GRANT" });
   });
 
-  it("denies a malformed capability-specific risk ceiling", () => {
+  it("denies a malformed clause risk ceiling even when aggregates look valid", () => {
     const malformed = authorization();
-    malformed.riskCeilingByCapability = {
-      "attention.write": "critical" as never,
-    };
+    malformed.authorizationClauses = [
+      {
+        ...malformed.authorizationClauses[0]!,
+        riskCeiling: "critical" as never,
+      },
+    ];
     expect(
       decideAgentCommandDisposition({
         authorization: malformed,
@@ -68,15 +78,32 @@ describe("agent command policy integrity", () => {
       }),
     ).toMatchObject({
       outcome: "deny",
-      reasonCode: "RISK_CEILING_EXCEEDED",
+      reasonCode: "RESOURCE_DENIED",
     });
   });
 
-  it("denies malformed selector storage without throwing", () => {
+  it("denies malformed clause selector storage without throwing", () => {
     const malformed = authorization();
-    malformed.capabilityResourceSelectors = {
-      "attention.write": { attention_item: "all" as never },
-    };
+    malformed.authorizationClauses = [
+      {
+        ...malformed.authorizationClauses[0]!,
+        resourceSelectors: { attention_item: "all" as never },
+      },
+    ];
+    expect(
+      decideAgentCommandDisposition({
+        authorization: malformed,
+        command,
+        writeSwitches: switches,
+        trustCoversCommand: true,
+        confirmationValid: true,
+      }),
+    ).toMatchObject({ outcome: "deny", reasonCode: "RESOURCE_DENIED" });
+  });
+
+  it("ignores a permissive aggregate when no clause exists", () => {
+    const malformed = authorization();
+    malformed.authorizationClauses = [];
     expect(
       decideAgentCommandDisposition({
         authorization: malformed,
