@@ -6,12 +6,13 @@ import {
 
 assert.deepEqual(
   findBoundaryViolations(
-    'import { createHash } from "node:crypto";\nimport React from "react";',
+    'import { createHash } from "node:crypto";\nimport React from "react";\nimport "node:fs";',
     applicationForbiddenImports,
   ),
   [
     { specifier: "node:crypto", forbidden: "node:" },
     { specifier: "react", forbidden: "react" },
+    { specifier: "node:fs", forbidden: "node:" },
   ],
 );
 
