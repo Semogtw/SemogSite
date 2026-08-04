@@ -34,8 +34,9 @@ describe("private Growth routes", () => {
     expect(route).toContain('content: "noindex, nofollow, noarchive"');
   });
 
-  it("loads Growth styles and exposes the workspace in DevOS navigation", () => {
+  it("loads Growth styles and exposes the workspace without losing mobile Roadmap access", () => {
     const root = source("__root.tsx");
+    const more = source("devos.more.tsx");
     const sidebar = source(
       "../../../../packages/ui/src/navigation/devos-sidebar.tsx",
     );
@@ -46,5 +47,6 @@ describe("private Growth routes", () => {
     expect(root).toContain('../styles/growth.css?url');
     expect(sidebar).toContain('{ href: "/devos/growth", label: "Growth"');
     expect(bottomNav).toContain('{ href: "/devos/growth", label: "Growth"');
+    expect(more).toContain('to: "/devos/roadmap"');
   });
 });
