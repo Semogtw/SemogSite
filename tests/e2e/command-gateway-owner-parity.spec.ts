@@ -1,7 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
+import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 
 const ownerPassword = "semogtw-e2e-owner";
+const databasePath = resolve("data/semogtw-e2e.sqlite");
 
 async function loginOwner(page: Page, returnTo: string) {
   await page.goto(returnTo);
@@ -13,6 +16,57 @@ async function loginOwner(page: Page, returnTo: string) {
   await expect(page).toHaveURL(
     new RegExp(`${returnTo.replaceAll("/", "\\/")}$`, "u"),
   );
+}
+
+function replayHeaders(request: Request): Record<string, string> {
+  const blocked = new Set(["content-length", "host"]);
+  return Object.fromEntries(
+    Object.entries(request.headers()).filter(([name]) => !blocked.has(name)),
+  );
+}
+
+function readAttentionCommandState(title: string) {
+  const database = new Database(databasePath, {
+    readonly: true,
+    fileMustExist: true,
+  });
+  try {
+    const attention = database
+      .prepare(
+        "SELECT id, status FROM attention_items WHERE title = ? ORDER BY created_at DESC LIMIT 1",
+      )
+      .get(title) as { id: string; status: string } | undefined;
+    if (attention === undefined) throw new Error("E2E_ATTENTION_NOT_FOUND");
+
+    const receipt = database
+      .prepare(
+        `SELECT COUNT(*) AS count,
+                MIN(status) AS status,
+                MIN(id) AS receiptId
+         FROM command_receipts
+         WHERE command_id = 'attention.transition'
+           AND resource_type = 'attention_item'
+           AND resource_id = ?`,
+      )
+      .get(attention.id) as {
+      count: number;
+      status: string | null;
+      receiptId: string | null;
+    };
+    const audit = database
+      .prepare(
+        `SELECT COUNT(*) AS count
+         FROM audit_events
+         WHERE action = 'attention.resolve'
+           AND entity_type = 'attention_item'
+           AND entity_id = ?`,
+      )
+      .get(attention.id) as { count: number };
+
+    return { attention, receipt, audit };
+  } finally {
+    database.close();
+  }
 }
 
 test.describe("Command Gateway privacy", () => {
@@ -41,7 +95,7 @@ test.describe("Command Gateway privacy", () => {
 });
 
 test.describe("owner Command Gateway parity", () => {
-  test("captures and resolves Attention through the canonical owner path", async ({
+  test("captures, resolves, replays and rejects changed Attention payload", async ({
     page,
   }) => {
     const title = `Attention Gateway E2E ${randomUUID()}`;
@@ -79,17 +133,56 @@ test.describe("owner Command Gateway parity", () => {
     await expect(discovery).not.toContainText("capability");
     await expect(discovery).not.toContainText("schema");
 
+    const reason = "Evidência do E2E observada; o item pode ser finalizado.";
     await record.locator(".attention-actions summary").click();
-    await record
-      .locator(".attention-actions textarea")
-      .fill("Evidência do E2E observada; o item pode ser finalizado.");
+    await record.locator(".attention-actions textarea").fill(reason);
     await record.locator('.attention-actions input[type="checkbox"]').check();
+    const requestPromise = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        (request.postData() ?? "").includes(reason),
+    );
     await record
       .getByRole("button", { name: "Confirmar finalização" })
       .click();
+    const commandRequest = await requestPromise;
+    const originalBody = commandRequest.postData();
+    expect(originalBody).not.toBeNull();
 
     await expect(record).toHaveCount(0);
     await expect(page.getByRole("heading", { name: title })).toHaveCount(0);
+
+    const replay = await page.request.fetch(commandRequest.url(), {
+      method: "POST",
+      headers: replayHeaders(commandRequest),
+      data: originalBody ?? "",
+      failOnStatusCode: false,
+    });
+    expect(replay.status()).toBe(200);
+    await expect(replay.text()).resolves.toContain(
+      "Item resolvido e auditado.",
+    );
+
+    const changedReason =
+      "Tentativa divergente com a mesma chave idempotente do E2E.";
+    const conflictingBody = (originalBody ?? "").replace(reason, changedReason);
+    expect(conflictingBody).not.toBe(originalBody);
+    const conflict = await page.request.fetch(commandRequest.url(), {
+      method: "POST",
+      headers: replayHeaders(commandRequest),
+      data: conflictingBody,
+      failOnStatusCode: false,
+    });
+    expect(conflict.status()).toBe(200);
+    await expect(conflict.text()).resolves.toContain(
+      "IDEMPOTENCY_PAYLOAD_CONFLICT",
+    );
+
+    expect(readAttentionCommandState(title)).toEqual({
+      attention: expect.objectContaining({ status: "resolved" }),
+      receipt: expect.objectContaining({ count: 1, status: "succeeded" }),
+      audit: { count: 1 },
+    });
   });
 
   test("shows stage completion as planned without enabling the Gateway", async ({
