@@ -3,7 +3,8 @@ import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const postServerFnPattern =
-  /createServerFn\s*\(\s*\{\s*method\s*:\s*["']POST["']\s*\}\s*\)/u;
+  /createServerFn\s*\(\s*\{[^}]{0,500}\bmethod\s*:\s*["']POST["'][^}]*\}\s*\)/u;
+const commandIdPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u;
 const mutationSurfaceStates = new Set([
   "gateway",
   "legacy_registered",
@@ -68,6 +69,9 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
   }
 
   const commands = Array.isArray(catalog.commands) ? catalog.commands : [];
+  const legacyCoverageIds = Array.isArray(catalog.legacyCoverageIds)
+    ? catalog.legacyCoverageIds
+    : [];
   const manifests = Array.isArray(catalog.manifests) ? catalog.manifests : [];
   const adapters = Array.isArray(catalog.adapters) ? catalog.adapters : [];
   const mutationSurfaces = Array.isArray(catalog.mutationSurfaces)
@@ -108,6 +112,29 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
         }),
       );
     }
+  }
+
+  const legacyCoverageSet = new Set();
+  for (const commandId of legacyCoverageIds) {
+    if (typeof commandId !== "string" || !commandIdPattern.test(commandId)) {
+      violations.push(
+        violation("LEGACY_COVERAGE_ID_INVALID", {
+          commandId: typeof commandId === "string" ? commandId : null,
+        }),
+      );
+      continue;
+    }
+    if (legacyCoverageSet.has(commandId)) {
+      violations.push(
+        violation("DUPLICATE_LEGACY_COVERAGE_ID", { commandId }),
+      );
+    }
+    if (commandsById.has(commandId)) {
+      violations.push(
+        violation("LEGACY_COVERAGE_COLLIDES_WITH_COMMAND", { commandId }),
+      );
+    }
+    legacyCoverageSet.add(commandId);
   }
 
   const featureIds = new Set();
@@ -230,6 +257,7 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
   }
 
   const mutationSurfacePaths = new Map();
+  const usedLegacyCoverageIds = new Set();
   for (const surface of mutationSurfaces) {
     if (typeof surface?.path !== "string") continue;
     if (mutationSurfacePaths.has(surface.path)) {
@@ -272,18 +300,30 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
       const coverageRefs = Array.isArray(surface.coverageRefs)
         ? surface.coverageRefs
         : [];
-      if (
-        coverageRefs.length === 0 ||
-        coverageRefs.some(
-          (reference) =>
-            typeof reference !== "string" || reference.trim().length === 0,
-        )
-      ) {
+      if (coverageRefs.length === 0) {
         violations.push(
           violation("MUTATION_SURFACE_COVERAGE_MISSING", {
             path: surface.path,
           }),
         );
+        continue;
+      }
+      for (const reference of coverageRefs) {
+        if (
+          typeof reference !== "string" ||
+          (!commandsById.has(reference) && !legacyCoverageSet.has(reference))
+        ) {
+          violations.push(
+            violation("UNKNOWN_LEGACY_COVERAGE_REFERENCE", {
+              path: surface.path,
+              commandId: typeof reference === "string" ? reference : null,
+            }),
+          );
+          continue;
+        }
+        if (legacyCoverageSet.has(reference)) {
+          usedLegacyCoverageIds.add(reference);
+        }
       }
       continue;
     }
@@ -294,6 +334,14 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
           path: surface.path,
           reason: surface.reason ?? null,
         }),
+      );
+    }
+  }
+
+  for (const commandId of legacyCoverageSet) {
+    if (!usedLegacyCoverageIds.has(commandId)) {
+      violations.push(
+        violation("LEGACY_COVERAGE_WITHOUT_SURFACE", { commandId }),
       );
     }
   }
