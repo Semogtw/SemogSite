@@ -31,24 +31,19 @@ function harness() {
       accepted_value, due_date, created_at, updated_at, version
     ) VALUES (?, 'goal-1', ?, '', 'pending', 1, ?, ?, ?, 'binary',
       NULL, NULL, NULL, NULL, '2026-08-04T00:00:00.000Z',
-      '2026-08-04T00:00:00.000Z', ?)`,
+      '2026-08-04T00:00:00.000Z', 1)`,
   );
-  insert.run("a", "A", 1, 100, "custom", 2);
-  insert.run("b", "B", 2, 50, "automatic", 1);
-  database.$client.prepare(
+  insert.run("a", "A", 1, 100, "custom");
+  insert.run("b", "B", 2, 50, "automatic");
+  const seedEvent = database.$client.prepare(
     `INSERT INTO learning_checkpoint_events (
       id, checkpoint_id, sequence, action, before_json, after_json, reason,
       actor_id, occurred_at, correlation_id, idempotency_key
     ) VALUES (?, ?, 1, 'learning_checkpoint.add', NULL, ?, 'Seed',
       'owner-1', '2026-08-04T00:00:00.000Z', ?, ?)`,
-  ).run("seed-a", "a", JSON.stringify({ id: "a" }), "seed-a", "seed-a");
-  database.$client.prepare(
-    `INSERT INTO learning_checkpoint_events (
-      id, checkpoint_id, sequence, action, before_json, after_json, reason,
-      actor_id, occurred_at, correlation_id, idempotency_key
-    ) VALUES (?, ?, 1, 'learning_checkpoint.add', NULL, ?, 'Seed',
-      'owner-1', '2026-08-04T00:00:00.000Z', ?, ?)`,
-  ).run("seed-b", "b", JSON.stringify({ id: "b" }), "seed-b", "seed-b");
+  );
+  seedEvent.run("seed-a", "a", JSON.stringify({ id: "a" }), "seed-a", "seed-a");
+  seedEvent.run("seed-b", "b", JSON.stringify({ id: "b" }), "seed-b", "seed-b");
   return {
     database,
     repository: new SqliteCheckpointWeightRebalanceRepository(database),
@@ -96,7 +91,7 @@ describe("SqliteCheckpointWeightRebalanceRepository", () => {
     const before = await repository.getSnapshot("owner-1", "goal-1");
     expect(before).not.toBeNull();
     expect(before?.checkpoints).toMatchObject([
-      { id: "a", weightMode: "custom", version: 2 },
+      { id: "a", weightMode: "custom", version: 1 },
       { id: "b", weightMode: "automatic", version: 1 },
     ]);
 
@@ -109,7 +104,7 @@ describe("SqliteCheckpointWeightRebalanceRepository", () => {
         "SELECT id, weight, weight_mode, version FROM learning_checkpoints ORDER BY sequence",
       ).all(),
     ).toEqual([
-      { id: "a", weight: 50, weight_mode: "custom", version: 3 },
+      { id: "a", weight: 50, weight_mode: "custom", version: 2 },
       { id: "b", weight: 50, weight_mode: "automatic", version: 2 },
     ]);
     expect(database.$client.prepare(
@@ -130,7 +125,7 @@ describe("SqliteCheckpointWeightRebalanceRepository", () => {
       goalId: "goal-1",
       expectedGoalVersion: 3,
       expectedCheckpointVersions: [
-        { id: "a", version: 2 },
+        { id: "a", version: 1 },
         { id: "b", version: 1 },
       ],
       reason: "Redistribuir pesos",
