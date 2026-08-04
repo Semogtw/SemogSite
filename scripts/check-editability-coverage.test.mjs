@@ -6,7 +6,7 @@ import { checkEditabilityCoverage } from "./check-editability-coverage.mjs";
 
 const directories = [];
 
-async function fixture(catalog) {
+async function fixture(catalog, extraServerFiles = {}) {
   const root = await mkdtemp(join(tmpdir(), "semogtw-editability-"));
   directories.push(root);
   await mkdir(join(root, "packages/application/src/attention"), { recursive: true });
@@ -22,8 +22,11 @@ async function fixture(catalog) {
   );
   await writeFile(
     join(root, "apps/web/src/server/attention.ts"),
-    "createSqliteDevOSCommandGateway();",
+    'createServerFn({ method: "POST" });\ncreateSqliteDevOSCommandGateway();',
   );
+  for (const [path, source] of Object.entries(extraServerFiles)) {
+    await writeFile(join(root, "apps/web/src/server", path), source);
+  }
   await writeFile(join(root, "apps/web/src/routes/devos.today.tsx"), "export {};");
   return root;
 }
@@ -67,6 +70,13 @@ const validCatalog = {
       forbiddenMarkers: ["AttentionLifecycleService"],
     },
   ],
+  mutationSurfaces: [
+    {
+      path: "apps/web/src/server/attention.ts",
+      state: "gateway",
+      coverageRefs: ["attention.transition"],
+    },
+  ],
 };
 
 try {
@@ -97,6 +107,7 @@ try {
         requiredMarkers: ["missingGatewayMarker"],
       },
     ],
+    mutationSurfaces: validCatalog.mutationSurfaces,
   });
   const codes = (await checkEditabilityCoverage(invalidRoot)).map(
     (violation) => violation.code,
@@ -106,6 +117,70 @@ try {
   assert.ok(codes.includes("COMMAND_WITHOUT_MANIFEST"));
   assert.ok(codes.includes("CRITICAL_WITHOUT_APPROVAL_PATH"));
   assert.ok(codes.includes("MUTATION_FILE_WITHOUT_MANIFEST_REFERENCE"));
+
+  const untrackedRoot = await fixture(validCatalog, {
+    "untracked.ts": 'createServerFn({ method: "POST" });',
+  });
+  assert.ok(
+    (await checkEditabilityCoverage(untrackedRoot)).some(
+      (item) =>
+        item.code === "MUTATION_FILE_WITHOUT_MANIFEST_REFERENCE" &&
+        item.path === "apps/web/src/server/untracked.ts",
+    ),
+  );
+
+  const excludedCatalog = {
+    ...validCatalog,
+    mutationSurfaces: [
+      ...validCatalog.mutationSurfaces,
+      {
+        path: "apps/web/src/server/auth.ts",
+        state: "excluded_noncanonical",
+        reason: "authentication_infrastructure",
+      },
+    ],
+  };
+  const excludedRoot = await fixture(excludedCatalog, {
+    "auth.ts": 'createServerFn({ method: "POST" });',
+  });
+  assert.deepEqual(await checkEditabilityCoverage(excludedRoot), []);
+
+  const invalidExclusionRoot = await fixture(
+    {
+      ...excludedCatalog,
+      mutationSurfaces: excludedCatalog.mutationSurfaces.map((surface) =>
+        surface.path.endsWith("auth.ts")
+          ? { ...surface, reason: "convenient_bypass" }
+          : surface,
+      ),
+    },
+    { "auth.ts": 'createServerFn({ method: "POST" });' },
+  );
+  assert.ok(
+    (await checkEditabilityCoverage(invalidExclusionRoot)).some(
+      (item) => item.code === "MUTATION_SURFACE_EXCLUSION_INVALID",
+    ),
+  );
+
+  const staleCatalogRoot = await fixture(
+    {
+      ...validCatalog,
+      mutationSurfaces: [
+        ...validCatalog.mutationSurfaces,
+        {
+          path: "apps/web/src/server/stale.ts",
+          state: "legacy_registered",
+          coverageRefs: ["legacy.example"],
+        },
+      ],
+    },
+    { "stale.ts": "export {};" },
+  );
+  assert.ok(
+    (await checkEditabilityCoverage(staleCatalogRoot)).some(
+      (item) => item.code === "MUTATION_SURFACE_NOT_POST",
+    ),
+  );
 
   console.log("Editability coverage guardrail fixtures passed.");
 } finally {
