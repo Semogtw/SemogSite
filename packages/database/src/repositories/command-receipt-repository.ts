@@ -87,8 +87,16 @@ type ReceiptRow = {
 };
 
 const hashPattern = /^[a-f0-9]{64}$/u;
+const commandPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u;
+const resourceTypePattern = /^[a-z0-9_-]+$/u;
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
 const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+const actorKinds = new Set([
+  "owner_ui",
+  "mcp_client",
+  "system",
+  "external_adapter",
+]);
 
 function fromRow(row: ReceiptRow): CommandReceiptRecord {
   return {
@@ -122,8 +130,49 @@ function hash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function bounded(value: string, maximum: number): boolean {
+  return value.length >= 1 && value.length <= maximum && value.trim() === value;
+}
+
 function timestampValid(value: string): boolean {
   return isoTimestampPattern.test(value) && Number.isFinite(Date.parse(value));
+}
+
+function claimValid(input: CommandReceiptClaimInput): boolean {
+  if (
+    !bounded(input.id, 200) ||
+    !bounded(input.ownerId, 200) ||
+    !commandPattern.test(input.commandId) ||
+    input.commandId.length > 160 ||
+    !Number.isInteger(input.commandVersion) ||
+    input.commandVersion < 1 ||
+    !commandPattern.test(input.capability) ||
+    input.capability.length > 160 ||
+    !resourceTypePattern.test(input.resourceType) ||
+    input.resourceType.length > 120 ||
+    !bounded(input.resourceId, 500) ||
+    !actorKinds.has(input.actorKind) ||
+    !bounded(input.actorId, 200) ||
+    !hashPattern.test(input.requestHash) ||
+    !timestampValid(input.claimedAt) ||
+    !timestampValid(input.leaseExpiresAt) ||
+    input.leaseExpiresAt <= input.claimedAt ||
+    !bounded(input.correlationId, 200) ||
+    !bounded(input.idempotencyKey, 200)
+  ) {
+    return false;
+  }
+
+  const clientBounded =
+    input.clientId.length <= 200 && input.clientId.trim() === input.clientId;
+  if (!clientBounded) return false;
+  if (
+    input.actorKind === "mcp_client" ||
+    input.actorKind === "external_adapter"
+  ) {
+    return input.clientId.length >= 1;
+  }
+  return input.clientId.length === 0;
 }
 
 function validSummary(value: string): boolean {
@@ -164,6 +213,10 @@ export class SqliteCommandReceiptRepository {
   async claim(
     input: CommandReceiptClaimInput,
   ): Promise<CommandReceiptClaimOutcome> {
+    if (!claimValid(input)) {
+      throw new Error("COMMAND_RECEIPT_CLAIM_INVALID");
+    }
+
     const transaction = this.database.$client.transaction(() => {
       const existing = this.findBySemanticKey(input);
       if (existing === null) {
