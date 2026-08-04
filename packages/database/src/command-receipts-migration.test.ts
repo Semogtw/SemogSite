@@ -40,7 +40,7 @@ function insertReceipt(database: ReturnType<typeof createSqliteDatabase>) {
 }
 
 describe("command receipt migration", () => {
-  it("applies reserved migration 0017 without claiming 0014 or 0016", () => {
+  it("applies command receipt migrations without claiming 0014 or 0016", () => {
     const database = createSqliteDatabase(":memory:");
     migrate(database);
     const names = database.$client
@@ -49,9 +49,10 @@ describe("command receipt migration", () => {
       .map((row) => (row as { name: string }).name);
 
     expect(names).toContain("0017_command_core.sql");
+    expect(names).toContain("0017a_command_receipt_semantic_key.sql");
     expect(names).not.toContain("0014_mcp_oauth.sql");
     expect(names).not.toContain("0016_growth_evidence_credentials.sql");
-    expect(names.at(-1)).toBe("0017_command_core.sql");
+    expect(names.at(-1)).toBe("0017a_command_receipt_semantic_key.sql");
     database.$client.close();
   });
 
