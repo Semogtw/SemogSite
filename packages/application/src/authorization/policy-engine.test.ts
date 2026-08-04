@@ -30,6 +30,14 @@ function authorization(input: {
     capabilityResourceSelectors: { [capability]: resourceSelectors },
     riskCeiling,
     riskCeilingByCapability: { [capability]: riskCeiling },
+    authorizationClauses: [
+      {
+        grantId: "grant_1",
+        capability,
+        resourceSelectors,
+        riskCeiling,
+      },
+    ],
     grantIds: ["grant_1"],
     trustSessionIds: [],
   };
@@ -157,6 +165,25 @@ describe("agent command policy decision order", () => {
         "attention.write": "medium",
         "roadmap.write": "high",
       },
+      authorizationClauses: [
+        {
+          grantId: "grant_1",
+          capability: "attention.write",
+          resourceSelectors: {
+            attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
+          },
+          riskCeiling: "medium",
+        },
+        {
+          grantId: "grant_roadmap",
+          capability: "roadmap.write",
+          resourceSelectors: {
+            stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+          },
+          riskCeiling: "high",
+        },
+      ],
+      grantIds: ["grant_1", "grant_roadmap"],
     };
     expect(
       decideAgentCommandDisposition({
