@@ -11,11 +11,58 @@ export type {
   SkillStage,
 } from "./model";
 export type {
+  AddLearningCheckpointRecord,
+  CreateLearningGoalRecord,
+  CreateSkillRecord,
+  GrowthClock,
+  GrowthDomainEvent,
+  GrowthIdGenerator,
+  GrowthMutationContext,
+  GrowthWriteResult,
+  LearningCheckpointRepository,
+  LearningGoalRepository,
+  ReorderLearningCheckpointsRecord,
+  SkillRepository,
+  UpdateLearningCheckpointRecord,
+  UpdateLearningGoalRecord,
+  UpdateSkillRecord,
+} from "./ports";
+export type {
   CheckpointProgressInput,
   GoalProgressExplanation,
   GoalProgressProjection,
 } from "./progress";
 export { deriveGoalProgress } from "./progress";
+export type {
+  CreateLearningGoalInput,
+  LearningGoalServiceResult,
+  LearningGoalTransitionAction,
+  LearningGoalValidationError,
+  TransitionLearningGoalInput,
+} from "./goal-service";
+export { LearningGoalService } from "./goal-service";
+export type {
+  AddLearningCheckpointInput,
+  LearningCheckpointMutationResult,
+  LearningCheckpointReorderResult,
+  LearningCheckpointTransitionAction,
+  LearningCheckpointValidationError,
+  RecordLearningCheckpointValueInput,
+  ReorderLearningCheckpointsInput,
+  TransitionLearningCheckpointInput,
+} from "./checkpoint-service";
+export { LearningCheckpointService } from "./checkpoint-service";
+export type {
+  ArchiveSkillInput,
+  CreateSkillInput,
+  LinkCheckpointSkillInput,
+  LinkGoalSkillInput,
+  MergeSkillInput,
+  SkillLinkResult,
+  SkillMutationResult,
+  SkillValidationError,
+} from "./skill-service";
+export { SkillService } from "./skill-service";
 export {
   normalizeCheckpointWeight,
   normalizeLearningGoalSlug,
