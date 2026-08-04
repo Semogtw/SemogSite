@@ -326,7 +326,7 @@ export class SqliteCommandReceiptRepository {
         `SELECT * FROM command_receipts
          WHERE owner_id = ? AND actor_kind = ? AND actor_id = ?
            AND client_id = ? AND command_id = ? AND command_version = ?
-           AND resource_type = ? AND resource_id = ? AND idempotency_key = ?`,
+           AND idempotency_key = ?`,
       )
       .get(
         input.ownerId,
@@ -335,8 +335,6 @@ export class SqliteCommandReceiptRepository {
         input.clientId,
         input.commandId,
         input.commandVersion,
-        input.resourceType,
-        input.resourceId,
         input.idempotencyKey,
       ) as ReceiptRow | undefined;
     return row === undefined ? null : fromRow(row);
