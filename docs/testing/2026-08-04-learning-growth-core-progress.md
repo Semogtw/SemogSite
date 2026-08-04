@@ -17,7 +17,8 @@ This record covers `develop/learning-growth-core-implementation`, stacked on PR 
 - five versioned deterministic goal templates;
 - truthful private assistance provenance;
 - manual/template quick-create preparation and atomic service envelope;
-- migration `0015_learning_goals.sql` with explicit `automatic`/`custom` checkpoint weight modes;
+- migration `0015_learning_goals.sql` for the Growth tables;
+- incremental migration `0015a_learning_checkpoint_weight_modes.sql` for explicit `automatic`/`custom` weight provenance, including databases that had already applied `0015` during development;
 - transactional SQLite repositories for goals, checkpoints, skills and quick creation;
 - owner-scoped private Growth read model;
 - backup/restore coverage additions;
@@ -35,7 +36,8 @@ This record covers `develop/learning-growth-core-implementation`, stacked on PR 
 - advanced checkpoint details kept behind disclosure controls;
 - Growth entry in desktop and mobile DevOS navigation;
 - Roadmap access preserved through the mobile “Mais” route;
-- Growth stylesheet loaded through the root route.
+- Growth stylesheet loaded through the root route;
+- one semantic `<main>` supplied by the DevOS shell, without nested main landmarks.
 
 ### Server-derived checkpoint weight rebalance
 
@@ -54,12 +56,13 @@ This record covers `develop/learning-growth-core-implementation`, stacked on PR 
 
 - domain service tests for server-derived preview, confirmation and conflicts;
 - SQLite repository tests for owner isolation, atomicity, events, audit and replay;
-- migration/schema tests for weight-mode constraints;
+- migration/schema tests for weight-mode constraints and incremental migration order;
 - package public-surface tests;
 - web handler tests proving auth/CSRF ordering;
 - strict server-schema tests rejecting client-proposed weights;
 - structural route/confidentiality/navigation tests;
-- Playwright specification covering anonymous redirects, public confidentiality, template creation, detail navigation, rebalance and 360 px viewport behavior.
+- Playwright specification covering anonymous redirects, public confidentiality, template creation, detail navigation, rebalance and 360 px viewport behavior;
+- repeated Playwright executions use unique goal titles because the configured E2E database path is persistent.
 
 ## Verification actually executed in the implementation session
 
@@ -73,7 +76,7 @@ The original Growth migration was applied with Python's standard `sqlite3` libra
 - immutable-event trigger rejecting update/delete;
 - no canonical goal-percentage column.
 
-Classification: `supplemental_environment`. This does not replace the repository's `better-sqlite3`, Drizzle and Vitest gates. The later weight-mode and route/rebalance changes have not been executed in that supplemental harness.
+Classification: `supplemental_environment`. This does not replace the repository's `better-sqlite3`, Drizzle and Vitest gates. The later incremental weight-mode migration and route/rebalance changes have not been executed in that supplemental harness.
 
 ### Runtime/tooling inventory
 
@@ -144,4 +147,4 @@ pnpm exec playwright test tests/e2e/growth-owner-experience.spec.ts
 
 ## Next implementation action
 
-Perform a final static review of the current PR diff, resolve any package-boundary or exact-fixture inconsistencies, update the PR description, and keep the PR draft until the mandatory test/typecheck/build/Playwright evidence is attached to the exact head SHA.
+Run the mandatory test/typecheck/build/Playwright matrix on the exact PR head, attach the observed evidence, resolve any failures without weakening invariants, and keep the PR draft until those gates are green.
