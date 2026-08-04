@@ -5,6 +5,27 @@ export type {
   TransitionAttentionPayload,
   TransitionAttentionResult,
 } from "./attention/transition-attention-command";
+export {
+  agentCapabilities,
+  capabilityForCommand,
+  isAgentCapability,
+  oauthScopeForCapability,
+} from "./authorization/capabilities";
+export {
+  reviewedResourceKinds,
+  selectorMatchesResource,
+  validateResourceSelectorForKind,
+} from "./authorization/resource-selectors";
+export type {
+  AgentCapability,
+  AgentGrantDefinition,
+  AgentGrantStatus,
+  AgentRiskCeiling,
+  CommandResource,
+  CommandResourceParentRef,
+  OAuthWriteScope,
+  ResourceSelector,
+} from "./authorization/types";
 export { canonicalJson, canonicalSha256 } from "./canonical-json";
 export { CommandGateway } from "./command-gateway";
 export type {
