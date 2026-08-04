@@ -1,6 +1,7 @@
 import { canonicalJson, canonicalSha256 } from "./canonical-json";
 import type { PreparedCommand } from "./command-gateway";
 import type { JsonValue } from "./core";
+import { isCanonicalUtcTimestamp } from "./iso-timestamp";
 
 export const commandReceiptStatuses = [
   "in_progress",
@@ -81,7 +82,6 @@ export interface CommandReceiptStore {
 
 const hashPattern = /^[a-f0-9]{64}$/u;
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
-const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 function invalid(): never {
   throw new Error("COMMAND_RECEIPT_INVALID");
@@ -89,10 +89,6 @@ function invalid(): never {
 
 function bounded(value: string, maximum: number): boolean {
   return value.length >= 1 && value.length <= maximum && value.trim() === value;
-}
-
-function timestampValid(value: string): boolean {
-  return isoTimestampPattern.test(value) && Number.isFinite(Date.parse(value));
 }
 
 function clientIdentity(prepared: PreparedCommand): string {
@@ -119,8 +115,8 @@ export function createReceiptClaim(
     prepared.decision.outcome !== "allow" ||
     !bounded(input.receiptId, 200) ||
     !hashPattern.test(prepared.requestHash) ||
-    !timestampValid(input.claimedAt) ||
-    !timestampValid(input.leaseExpiresAt) ||
+    !isCanonicalUtcTimestamp(input.claimedAt) ||
+    !isCanonicalUtcTimestamp(input.leaseExpiresAt) ||
     input.leaseExpiresAt <= input.claimedAt
   ) {
     invalid();
@@ -157,12 +153,12 @@ export async function createReceiptSuccess(input: {
   if (
     !bounded(input.receiptId, 200) ||
     !hashPattern.test(input.requestHash) ||
-    !timestampValid(input.completedAt)
+    !isCanonicalUtcTimestamp(input.completedAt)
   ) {
     invalid();
   }
   const resultSummaryJson = canonicalJson(input.summary);
-  if (resultSummaryJson.length > 4000) invalid();
+  if (new TextEncoder().encode(resultSummaryJson).byteLength > 4000) invalid();
   return {
     kind: "success",
     receiptId: input.receiptId,
@@ -187,7 +183,7 @@ export function createReceiptFailure(input: {
     !hashPattern.test(input.requestHash) ||
     !stableErrorPattern.test(input.stableErrorCode) ||
     typeof input.retryable !== "boolean" ||
-    !timestampValid(input.completedAt)
+    !isCanonicalUtcTimestamp(input.completedAt)
   ) {
     invalid();
   }
