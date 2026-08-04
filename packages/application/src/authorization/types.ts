@@ -90,6 +90,13 @@ export type AgentTrustSession = {
   version: number;
 };
 
+export type EffectiveAgentAuthorizationClause = {
+  grantId: string;
+  capability: AgentCapability;
+  resourceSelectors: ResourceSelectorMap;
+  riskCeiling: AgentRiskCeiling;
+};
+
 export type EffectiveAgentAuthorization = {
   clientId: string;
   ownerId: string;
@@ -102,6 +109,7 @@ export type EffectiveAgentAuthorization = {
   riskCeilingByCapability: Readonly<
     Partial<Record<AgentCapability, AgentRiskCeiling>>
   >;
+  authorizationClauses: readonly EffectiveAgentAuthorizationClause[];
   grantIds: readonly string[];
   trustSessionIds: readonly string[];
 };
