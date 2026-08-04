@@ -79,6 +79,7 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
     : [];
   const violations = [];
   const commandsById = new Map();
+  const resourceActionLabels = new Map();
 
   for (const command of commands) {
     if (typeof command?.commandId !== "string") continue;
@@ -88,6 +89,36 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
       );
     }
     commandsById.set(command.commandId, command);
+
+    const labelValid =
+      typeof command.labelPtBr === "string" &&
+      command.labelPtBr.trim() === command.labelPtBr &&
+      command.labelPtBr.length >= 1 &&
+      command.labelPtBr.length <= 120;
+    if (!labelValid) {
+      violations.push(
+        violation("COMMAND_LABEL_INVALID", { commandId: command.commandId }),
+      );
+    } else if (typeof command.resourceType === "string") {
+      const labelKey = `${command.resourceType}\u0000${command.labelPtBr
+        .normalize("NFC")
+        .toLocaleLowerCase("pt-BR")}`;
+      const previousCommandId = resourceActionLabels.get(labelKey);
+      if (
+        previousCommandId !== undefined &&
+        previousCommandId !== command.commandId
+      ) {
+        violations.push(
+          violation("DUPLICATE_RESOURCE_ACTION_LABEL", {
+            commandId: command.commandId,
+            conflictingCommandId: previousCommandId,
+            resourceType: command.resourceType,
+          }),
+        );
+      } else {
+        resourceActionLabels.set(labelKey, command.commandId);
+      }
+    }
 
     const commandSource =
       typeof command.sourceFile === "string"
