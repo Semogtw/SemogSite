@@ -32,6 +32,22 @@ const oauthScopesByCapability: Readonly<
   "workflow.write": "devos.write.workflow",
 };
 
+const resourceKindsByCapability: Readonly<
+  Record<AgentCapability, readonly string[]>
+> = {
+  "appearance.write": ["appearance_surface"],
+  "attention.write": ["attention_item"],
+  "development.request": ["development_request"],
+  "editorial.publish": ["editorial_document"],
+  "editorial.write": ["editorial_document"],
+  "growth.review": ["growth_evidence"],
+  "growth.write": ["growth_goal"],
+  "integrations.request": ["integration"],
+  "projects.write": ["project"],
+  "roadmap.write": ["stage"],
+  "workflow.write": ["workflow"],
+};
+
 export function isAgentCapability(value: string): value is AgentCapability {
   return agentCapabilitySet.has(value);
 }
@@ -49,4 +65,10 @@ export function oauthScopeForCapability(
   capability: AgentCapability,
 ): OAuthWriteScope {
   return oauthScopesByCapability[capability];
+}
+
+export function resourceKindsForCapability(
+  capability: AgentCapability,
+): readonly string[] {
+  return resourceKindsByCapability[capability];
 }
