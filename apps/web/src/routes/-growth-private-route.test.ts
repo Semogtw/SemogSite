@@ -24,14 +24,22 @@ describe("private Growth routes", () => {
     expect(server).toContain("getNodeDatabase");
   });
 
-  it("mounts a private detail route without exposing Growth through public loaders", () => {
+  it("mounts a private detail route with server-derived weight rebalance", () => {
     const route = source("devos.growth.$goalId.tsx");
+    const server = source("../server/devos-growth-weight-rebalance.ts");
 
     expect(route).toContain('createFileRoute("/devos/growth/$goalId")');
     expect(route).toContain("requireOwner");
     expect(route).toContain("getGrowthGoalFn");
+    expect(route).toContain("previewGrowthWeightRebalanceFn");
+    expect(route).toContain("applyGrowthWeightRebalanceFn");
+    expect(route).toContain("readCookie(CSRF_COOKIE_NAME)");
+    expect(route).toContain("GrowthWeightRebalance");
     expect(route).toContain("GrowthGoalDetail");
+    expect(route).not.toContain("proposedWeights");
     expect(route).toContain('content: "noindex, nofollow, noarchive"');
+    expect(server).not.toContain("weight: z.");
+    expect(server).not.toContain("weightMode: z.");
   });
 
   it("loads Growth styles and exposes the workspace without losing mobile Roadmap access", () => {
