@@ -76,8 +76,8 @@ describe("command receipt contracts", () => {
     expect(JSON.stringify(claim)).not.toMatch(/payload|token|cookie|secret/iu);
   });
 
-  it("creates a deterministic bounded success finalization", () => {
-    const success = createReceiptSuccess({
+  it("creates a deterministic bounded success finalization", async () => {
+    const success = await createReceiptSuccess({
       receiptId: "receipt-1",
       requestHash: "c".repeat(64),
       summary: { status: "acknowledged", attentionId: "attention-1" },
@@ -113,28 +113,15 @@ describe("command receipt contracts", () => {
     });
   });
 
-  it.each([
-    () =>
+  it("rejects invalid synchronous receipt material", () => {
+    expect(() =>
       createReceiptClaim(prepared(), {
         receiptId: "receipt-1",
         claimedAt: "2026-08-04T05:05:00.000Z",
         leaseExpiresAt: "2026-08-04T05:00:00.000Z",
       }),
-    () =>
-      createReceiptSuccess({
-        receiptId: "receipt-1",
-        requestHash: "not-a-hash",
-        summary: { ok: true },
-        completedAt: "2026-08-04T05:01:00.000Z",
-      }),
-    () =>
-      createReceiptSuccess({
-        receiptId: "receipt-1",
-        requestHash: "c".repeat(64),
-        summary: { value: "x".repeat(5000) },
-        completedAt: "2026-08-04T05:01:00.000Z",
-      }),
-    () =>
+    ).toThrow("COMMAND_RECEIPT_INVALID");
+    expect(() =>
       createReceiptFailure({
         receiptId: "receipt-1",
         requestHash: "c".repeat(64),
@@ -142,7 +129,25 @@ describe("command receipt contracts", () => {
         retryable: false,
         completedAt: "2026-08-04T05:01:00.000Z",
       }),
-  ])("rejects invalid receipt material", (operation) => {
-    expect(operation).toThrow("COMMAND_RECEIPT_INVALID");
+    ).toThrow("COMMAND_RECEIPT_INVALID");
+  });
+
+  it("rejects invalid asynchronous success material", async () => {
+    await expect(
+      createReceiptSuccess({
+        receiptId: "receipt-1",
+        requestHash: "not-a-hash",
+        summary: { ok: true },
+        completedAt: "2026-08-04T05:01:00.000Z",
+      }),
+    ).rejects.toThrow("COMMAND_RECEIPT_INVALID");
+    await expect(
+      createReceiptSuccess({
+        receiptId: "receipt-1",
+        requestHash: "c".repeat(64),
+        summary: { value: "x".repeat(5000) },
+        completedAt: "2026-08-04T05:01:00.000Z",
+      }),
+    ).rejects.toThrow("COMMAND_RECEIPT_INVALID");
   });
 });
