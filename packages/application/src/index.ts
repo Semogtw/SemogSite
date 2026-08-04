@@ -18,6 +18,17 @@ export {
   selectorMatchesResource,
   validateResourceSelectorForKind,
 } from "./authorization/resource-selectors";
+export {
+  defaultTrustDurationMinutes,
+  defaultTrustMaximumOperations,
+  evaluateTrustSessionState,
+  maximumTrustDurationMinutes,
+  maximumTrustOperations,
+  minimumTrustDurationMinutes,
+  trustSessionFitsAuthorization,
+  validateTrustSessionRequest,
+} from "./authorization/trust-session";
+export type { TrustSessionState } from "./authorization/trust-session";
 export type {
   AgentCapability,
   AgentGrantDefinition,
