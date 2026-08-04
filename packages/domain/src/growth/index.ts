@@ -57,6 +57,13 @@ export type {
 } from "./quick-create";
 export { prepareQuickLearningGoalDraft } from "./quick-create";
 export type {
+  QuickCreateAssistanceOrigin,
+  QuickCreateLearningGoalPersistence,
+  QuickLearningGoalRepository,
+  QuickLearningGoalServiceResult,
+} from "./quick-create-service";
+export { QuickLearningGoalService } from "./quick-create-service";
+export type {
   CreateLearningGoalInput,
   LearningGoalServiceResult,
   LearningGoalTransitionAction,
