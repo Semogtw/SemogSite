@@ -55,7 +55,7 @@ test.describe("authenticated Growth owner experience", () => {
   test("creates a deterministic template goal and applies a server-derived rebalance", async ({
     page,
   }) => {
-    const title = "Aprender Rust com Growth E2E";
+    const title = `Aprender Rust com Growth E2E ${Date.now()}`;
 
     await expect(page.getByRole("heading", { name: "Growth" })).toBeVisible();
     await page.getByLabel("O que deseja alcançar?").fill(title);
