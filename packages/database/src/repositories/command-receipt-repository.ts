@@ -1,3 +1,4 @@
+import { canonicalJson } from "@semogtw/application";
 import { createHash } from "node:crypto";
 import type { SqliteDatabase } from "../adapters/sqlite";
 
@@ -87,6 +88,7 @@ type ReceiptRow = {
 
 const hashPattern = /^[a-f0-9]{64}$/u;
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
+const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 function fromRow(row: ReceiptRow): CommandReceiptRecord {
   return {
@@ -120,15 +122,19 @@ function hash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function timestampValid(value: string): boolean {
+  return isoTimestampPattern.test(value) && Number.isFinite(Date.parse(value));
+}
+
 function validSummary(value: string): boolean {
-  if (value.length < 2 || value.length > 4000) return false;
+  if (Buffer.byteLength(value, "utf8") > 4000) return false;
   try {
     const parsed = JSON.parse(value) as unknown;
     return (
       typeof parsed === "object" &&
       parsed !== null &&
       !Array.isArray(parsed) &&
-      JSON.stringify(parsed) === value
+      canonicalJson(parsed) === value
     );
   } catch {
     return false;
@@ -136,7 +142,12 @@ function validSummary(value: string): boolean {
 }
 
 function finalizationValid(input: CommandReceiptFinalization): boolean {
-  if (!hashPattern.test(input.requestHash)) return false;
+  if (
+    !hashPattern.test(input.requestHash) ||
+    !timestampValid(input.completedAt)
+  ) {
+    return false;
+  }
   if (input.kind === "success") {
     return (
       hashPattern.test(input.resultHash) &&
