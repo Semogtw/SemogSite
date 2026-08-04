@@ -1,4 +1,7 @@
-import { canonicalJson } from "@semogtw/application";
+import {
+  canonicalJson,
+  isCanonicalUtcTimestamp,
+} from "@semogtw/application";
 import { createHash } from "node:crypto";
 import type { SqliteDatabase } from "../adapters/sqlite";
 
@@ -88,9 +91,8 @@ type ReceiptRow = {
 
 const hashPattern = /^[a-f0-9]{64}$/u;
 const commandPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u;
-const resourceTypePattern = /^[a-z0-9_-]+$/u;
+const resourceTypePattern = /^[a-z][a-z0-9_-]*$/u;
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
-const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 const actorKinds = new Set([
   "owner_ui",
   "mcp_client",
@@ -134,10 +136,6 @@ function bounded(value: string, maximum: number): boolean {
   return value.length >= 1 && value.length <= maximum && value.trim() === value;
 }
 
-function timestampValid(value: string): boolean {
-  return isoTimestampPattern.test(value) && Number.isFinite(Date.parse(value));
-}
-
 function claimValid(input: CommandReceiptClaimInput): boolean {
   if (
     !bounded(input.id, 200) ||
@@ -154,8 +152,8 @@ function claimValid(input: CommandReceiptClaimInput): boolean {
     !actorKinds.has(input.actorKind) ||
     !bounded(input.actorId, 200) ||
     !hashPattern.test(input.requestHash) ||
-    !timestampValid(input.claimedAt) ||
-    !timestampValid(input.leaseExpiresAt) ||
+    !isCanonicalUtcTimestamp(input.claimedAt) ||
+    !isCanonicalUtcTimestamp(input.leaseExpiresAt) ||
     input.leaseExpiresAt <= input.claimedAt ||
     !bounded(input.correlationId, 200) ||
     !bounded(input.idempotencyKey, 200)
@@ -193,7 +191,7 @@ function validSummary(value: string): boolean {
 function finalizationValid(input: CommandReceiptFinalization): boolean {
   if (
     !hashPattern.test(input.requestHash) ||
-    !timestampValid(input.completedAt)
+    !isCanonicalUtcTimestamp(input.completedAt)
   ) {
     return false;
   }
