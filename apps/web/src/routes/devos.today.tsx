@@ -4,6 +4,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { readCookie } from "../client/cookies";
 import { DevOSShell } from "../components/devos/devos-shell";
+import { OwnerEntityActionsDisclosure } from "../components/devos/owner-entity-actions-disclosure";
 import { transitionAttentionFn } from "../server/devos-attention-lifecycle";
 import { getTodayQueueFn } from "../server/devos-today";
 import { requireOwner } from "../server/require-owner";
@@ -169,6 +170,10 @@ function AttentionRecord({
           {external ? "externa" : item.impact}
         </Status>
       </div>
+      <OwnerEntityActionsDisclosure
+        resourceType="attention_item"
+        resourceId={item.id}
+      />
       <AttentionActions
         attentionId={item.id}
         expectedUpdatedAt={item.updatedAt}
