@@ -10,7 +10,9 @@ export {
   capabilityForCommand,
   isAgentCapability,
   oauthScopeForCapability,
+  resourceKindsForCapability,
 } from "./authorization/capabilities";
+export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
 export {
   reviewedResourceKinds,
   selectorMatchesResource,
@@ -21,10 +23,15 @@ export type {
   AgentGrantDefinition,
   AgentGrantStatus,
   AgentRiskCeiling,
+  AgentTrustSession,
   CommandResource,
   CommandResourceParentRef,
+  EffectiveAgentAuthorization,
+  OAuthScope,
   OAuthWriteScope,
   ResourceSelector,
+  ResourceSelectorMap,
+  TrustRiskCeiling,
 } from "./authorization/types";
 export { canonicalJson, canonicalSha256 } from "./canonical-json";
 export { CommandGateway } from "./command-gateway";
