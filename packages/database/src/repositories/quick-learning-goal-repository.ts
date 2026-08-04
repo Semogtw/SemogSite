@@ -32,6 +32,7 @@ type CheckpointRow = {
   required: number;
   sequence: number;
   weight: number;
+  weight_mode: "automatic" | "custom";
   completion_mode: "binary" | "numeric";
   numeric_unit: string | null;
   numeric_target: number | null;
@@ -86,6 +87,7 @@ function checkpointFromRow(row: CheckpointRow): LearningCheckpointRecord {
     required: row.required === 1,
     sequence: row.sequence,
     weight: row.weight,
+    weightMode: row.weight_mode,
     completionMode,
     acceptedValue: row.accepted_value,
     dueDate: row.due_date,
@@ -137,6 +139,8 @@ function sameCheckpointSemantics(
     existing.required === proposed.required &&
     existing.sequence === proposed.sequence &&
     existing.weight === proposed.weight &&
+    (existing.weightMode ?? "automatic") ===
+      (proposed.weightMode ?? "automatic") &&
     JSON.stringify(existing.completionMode) ===
       JSON.stringify(proposed.completionMode) &&
     existing.acceptedValue === proposed.acceptedValue &&
@@ -192,6 +196,7 @@ function bindingsValid(input: QuickCreateLearningGoalPersistence): boolean {
       checkpoint.goalId === input.goal.id &&
       checkpoint.sequence === index + 1 &&
       checkpoint.version === 1 &&
+      checkpoint.weightMode === "automatic" &&
       event.aggregateType === "learning_checkpoint" &&
       event.aggregateId === checkpoint.id &&
       event.sequence === 1 &&
@@ -297,8 +302,9 @@ export class SqliteQuickLearningGoalRepository
     const checkpointRows = this.database.$client
       .prepare(
         `SELECT id, goal_id, title, description, status, required, sequence,
-                weight, completion_mode, numeric_unit, numeric_target,
-                accepted_value, due_date, created_at, updated_at, version
+                weight, weight_mode, completion_mode, numeric_unit,
+                numeric_target, accepted_value, due_date, created_at,
+                updated_at, version
          FROM learning_checkpoints
          WHERE goal_id = ?
          ORDER BY sequence ASC, id ASC`,
@@ -365,9 +371,9 @@ export class SqliteQuickLearningGoalRepository
       .prepare(
         `INSERT INTO learning_checkpoints (
           id, goal_id, title, description, status, required, sequence, weight,
-          completion_mode, numeric_unit, numeric_target, accepted_value,
-          due_date, created_at, updated_at, version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          weight_mode, completion_mode, numeric_unit, numeric_target,
+          accepted_value, due_date, created_at, updated_at, version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         checkpoint.id,
@@ -378,6 +384,7 @@ export class SqliteQuickLearningGoalRepository
         checkpoint.required ? 1 : 0,
         checkpoint.sequence,
         checkpoint.weight,
+        checkpoint.weightMode ?? "automatic",
         completion.mode,
         completion.unit,
         completion.target,
