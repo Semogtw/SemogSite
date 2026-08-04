@@ -15,6 +15,8 @@ export type LearningCheckpointStatus =
   | "waived"
   | "cancelled";
 
+export type CheckpointWeightMode = "automatic" | "custom";
+
 export type CheckpointCompletionMode =
   | { kind: "binary" }
   | { kind: "numeric"; unit: string; target: number };
@@ -49,6 +51,11 @@ export type LearningCheckpointRecord = {
   required: boolean;
   sequence: number;
   weight: number;
+  /**
+   * Optional only for compatibility with pre-weight-mode in-memory fixtures.
+   * Persisted and newly created records always provide an explicit mode.
+   */
+  weightMode?: CheckpointWeightMode;
   completionMode: CheckpointCompletionMode;
   acceptedValue: number | null;
   dueDate: string | null;
