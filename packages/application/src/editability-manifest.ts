@@ -4,6 +4,7 @@ import type {
   RiskTier,
   UndoStrategy,
 } from "./core";
+import catalogJson from "./editability-catalog.json";
 
 export type EditabilityMcpExposure =
   | "direct"
@@ -26,6 +27,10 @@ export type EditabilityManifest = {
   implementationState: EditabilityImplementationState;
 };
 
+type CatalogManifest = EditabilityManifest & {
+  uiRouteFiles: readonly string[];
+};
+
 export type EditabilityCoverageErrorCode =
   | "DUPLICATE_FEATURE_ID"
   | "UNKNOWN_COMMAND_ID"
@@ -43,31 +48,26 @@ export type EditabilityCoverageError = {
   commandId: string | null;
 };
 
-export const attentionLifecycleManifest: EditabilityManifest = {
-  featureId: "attention-lifecycle",
-  reads: ["today.attention"],
-  commands: ["attention.transition"],
-  uiRoutes: ["/devos/today"],
-  mcpExposure: "not_yet",
-  riskSummary: { "attention.transition": "medium" },
-  undoStrategy: "compensating_command",
-  conflictStrategy: "expected_timestamp",
-  auditEvents: ["attention.resolve", "attention.dismiss"],
-  implementationState: "partial",
-};
+const catalogManifests = catalogJson.manifests as unknown as readonly CatalogManifest[];
 
-export const roadmapStageCompletionManifest: EditabilityManifest = {
-  featureId: "roadmap-stage-completion",
-  reads: ["roadmap.stage.detail", "roadmap.stage.evidence"],
-  commands: ["roadmap.stages.complete"],
-  uiRoutes: ["/devos/projects/$slug"],
-  mcpExposure: "not_yet",
-  riskSummary: { "roadmap.stages.complete": "high" },
-  undoStrategy: "compensating_command",
-  conflictStrategy: "exact_snapshot",
-  auditEvents: ["stage.complete"],
-  implementationState: "planned",
-};
+function manifestById(featureId: string): CatalogManifest {
+  const manifest = catalogManifests.find(
+    (candidate) => candidate.featureId === featureId,
+  );
+  if (manifest === undefined) {
+    throw new Error(`EDITABILITY_MANIFEST_MISSING:${featureId}`);
+  }
+  return manifest;
+}
+
+export const attentionLifecycleManifest = manifestById(
+  "attention-lifecycle",
+);
+export const roadmapStageCompletionManifest = manifestById(
+  "roadmap-stage-completion",
+);
+export const editabilityManifests: readonly EditabilityManifest[] =
+  catalogManifests;
 
 function error(
   code: EditabilityCoverageErrorCode,
