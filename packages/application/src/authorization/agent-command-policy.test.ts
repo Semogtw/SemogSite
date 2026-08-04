@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CommandContext, CommandTarget } from "../core";
 import type { CommandManifest } from "../command-registry";
-import { createAgentCommandPolicy } from "./agent-command-policy";
-import type { EffectiveAgentAuthorization } from "./types";
+import {
+  createAgentCommandPolicy,
+  type AgentCommandPolicyDependencies,
+  type AgentCommandPolicyMaterial,
+} from "./agent-command-policy";
+import type { AgentAuthorizationDomain } from "./capabilities";
+import type {
+  CommandResource,
+  EffectiveAgentAuthorization,
+} from "./types";
+import type { AgentWriteSwitchState } from "./write-switches";
 
 const authorization: EffectiveAgentAuthorization = {
   clientId: "client_1",
@@ -66,22 +75,31 @@ const target: CommandTarget = {
 };
 
 function dependencies() {
-  return {
+  const result = {
     authorization,
-    resolveResource: vi.fn((_target: CommandTarget) => ({
+    resolveResource: vi.fn<
+      (target: CommandTarget) => CommandResource | null
+    >((_target) => ({
       kind: "attention_item",
       id: "attention_1",
       parentRefs: [],
       lifecycleState: "open",
     })),
-    readWriteSwitches: vi.fn((_domain: string) => ({
+    readWriteSwitches: vi.fn<
+      (domain: AgentAuthorizationDomain) => AgentWriteSwitchState
+    >((_domain) => ({
       globalEnabled: true,
       clientEnabled: true,
       domainEnabled: true,
     })),
-    trustCoversCommand: vi.fn(() => false),
-    confirmationValid: vi.fn(() => false),
-  };
+    trustCoversCommand: vi.fn<
+      (input: AgentCommandPolicyMaterial) => boolean
+    >(() => false),
+    confirmationValid: vi.fn<
+      (input: AgentCommandPolicyMaterial) => boolean
+    >(() => false),
+  } satisfies AgentCommandPolicyDependencies;
+  return result;
 }
 
 describe("provider-neutral agent command policy", () => {
