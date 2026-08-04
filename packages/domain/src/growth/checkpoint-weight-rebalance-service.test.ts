@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CheckpointWeightRebalanceService,
+  type ApplyCheckpointWeightRebalanceRecord,
   type CheckpointWeightRebalanceRepository,
   type CheckpointWeightSnapshot,
 } from "./checkpoint-weight-rebalance-service";
@@ -41,7 +42,7 @@ function current(customWeight = 80): CheckpointWeightSnapshot {
 }
 
 function repository(snapshot = current()) {
-  const apply = vi.fn(async (input) => ({
+  const apply = vi.fn(async (input: ApplyCheckpointWeightRebalanceRecord) => ({
     kind: "applied" as const,
     value: input.after,
   }));
