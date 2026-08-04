@@ -127,7 +127,9 @@ describe("Growth backup", () => {
     const backup = await createVerifiedSqliteBackup(database, destination);
     database.$client.close();
 
-    expect(backup.migrations.at(-1)).toBe("0015_learning_goals.sql");
+    expect(backup.migrations.at(-1)).toBe(
+      "0015a_learning_checkpoint_weight_modes.sql",
+    );
     const restored = createSqliteDatabase(destination);
     const readModel = new SqliteGrowthReadModel(
       restored,
