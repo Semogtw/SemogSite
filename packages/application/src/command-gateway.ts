@@ -15,6 +15,7 @@ export type CommandPolicy = {
   evaluate(
     manifest: CommandManifest,
     context: CommandContext,
+    target: CommandTarget,
   ): PolicyDecision;
 };
 
@@ -316,7 +317,7 @@ export class CommandGateway {
       expected: input.expected,
       context: input.context,
       manifest,
-      decision: this.policy.evaluate(manifest, input.context),
+      decision: this.policy.evaluate(manifest, input.context, target),
       payloadHash,
       expectedHash,
       requestHash,
