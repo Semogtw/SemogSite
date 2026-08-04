@@ -18,6 +18,11 @@ export const Route = createFileRoute("/devos/more")({
 
 const destinations = [
   {
+    to: "/devos/roadmap",
+    title: "Roadmap",
+    description: "Etapas, progresso e próximos gates dos projetos.",
+  },
+  {
     to: "/devos/runs",
     title: "Execuções",
     description: "Relatos cooperativos, checkpoints e comandos enfileirados.",

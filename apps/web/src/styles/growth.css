@@ -1,0 +1,197 @@
+.growth-page {
+  display: grid;
+  gap: var(--space-6, 1.5rem);
+  min-width: 0;
+}
+
+.growth-page__header {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+}
+
+.growth-page__header h1,
+.growth-page__header p,
+.growth-template-preview h3,
+.growth-template-preview p {
+  margin: 0;
+}
+
+.growth-quick-create {
+  display: grid;
+  gap: var(--space-4, 1rem);
+  width: min(100%, 48rem);
+  padding: var(--space-5, 1.25rem);
+  border: 1px solid var(--border-subtle, currentColor);
+  border-radius: var(--radius-large, 1rem);
+  background: var(--surface-raised, transparent);
+}
+
+.growth-quick-create__field {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+  min-width: 0;
+}
+
+.growth-quick-create__field label {
+  font-weight: 650;
+}
+
+.growth-quick-create__field input,
+.growth-quick-create__field textarea,
+.growth-quick-create__field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border-strong, currentColor);
+  border-radius: var(--radius-medium, 0.75rem);
+  background: var(--surface-base, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.growth-quick-create__field textarea {
+  resize: vertical;
+}
+
+.growth-template-preview {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+  min-width: 0;
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--border-subtle, currentColor);
+  border-radius: var(--radius-medium, 0.75rem);
+}
+
+.growth-template-preview__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 1rem);
+}
+
+.growth-template-preview__source {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.growth-template-preview ol {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+  margin: 0;
+  padding-inline-start: 1.5rem;
+}
+
+.growth-template-preview li {
+  overflow-wrap: anywhere;
+}
+
+.growth-template-preview li span {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.9375rem;
+}
+
+.growth-quick-create__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.growth-quick-create__actions button {
+  min-height: 2.75rem;
+  padding: 0.625rem 1rem;
+  border: 0;
+  border-radius: var(--radius-medium, 0.75rem);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.growth-quick-create__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.growth-quick-create__message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.growth-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4, 1rem);
+  min-width: 0;
+}
+
+.growth-goal-card,
+.growth-checkpoint-card,
+.growth-progress-card {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+  min-width: 0;
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--border-subtle, currentColor);
+  border-radius: var(--radius-large, 1rem);
+  background: var(--surface-raised, transparent);
+}
+
+.growth-progress-meter {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+}
+
+.growth-progress-meter progress {
+  width: 100%;
+  min-width: 0;
+}
+
+.growth-progress-meter__indeterminate {
+  min-height: 0.75rem;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    135deg,
+    currentColor 0,
+    currentColor 0.35rem,
+    transparent 0.35rem,
+    transparent 0.7rem
+  );
+  opacity: 0.35;
+}
+
+.growth-progress-explanation {
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.growth-progress-explanation li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3, 0.75rem);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  .growth-quick-create,
+  .growth-goal-card,
+  .growth-checkpoint-card,
+  .growth-progress-card {
+    padding: var(--space-4, 1rem);
+  }
+
+  .growth-template-preview__heading,
+  .growth-progress-explanation li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .growth-quick-create__actions,
+  .growth-quick-create__actions button {
+    width: 100%;
+  }
+}

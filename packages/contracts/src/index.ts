@@ -15,6 +15,14 @@ export type {
   PublicProjectDto,
   PublishableProjectSource,
 } from "./public/project";
+export {
+  AssistanceAvailabilitySchema,
+  AssistanceOriginSchema,
+} from "./private/assistance";
+export type {
+  AssistanceAvailability,
+  AssistanceOrigin,
+} from "./private/assistance";
 export { PrivateProjectSchema } from "./private/project";
 export type { PrivateProjectDto } from "./private/project";
 export {

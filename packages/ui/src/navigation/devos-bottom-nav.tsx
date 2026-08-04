@@ -2,14 +2,14 @@ import {
   CalendarCheck2,
   Ellipsis,
   FolderKanban,
-  ListChecks,
+  GraduationCap,
   Workflow,
 } from "lucide-react";
 
 const items = [
   { href: "/devos/today", label: "Hoje", icon: CalendarCheck2 },
   { href: "/devos/projects", label: "Projetos", icon: FolderKanban },
-  { href: "/devos/roadmap", label: "Roadmap", icon: ListChecks },
+  { href: "/devos/growth", label: "Growth", icon: GraduationCap },
   { href: "/devos/operations", label: "Operação", icon: Workflow },
   { href: "/devos/more", label: "Mais", icon: Ellipsis },
 ] as const;
