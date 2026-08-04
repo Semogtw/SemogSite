@@ -48,6 +48,7 @@ const validCatalog = {
       sourceFile: "packages/application/src/attention/transition.ts",
     },
   ],
+  legacyCoverageIds: [],
   manifests: [
     {
       featureId: "attention-lifecycle",
@@ -94,6 +95,7 @@ try {
         sourceFile: "packages/application/src/attention/transition.ts",
       },
     ],
+    legacyCoverageIds: [],
     manifests: [
       {
         ...validCatalog.manifests[0],
@@ -162,9 +164,53 @@ try {
     ),
   );
 
+  const legacyCatalog = {
+    ...validCatalog,
+    legacyCoverageIds: ["legacy.example"],
+    mutationSurfaces: [
+      ...validCatalog.mutationSurfaces,
+      {
+        path: "apps/web/src/server/legacy.ts",
+        state: "legacy_registered",
+        coverageRefs: ["legacy.example"],
+      },
+    ],
+  };
+  const legacyRoot = await fixture(legacyCatalog, {
+    "legacy.ts": 'createServerFn({ method: "POST" });',
+  });
+  assert.deepEqual(await checkEditabilityCoverage(legacyRoot), []);
+
+  const unknownReferenceRoot = await fixture(
+    {
+      ...legacyCatalog,
+      mutationSurfaces: legacyCatalog.mutationSurfaces.map((surface) =>
+        surface.path.endsWith("legacy.ts")
+          ? { ...surface, coverageRefs: ["legacy.typo"] }
+          : surface,
+      ),
+    },
+    { "legacy.ts": 'createServerFn({ method: "POST" });' },
+  );
+  assert.ok(
+    (await checkEditabilityCoverage(unknownReferenceRoot)).some(
+      (item) => item.code === "UNKNOWN_LEGACY_COVERAGE_REFERENCE",
+    ),
+  );
+
+  const unusedCoverageRoot = await fixture({
+    ...validCatalog,
+    legacyCoverageIds: ["legacy.unused"],
+  });
+  assert.ok(
+    (await checkEditabilityCoverage(unusedCoverageRoot)).some(
+      (item) => item.code === "LEGACY_COVERAGE_WITHOUT_SURFACE",
+    ),
+  );
+
   const staleCatalogRoot = await fixture(
     {
-      ...validCatalog,
+      ...legacyCatalog,
       mutationSurfaces: [
         ...validCatalog.mutationSurfaces,
         {
