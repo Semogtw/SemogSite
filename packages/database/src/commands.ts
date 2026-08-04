@@ -1,4 +1,7 @@
 export { createAttentionTransitionCommandRunner } from "./command-runners/attention-transition-command-runner";
+export { createSqliteDevOSCommandGateway } from "./composition/devos-command-gateway";
+export type { SqliteDevOSCommandGateway } from "./composition/devos-command-gateway";
+export { createDevOSCommandRegistry } from "./composition/devos-command-registry";
 export {
   SqliteCommandReceiptRepository,
 } from "./repositories/command-receipt-repository";
