@@ -43,6 +43,11 @@ export type TransitionLearningGoalInput = {
 };
 
 export type LearningGoalValidationError =
+  | "LEARNING_GOAL_TITLE_REQUIRED"
+  | "LEARNING_GOAL_TITLE_TOO_LONG"
+  | "LEARNING_GOAL_SLUG_REQUIRED"
+  | "LEARNING_GOAL_SLUG_TOO_LONG"
+  | "ISO_TIMESTAMP_INVALID"
   | "GOAL_ID_REQUIRED"
   | "EXPECTED_VERSION_INVALID"
   | "DESCRIPTION_TOO_LONG"
@@ -80,6 +85,17 @@ const PRIORITIES = new Set<Priority>([
   "high",
   "medium",
   "low",
+]);
+
+const EXCEPTION_VALIDATION_ERRORS = new Set<LearningGoalValidationError>([
+  "LEARNING_GOAL_TITLE_REQUIRED",
+  "LEARNING_GOAL_TITLE_TOO_LONG",
+  "LEARNING_GOAL_SLUG_REQUIRED",
+  "LEARNING_GOAL_SLUG_TOO_LONG",
+  "ISO_TIMESTAMP_INVALID",
+  "DESCRIPTION_TOO_LONG",
+  "MOTIVATION_TOO_LONG",
+  "TARGET_DATE_INVALID",
 ]);
 
 function normalizeOptionalText(
@@ -150,12 +166,26 @@ function validationErrorFromException(
 ): LearningGoalValidationError | null {
   if (!(error instanceof Error)) return null;
   const code = error.message as LearningGoalValidationError;
-  const supported = new Set<LearningGoalValidationError>([
-    "DESCRIPTION_TOO_LONG",
-    "MOTIVATION_TOO_LONG",
-    "TARGET_DATE_INVALID",
-  ]);
-  return supported.has(code) ? code : null;
+  return EXCEPTION_VALIDATION_ERRORS.has(code) ? code : null;
+}
+
+function goalRecordFromAggregate(
+  aggregate: LearningGoalAggregate,
+): LearningGoalRecord {
+  return {
+    id: aggregate.id,
+    ownerId: aggregate.ownerId,
+    slug: aggregate.slug,
+    title: aggregate.title,
+    description: aggregate.description,
+    motivation: aggregate.motivation,
+    status: aggregate.status,
+    priority: aggregate.priority,
+    targetDate: aggregate.targetDate,
+    createdAt: aggregate.createdAt,
+    updatedAt: aggregate.updatedAt,
+    version: aggregate.version,
+  };
 }
 
 export class LearningGoalService {
@@ -311,34 +341,8 @@ export class LearningGoalService {
         aggregateId: before.id,
         sequence: before.version + 1,
         action: eventAction(input.action),
-        before: {
-          id: before.id,
-          ownerId: before.ownerId,
-          slug: before.slug,
-          title: before.title,
-          description: before.description,
-          motivation: before.motivation,
-          status: before.status,
-          priority: before.priority,
-          targetDate: before.targetDate,
-          createdAt: before.createdAt,
-          updatedAt: before.updatedAt,
-          version: before.version,
-        },
-        after: {
-          id: after.id,
-          ownerId: after.ownerId,
-          slug: after.slug,
-          title: after.title,
-          description: after.description,
-          motivation: after.motivation,
-          status: after.status,
-          priority: after.priority,
-          targetDate: after.targetDate,
-          createdAt: after.createdAt,
-          updatedAt: after.updatedAt,
-          version: after.version,
-        },
+        before: goalRecordFromAggregate(before),
+        after: goalRecordFromAggregate(after),
         reason,
         actorId: context.actorId,
         occurredAt: now,
