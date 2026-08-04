@@ -1,6 +1,9 @@
 export const agentRiskCeilings = ["low", "medium", "high"] as const;
 export type AgentRiskCeiling = (typeof agentRiskCeilings)[number];
 
+export const trustRiskCeilings = ["low", "medium"] as const;
+export type TrustRiskCeiling = (typeof trustRiskCeilings)[number];
+
 export const agentGrantStatuses = [
   "active",
   "suspended",
@@ -33,11 +36,17 @@ export type OAuthWriteScope =
   | "devos.admin.request"
   | "devos.development.request";
 
+export type OAuthScope = "devos.read" | OAuthWriteScope;
+
 export type ResourceSelector =
   | { kind: "all" }
   | { kind: "exact_ids"; ids: readonly string[] }
   | { kind: "canonical_prefixes"; prefixes: readonly string[] }
   | { kind: "lifecycle_states"; states: readonly string[] };
+
+export type ResourceSelectorMap = Readonly<
+  Record<string, readonly ResourceSelector[] | undefined>
+>;
 
 export type CommandResourceParentRef = {
   kind: string;
@@ -58,10 +67,41 @@ export type AgentGrantDefinition = {
   profileId: string | null;
   status: AgentGrantStatus;
   capabilities: readonly AgentCapability[];
-  resourceSelectors: Readonly<
-    Record<string, readonly ResourceSelector[] | undefined>
-  >;
+  resourceSelectors: ResourceSelectorMap;
   riskCeiling: AgentRiskCeiling;
   expiresAt: string | null;
   version: number;
+};
+
+export type AgentTrustSession = {
+  id: string;
+  ownerId: string;
+  clientId: string;
+  baseGrantIds: readonly string[];
+  capabilities: readonly AgentCapability[];
+  resourceSelectors: ResourceSelectorMap;
+  riskCeiling: TrustRiskCeiling;
+  startsAt: string;
+  expiresAt: string;
+  maxOperations: number;
+  operationsUsed: number;
+  revokedAt: string | null;
+  reason: string;
+  version: number;
+};
+
+export type EffectiveAgentAuthorization = {
+  clientId: string;
+  ownerId: string;
+  capabilities: readonly AgentCapability[];
+  resourceSelectors: ResourceSelectorMap;
+  capabilityResourceSelectors: Readonly<
+    Partial<Record<AgentCapability, ResourceSelectorMap>>
+  >;
+  riskCeiling: AgentRiskCeiling;
+  riskCeilingByCapability: Readonly<
+    Partial<Record<AgentCapability, AgentRiskCeiling>>
+  >;
+  grantIds: readonly string[];
+  trustSessionIds: readonly string[];
 };
