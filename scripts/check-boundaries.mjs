@@ -31,7 +31,8 @@ export const applicationForbiddenImports = [
   "packages/ui",
 ];
 
-const importPattern = /(?:from\s+|import\s*\(|require\s*\()\s*["']([^"']+)["']/g;
+const importPattern =
+  /(?:from\s+|import\s*\(|import\s+|require\s*\()\s*["']([^"']+)["']/g;
 
 export function findBoundaryViolations(
   source,
