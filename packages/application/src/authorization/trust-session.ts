@@ -45,8 +45,9 @@ const riskRank: Readonly<Record<AgentRiskCeiling, number>> = {
   high: 2,
 };
 
-function bounded(value: string, maximum: number): boolean {
+function bounded(value: unknown, maximum: number): value is string {
   return (
+    typeof value === "string" &&
     value.length >= 1 &&
     value.length <= maximum &&
     value.trim() === value
@@ -304,6 +305,7 @@ export function evaluateTrustSessionState(
     !bounded(session.reason, 500) ||
     !Array.isArray(session.baseGrantIds) ||
     session.baseGrantIds.length < 1 ||
+    session.baseGrantIds.some((grantId) => !bounded(grantId, 200)) ||
     new Set(session.baseGrantIds).size !== session.baseGrantIds.length ||
     !Array.isArray(session.capabilities) ||
     session.capabilities.length < 1 ||
@@ -330,6 +332,7 @@ export function trustSessionFitsAuthorization(input: {
     input.session.ownerId !== input.baseAuthorization.ownerId ||
     input.session.clientId !== input.baseAuthorization.clientId ||
     !Array.isArray(input.baseAuthorization.grantIds) ||
+    input.baseAuthorization.grantIds.some((grantId) => !bounded(grantId, 200)) ||
     !input.session.baseGrantIds.every((grantId) =>
       input.baseAuthorization.grantIds.includes(grantId),
     ) ||
@@ -340,7 +343,12 @@ export function trustSessionFitsAuthorization(input: {
 
   const allowedGrantIds = new Set(input.session.baseGrantIds);
   const authorizationClauses = input.baseAuthorization.authorizationClauses.filter(
-    (clause) => allowedGrantIds.has(clause.grantId),
+    (clause) =>
+      typeof clause === "object" &&
+      clause !== null &&
+      bounded(clause.grantId, 200) &&
+      allowedGrantIds.has(clause.grantId) &&
+      input.baseAuthorization.grantIds.includes(clause.grantId),
   );
   if (authorizationClauses.length === 0) return false;
 
