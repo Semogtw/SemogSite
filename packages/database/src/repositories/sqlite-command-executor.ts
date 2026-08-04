@@ -105,6 +105,13 @@ function finalReceiptTimesValid(receipt: CommandReceiptRecord): boolean {
   );
 }
 
+function retryableFailureValid(receipt: CommandReceiptRecord): boolean {
+  return (
+    (receipt.retryableStorageValue === 0 && receipt.retryable === false) ||
+    (receipt.retryableStorageValue === 1 && receipt.retryable === true)
+  );
+}
+
 function replaySuccess(
   receipt: CommandReceiptRecord,
 ): SqliteCommandExecutionResult {
@@ -116,6 +123,7 @@ function replaySuccess(
     !hashPattern.test(resultHash) ||
     receipt.stableErrorCode !== null ||
     receipt.retryable !== null ||
+    receipt.retryableStorageValue !== null ||
     !finalReceiptTimesValid(receipt) ||
     Buffer.byteLength(serialized, "utf8") > 4000 ||
     sha256(serialized) !== resultHash
@@ -149,7 +157,7 @@ function replayFailure(
     receipt.resultSummaryJson !== null ||
     receipt.stableErrorCode === null ||
     !stableErrorPattern.test(receipt.stableErrorCode) ||
-    typeof receipt.retryable !== "boolean" ||
+    !retryableFailureValid(receipt) ||
     !finalReceiptTimesValid(receipt)
   ) {
     return invalidReplay(receipt);
