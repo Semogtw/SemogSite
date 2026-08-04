@@ -14,13 +14,17 @@ describe("canonicalJson", () => {
     );
   });
 
-  it("normalizes negative zero and produces the same hash for semantic equality", () => {
+  it("normalizes negative zero and produces the same hash for semantic equality", async () => {
     expect(canonicalJson({ value: -0 })).toBe('{"value":0}');
-    expect(canonicalSha256({ b: 2, a: 1 })).toBe(
-      canonicalSha256({ a: 1, b: 2 }),
+    await expect(canonicalSha256({ b: 2, a: 1 })).resolves.toBe(
+      await canonicalSha256({ a: 1, b: 2 }),
     );
-    expect(canonicalSha256([1, 2])).not.toBe(canonicalSha256([2, 1]));
-    expect(canonicalSha256({ a: 1 })).toMatch(/^[a-f0-9]{64}$/u);
+    expect(await canonicalSha256([1, 2])).not.toBe(
+      await canonicalSha256([2, 1]),
+    );
+    await expect(canonicalSha256({ a: 1 })).resolves.toMatch(
+      /^[a-f0-9]{64}$/u,
+    );
   });
 
   it.each([
