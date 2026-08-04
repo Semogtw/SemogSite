@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteDatabase, migrate } from "./sqlite";
 
 describe("SQLite migrations", () => {
-  it("applies every committed migration including Growth", () => {
+  it("applies every committed migration including Growth and command receipts", () => {
     const database = createSqliteDatabase(":memory:");
 
     migrate(database);
@@ -28,6 +28,8 @@ describe("SQLite migrations", () => {
       { name: "0013_recovery_snapshots.sql" },
       { name: "0015_learning_goals.sql" },
       { name: "0015a_learning_checkpoint_weight_modes.sql" },
+      { name: "0017_command_core.sql" },
+      { name: "0017a_command_receipt_semantic_key.sql" },
     ]);
     expect(
       database.$client
@@ -113,6 +115,14 @@ describe("SQLite migrations", () => {
       { name: "skill_alias_events" },
       { name: "skills" },
     ]);
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name = 'command_receipts'`,
+        )
+        .all(),
+    ).toEqual([{ name: "command_receipts" }]);
 
     const syncRunColumns = new Set(
       database.$client
