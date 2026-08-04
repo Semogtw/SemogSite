@@ -125,14 +125,14 @@ export class CommandGateway {
     private readonly policy: CommandPolicy,
   ) {}
 
-  prepare(input: {
+  async prepare(input: {
     commandId: string;
     commandVersion: number;
     target: CommandTarget;
     payload: JsonValue;
     expected: Readonly<Record<string, JsonValue>>;
     context: CommandContext;
-  }): PreparedCommand {
+  }): Promise<PreparedCommand> {
     const definition = this.registry.resolve(
       input.commandId,
       input.commandVersion,
@@ -154,19 +154,21 @@ export class CommandGateway {
     }
 
     const manifest = manifestFrom(definition);
-    const payloadHash = canonicalSha256(payload);
-    const expectedHash = canonicalSha256(input.expected);
-    const requestHash = canonicalSha256({
-      commandId: definition.commandId,
-      commandVersion: definition.commandVersion,
-      capability: definition.capability,
-      ownerId: input.context.ownerId,
-      actor: actorSignature(input.context),
-      target,
-      payload,
-      expected: input.expected,
-      reason: input.context.reason,
-    });
+    const [payloadHash, expectedHash, requestHash] = await Promise.all([
+      canonicalSha256(payload),
+      canonicalSha256(input.expected),
+      canonicalSha256({
+        commandId: definition.commandId,
+        commandVersion: definition.commandVersion,
+        capability: definition.capability,
+        ownerId: input.context.ownerId,
+        actor: actorSignature(input.context),
+        target,
+        payload,
+        expected: input.expected,
+        reason: input.context.reason,
+      }),
+    ]);
 
     return {
       commandId: definition.commandId,
