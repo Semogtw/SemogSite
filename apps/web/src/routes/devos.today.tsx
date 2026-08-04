@@ -24,7 +24,13 @@ export const Route = createFileRoute("/devos/today")({
 
 type AttentionTargetStatus = "resolved" | "dismissed";
 
-function AttentionActions({ attentionId }: { attentionId: string }) {
+function AttentionActions({
+  attentionId,
+  expectedUpdatedAt,
+}: {
+  attentionId: string;
+  expectedUpdatedAt: string;
+}) {
   const router = useRouter();
   const [targetStatus, setTargetStatus] =
     useState<AttentionTargetStatus>("resolved");
@@ -32,6 +38,9 @@ function AttentionActions({ attentionId }: { attentionId: string }) {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(() =>
+    crypto.randomUUID(),
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,7 +62,9 @@ function AttentionActions({ attentionId }: { attentionId: string }) {
       const result = await transitionAttentionFn({
         data: {
           csrfToken,
+          idempotencyKey,
           attentionId,
+          expectedUpdatedAt,
           targetStatus,
           reason,
           confirmed: true,
@@ -66,6 +77,7 @@ function AttentionActions({ attentionId }: { attentionId: string }) {
 
       setReason("");
       setConfirmed(false);
+      setIdempotencyKey(crypto.randomUUID());
       await router.invalidate();
     } catch {
       setMessage("Não foi possível salvar esta alteração.");
@@ -138,6 +150,7 @@ function AttentionRecord({
     title: string;
     nextAction: string;
     impact: "high" | "medium" | "low";
+    updatedAt: string;
   };
   external?: boolean;
 }) {
@@ -156,7 +169,10 @@ function AttentionRecord({
           {external ? "externa" : item.impact}
         </Status>
       </div>
-      <AttentionActions attentionId={item.id} />
+      <AttentionActions
+        attentionId={item.id}
+        expectedUpdatedAt={item.updatedAt}
+      />
     </article>
   );
 }
