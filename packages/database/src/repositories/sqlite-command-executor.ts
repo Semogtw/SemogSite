@@ -1,4 +1,7 @@
-import { canonicalJson } from "@semogtw/application";
+import {
+  canonicalJson,
+  isCanonicalUtcTimestamp,
+} from "@semogtw/application";
 import { createHash } from "node:crypto";
 import type { SqliteDatabase } from "../adapters/sqlite";
 import {
@@ -87,6 +90,21 @@ function invalidReplay(receipt: CommandReceiptRecord): SqliteCommandExecutionRes
   };
 }
 
+function finalReceiptTimesValid(receipt: CommandReceiptRecord): boolean {
+  const completedAt = receipt.completedAt;
+  return (
+    isCanonicalUtcTimestamp(receipt.claimedAt) &&
+    isCanonicalUtcTimestamp(receipt.leaseExpiresAt) &&
+    isCanonicalUtcTimestamp(receipt.createdAt) &&
+    isCanonicalUtcTimestamp(receipt.updatedAt) &&
+    isCanonicalUtcTimestamp(completedAt) &&
+    receipt.createdAt === receipt.claimedAt &&
+    receipt.leaseExpiresAt > receipt.claimedAt &&
+    completedAt >= receipt.claimedAt &&
+    receipt.updatedAt === completedAt
+  );
+}
+
 function replaySuccess(
   receipt: CommandReceiptRecord,
 ): SqliteCommandExecutionResult {
@@ -98,7 +116,7 @@ function replaySuccess(
     !hashPattern.test(resultHash) ||
     receipt.stableErrorCode !== null ||
     receipt.retryable !== null ||
-    receipt.completedAt === null ||
+    !finalReceiptTimesValid(receipt) ||
     Buffer.byteLength(serialized, "utf8") > 4000 ||
     sha256(serialized) !== resultHash
   ) {
@@ -132,7 +150,7 @@ function replayFailure(
     receipt.stableErrorCode === null ||
     !stableErrorPattern.test(receipt.stableErrorCode) ||
     typeof receipt.retryable !== "boolean" ||
-    receipt.completedAt === null
+    !finalReceiptTimesValid(receipt)
   ) {
     return invalidReplay(receipt);
   }
@@ -208,6 +226,13 @@ export class SqliteTransactionalCommandExecutor {
     },
     runner: SqliteCommandRunner,
   ): Promise<SqliteCommandExecutionResult> {
+    if (
+      !isCanonicalUtcTimestamp(input.completedAt) ||
+      input.completedAt < input.claim.claimedAt
+    ) {
+      throw new Error("COMMAND_EXECUTION_TIME_INVALID");
+    }
+
     const claimed = await this.receipts.claim(input.claim);
     if (claimed.kind === "conflict") return { kind: "conflict" };
     if (claimed.kind === "in_progress") {
