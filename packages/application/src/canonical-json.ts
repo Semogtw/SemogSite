@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 function invalid(): never {
   throw new Error("CANONICAL_JSON_INVALID");
 }
@@ -89,6 +87,12 @@ export function canonicalJson(value: unknown): string {
   return encode(value, new WeakSet<object>());
 }
 
-export function canonicalSha256(value: unknown): string {
-  return createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
+export async function canonicalSha256(value: unknown): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(canonicalJson(value)),
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
