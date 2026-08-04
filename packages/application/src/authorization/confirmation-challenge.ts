@@ -29,7 +29,6 @@ export type ConfirmationChallengeRecord = {
   payloadSha256: string;
   resourceSnapshotSha256: string;
   risk: ConfirmationChallengeRisk;
-  summary: string;
   responseDigest: string;
   status: ConfirmationChallengeStatus;
   createdAt: string;
@@ -190,7 +189,6 @@ export function createConfirmationChallengeService(input: {
         payloadSha256: material.payloadSha256,
         resourceSnapshotSha256: material.resourceSnapshotSha256,
         risk: material.risk,
-        summary: material.summary,
         responseDigest,
         status: "pending",
         createdAt: material.now,
