@@ -1,0 +1,76 @@
+{
+  "commands": [
+    {
+      "commandId": "attention.transition",
+      "commandVersion": 1,
+      "capability": "attention.write",
+      "resourceType": "attention_item",
+      "riskFloor": "medium",
+      "confirmation": "confirm_in_client",
+      "conflictStrategy": "expected_timestamp",
+      "idempotencyStrategy": "required_receipt",
+      "undoStrategy": "compensating_command",
+      "auditStrategy": "state_and_receipt",
+      "execution": "enabled",
+      "sourceFile": "packages/application/src/attention/transition-attention-command.ts"
+    },
+    {
+      "commandId": "roadmap.stages.complete",
+      "commandVersion": 1,
+      "capability": "roadmap.write",
+      "resourceType": "stage",
+      "riskFloor": "high",
+      "confirmation": "approve_in_devos",
+      "conflictStrategy": "exact_snapshot",
+      "idempotencyStrategy": "required_receipt",
+      "undoStrategy": "compensating_command",
+      "auditStrategy": "state_and_receipt",
+      "execution": "registered_blocked",
+      "sourceFile": "packages/application/src/roadmap/complete-stage-command.ts"
+    }
+  ],
+  "manifests": [
+    {
+      "featureId": "attention-lifecycle",
+      "reads": ["today.attention"],
+      "commands": ["attention.transition"],
+      "uiRoutes": ["/devos/today"],
+      "uiRouteFiles": ["apps/web/src/routes/devos.today.tsx"],
+      "mcpExposure": "not_yet",
+      "riskSummary": { "attention.transition": "medium" },
+      "undoStrategy": "compensating_command",
+      "conflictStrategy": "expected_timestamp",
+      "auditEvents": ["attention.resolve", "attention.dismiss"],
+      "implementationState": "partial"
+    },
+    {
+      "featureId": "roadmap-stage-completion",
+      "reads": ["roadmap.stage.detail", "roadmap.stage.evidence"],
+      "commands": ["roadmap.stages.complete"],
+      "uiRoutes": ["/devos/projects/$slug"],
+      "uiRouteFiles": ["apps/web/src/routes/devos.projects.$slug.tsx"],
+      "mcpExposure": "not_yet",
+      "riskSummary": { "roadmap.stages.complete": "high" },
+      "undoStrategy": "compensating_command",
+      "conflictStrategy": "exact_snapshot",
+      "auditEvents": ["stage.complete"],
+      "implementationState": "planned"
+    }
+  ],
+  "adapters": [
+    {
+      "commandId": "attention.transition",
+      "path": "apps/web/src/server/devos-attention-lifecycle.ts",
+      "state": "gateway",
+      "requiredMarkers": ["createSqliteDevOSCommandGateway"],
+      "forbiddenMarkers": ["AttentionLifecycleService", "SqliteAttentionLifecycleRepository"]
+    },
+    {
+      "commandId": "roadmap.stages.complete",
+      "path": "apps/web/src/server/devos-stage-completion.ts",
+      "state": "legacy_approval_blocked",
+      "requiredMarkers": ["StageCompletionService"],
+      "forbiddenMarkers": ["createSqliteDevOSCommandGateway"]
+    }
+  ]
+}
