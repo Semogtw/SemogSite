@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { CheckpointWeightProposal } from "@semogtw/domain/growth";
+import { useState } from "react";
 
 export type GrowthWeightRebalanceProps = {
   checkpointLabels: Readonly<Record<string, string>>;
@@ -9,6 +9,11 @@ export type GrowthWeightRebalanceProps = {
     | { ok: false; code: "CONFLICT" | "WRITE_FAILED" }
   >;
 };
+
+const WEIGHT_MODE_LABELS = {
+  automatic: "automático",
+  custom: "personalizado",
+} as const;
 
 export function GrowthWeightRebalance({
   checkpointLabels,
@@ -51,7 +56,8 @@ export function GrowthWeightRebalance({
           <li key={checkpoint.id}>
             <span>{checkpointLabels[checkpoint.id] ?? "Checkpoint"}</span>
             <span>
-              {checkpoint.before ?? "—"} → {checkpoint.after} pontos
+              {checkpoint.before ?? "—"} → {checkpoint.after} pontos ·{" "}
+              {WEIGHT_MODE_LABELS[checkpoint.weightMode]}
             </span>
           </li>
         ))}
