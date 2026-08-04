@@ -6,6 +6,7 @@ describe("@semogtw/application public surface", () => {
     expect(application).toMatchObject({
       canonicalJson: expect.any(Function),
       canonicalSha256: expect.any(Function),
+      isCanonicalUtcTimestamp: expect.any(Function),
       CommandGateway: expect.any(Function),
       CommandRegistry: expect.any(Function),
       OwnerBrowserPolicy: expect.any(Function),
