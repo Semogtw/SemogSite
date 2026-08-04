@@ -4,26 +4,32 @@ function invalid(): never {
   throw new Error("CANONICAL_JSON_INVALID");
 }
 
+function jsonString(value: string | number): string {
+  const encoded = JSON.stringify(value);
+  return encoded === undefined ? invalid() : encoded;
+}
+
 function encodeNumber(value: number): string {
   if (!Number.isFinite(value)) invalid();
-  return Object.is(value, -0) ? "0" : JSON.stringify(value);
+  return Object.is(value, -0) ? "0" : jsonString(value);
 }
 
 function encodeArray(value: readonly unknown[], active: WeakSet<object>): string {
   const ownKeys = Reflect.ownKeys(value);
-  const expectedKeys = new Set<string>([
-    ...value.map((_item, index) => String(index)),
-    "length",
-  ]);
   if (
-    ownKeys.some(
-      (key) => typeof key !== "string" || !expectedKeys.has(key),
-    ) ||
-    value.some((_item, index) => !(index in value)) ||
-    ownKeys.length !== expectedKeys.size
+    ownKeys.some((key) => typeof key !== "string") ||
+    ownKeys.length !== value.length + 1
   ) {
     invalid();
   }
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(value, index)) invalid();
+  }
+  const allowed = new Set([
+    ...Array.from({ length: value.length }, (_item, index) => String(index)),
+    "length",
+  ]);
+  if (ownKeys.some((key) => !allowed.has(key as string))) invalid();
   return `[${value.map((item) => encode(item, active)).join(",")}]`;
 }
 
@@ -53,17 +59,17 @@ function encodeObject(
   }
 
   return `{${stringKeys
-    .sort((left, right) => left.localeCompare(right, "en"))
+    .sort()
     .map(
       (key) =>
-        `${JSON.stringify(key)}:${encode(descriptors[key]!.value, active)}`,
+        `${jsonString(key)}:${encode(descriptors[key]!.value, active)}`,
     )
     .join(",")}}`;
 }
 
 function encode(value: unknown, active: WeakSet<object>): string {
   if (value === null) return "null";
-  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "string") return jsonString(value);
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return encodeNumber(value);
   if (typeof value !== "object") invalid();
