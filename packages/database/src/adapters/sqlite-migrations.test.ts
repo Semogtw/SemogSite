@@ -27,6 +27,7 @@ describe("SQLite migrations", () => {
       { name: "0012_verification_obligations.sql" },
       { name: "0013_recovery_snapshots.sql" },
       { name: "0015_learning_goals.sql" },
+      { name: "0015a_learning_checkpoint_weight_modes.sql" },
     ]);
     expect(
       database.$client
