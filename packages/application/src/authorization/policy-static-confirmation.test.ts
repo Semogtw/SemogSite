@@ -2,20 +2,28 @@ import { describe, expect, it } from "vitest";
 import { decideAgentCommandDisposition } from "./policy-engine";
 import type { EffectiveAgentAuthorization } from "./types";
 
+const resourceSelectors = {
+  attention_item: [{ kind: "exact_ids" as const, ids: ["attention_1"] }],
+};
+
 const authorization: EffectiveAgentAuthorization = {
   clientId: "client_1",
   ownerId: "owner_1",
   capabilities: ["attention.write"],
-  resourceSelectors: {
-    attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-  },
+  resourceSelectors,
   capabilityResourceSelectors: {
-    "attention.write": {
-      attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-    },
+    "attention.write": resourceSelectors,
   },
   riskCeiling: "medium",
   riskCeilingByCapability: { "attention.write": "medium" },
+  authorizationClauses: [
+    {
+      grantId: "grant_1",
+      capability: "attention.write",
+      resourceSelectors,
+      riskCeiling: "medium",
+    },
+  ],
   grantIds: ["grant_1"],
   trustSessionIds: [],
 };
