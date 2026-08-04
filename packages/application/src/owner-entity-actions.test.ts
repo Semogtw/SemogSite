@@ -27,45 +27,45 @@ const context = {
 
 describe("owner entity actions", () => {
   it("returns bounded Portuguese metadata for an Attention item", () => {
-    expect(
-      listOwnerEntityActions({
-        registry,
-        manifests,
-        policy,
-        resourceType: "attention_item",
-        resourceId: "attention-1",
-        context,
-      }),
-    ).toEqual([
+    const actions = listOwnerEntityActions({
+      registry,
+      manifests,
+      policy,
+      resourceType: "attention_item",
+      resourceId: "attention-1",
+      context,
+    });
+
+    expect(actions).toEqual([
       {
-        commandId: "attention.transition",
         labelPtBr: "Finalizar item",
         risk: "medium",
         reversible: true,
         availability: "confirmation_required",
       },
     ]);
+    expect(JSON.stringify(actions)).not.toContain("attention.transition");
   });
 
   it("shows registered-blocked stage completion as planned", () => {
-    expect(
-      listOwnerEntityActions({
-        registry,
-        manifests,
-        policy,
-        resourceType: "stage",
-        resourceId: "stage-1",
-        context,
-      }),
-    ).toEqual([
+    const actions = listOwnerEntityActions({
+      registry,
+      manifests,
+      policy,
+      resourceType: "stage",
+      resourceId: "stage-1",
+      context,
+    });
+
+    expect(actions).toEqual([
       {
-        commandId: "roadmap.stages.complete",
         labelPtBr: "Concluir etapa",
         risk: "high",
         reversible: true,
         availability: "planned",
       },
     ]);
+    expect(JSON.stringify(actions)).not.toContain("roadmap.stages.complete");
   });
 
   it("returns no schemas, capabilities or actions to a mismatched principal", () => {
