@@ -44,6 +44,8 @@ const expectedMigrations = [
   "0013_recovery_snapshots.sql",
   "0015_learning_goals.sql",
   "0015a_learning_checkpoint_weight_modes.sql",
+  "0017_command_core.sql",
+  "0017a_command_receipt_semantic_key.sql",
 ] as const;
 
 function temporaryDirectory(): string {
