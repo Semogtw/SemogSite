@@ -243,6 +243,7 @@ export class SqliteTransactionalCommandExecutor {
 
     const claimed = await this.receipts.claim(input.claim);
     if (claimed.kind === "conflict") return { kind: "conflict" };
+    if (claimed.kind === "corrupt") return invalidReplay(claimed.receipt);
     if (claimed.kind === "in_progress") {
       return { kind: "in_progress", receiptId: claimed.receipt.id };
     }
