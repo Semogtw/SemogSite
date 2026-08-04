@@ -1,5 +1,6 @@
 import { canonicalJson } from "../canonical-json";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import type { JsonValue } from "../core";
 import {
   agentCapabilities,
   isAgentCapability,
@@ -7,6 +8,7 @@ import {
   resourceKindsForCapability,
 } from "./capabilities";
 import { validateResourceSelectorForKind } from "./resource-selectors";
+import { trustSessionFitsAuthorization } from "./trust-session";
 import type {
   AgentCapability,
   AgentGrantDefinition,
@@ -72,10 +74,13 @@ function validateSelectorMap(
   if (entries.length === 0) return false;
 
   for (const [resourceKind, values] of entries) {
-    if (!allowedKinds.has(resourceKind) || values === undefined || values.length === 0) {
+    if (
+      !allowedKinds.has(resourceKind) ||
+      values === undefined ||
+      values.length === 0
+    ) {
       return false;
     }
-    const seen = new Set<string>();
     for (const selector of values) {
       try {
         validateResourceSelectorForKind({
@@ -83,9 +88,7 @@ function validateSelectorMap(
           selector,
           explicitOwnerSelection: selector.kind === "all",
         });
-        const key = selectorKey(selector);
-        if (seen.has(key)) continue;
-        seen.add(key);
+        selectorKey(selector);
       } catch {
         return false;
       }
@@ -105,6 +108,7 @@ function grantActive(input: {
     !bounded(grant.id, 200) ||
     grant.ownerId !== input.ownerId ||
     grant.clientId !== input.clientId ||
+    (grant.profileId !== null && !bounded(grant.profileId, 200)) ||
     grant.status !== "active" ||
     !Number.isInteger(grant.version) ||
     grant.version < 1 ||
@@ -135,11 +139,14 @@ function grantActive(input: {
 function uniqueRecordsById<Value extends { id: string }>(
   values: readonly Value[],
 ): readonly Value[] {
-  const records = new Map<string, { value: Value; canonical: string; conflict: boolean }>();
+  const records = new Map<
+    string,
+    { value: Value; canonical: string; conflict: boolean }
+  >();
   for (const value of values) {
     let canonical: string;
     try {
-      canonical = canonicalJson(value as never);
+      canonical = canonicalJson(value as unknown as JsonValue);
     } catch {
       continue;
     }
@@ -164,7 +171,8 @@ function addSelectors(
   for (const resourceKind of allowedKinds) {
     const selectors = source[resourceKind];
     if (selectors === undefined) continue;
-    const bucket = target.get(resourceKind) ?? new Map<string, ResourceSelector>();
+    const bucket =
+      target.get(resourceKind) ?? new Map<string, ResourceSelector>();
     for (const selector of selectors) {
       bucket.set(selectorKey(selector), cloneSelector(selector));
     }
@@ -186,122 +194,6 @@ function selectorBucketsToMap(
       .map(([, selector]) => selector);
   }
   return result;
-}
-
-function selectorCoveredByBase(
-  requested: ResourceSelector,
-  base: readonly ResourceSelector[],
-): boolean {
-  if (base.some((selector) => selector.kind === "all")) return true;
-
-  switch (requested.kind) {
-    case "all":
-      return false;
-    case "exact_ids": {
-      const allowed = new Set(
-        base.flatMap((selector) =>
-          selector.kind === "exact_ids" ? selector.ids : [],
-        ),
-      );
-      return requested.ids.every((id) => allowed.has(id));
-    }
-    case "canonical_prefixes": {
-      const allowed = base.flatMap((selector) =>
-        selector.kind === "canonical_prefixes" ? selector.prefixes : [],
-      );
-      return requested.prefixes.every((prefix) =>
-        allowed.some(
-          (basePrefix) =>
-            prefix === basePrefix || prefix.startsWith(`${basePrefix}/`),
-        ),
-      );
-    }
-    case "lifecycle_states": {
-      const allowed = new Set(
-        base.flatMap((selector) =>
-          selector.kind === "lifecycle_states" ? selector.states : [],
-        ),
-      );
-      return requested.states.every((state) => allowed.has(state));
-    }
-  }
-}
-
-function trustSessionEffective(input: {
-  session: AgentTrustSession;
-  ownerId: string;
-  clientId: string;
-  now: string;
-  grantIds: ReadonlySet<string>;
-  capabilitySelectors: Readonly<
-    Partial<Record<AgentCapability, ResourceSelectorMap>>
-  >;
-  riskByCapability: Readonly<
-    Partial<Record<AgentCapability, AgentRiskCeiling>>
-  >;
-}): boolean {
-  const { session } = input;
-  if (
-    !bounded(session.id, 200) ||
-    session.ownerId !== input.ownerId ||
-    session.clientId !== input.clientId ||
-    !isCanonicalUtcTimestamp(session.startsAt) ||
-    !isCanonicalUtcTimestamp(session.expiresAt) ||
-    session.startsAt > input.now ||
-    session.expiresAt <= input.now ||
-    session.startsAt >= session.expiresAt ||
-    session.revokedAt !== null ||
-    (session.riskCeiling !== "low" && session.riskCeiling !== "medium") ||
-    !Number.isInteger(session.maxOperations) ||
-    session.maxOperations < 1 ||
-    session.maxOperations > 100 ||
-    !Number.isInteger(session.operationsUsed) ||
-    session.operationsUsed < 0 ||
-    session.operationsUsed >= session.maxOperations ||
-    !Number.isInteger(session.version) ||
-    session.version < 1 ||
-    !bounded(session.reason, 500) ||
-    session.baseGrantIds.length < 1 ||
-    new Set(session.baseGrantIds).size !== session.baseGrantIds.length ||
-    !session.baseGrantIds.every((grantId) => input.grantIds.has(grantId)) ||
-    session.capabilities.length < 1 ||
-    new Set(session.capabilities).size !== session.capabilities.length
-  ) {
-    return false;
-  }
-
-  const requestedKinds = new Set<string>();
-  for (const capability of session.capabilities) {
-    if (!isAgentCapability(capability)) return false;
-    const baseRisk = input.riskByCapability[capability];
-    const baseSelectors = input.capabilitySelectors[capability];
-    if (
-      baseRisk === undefined ||
-      baseSelectors === undefined ||
-      riskRank[session.riskCeiling] > riskRank[baseRisk]
-    ) {
-      return false;
-    }
-
-    for (const resourceKind of resourceKindsForCapability(capability)) {
-      requestedKinds.add(resourceKind);
-      const requested = session.resourceSelectors[resourceKind];
-      const allowed = baseSelectors[resourceKind];
-      if (
-        requested === undefined ||
-        requested.length === 0 ||
-        allowed === undefined ||
-        requested.some((selector) => !selectorCoveredByBase(selector, allowed))
-      ) {
-        return false;
-      }
-    }
-  }
-
-  if (!validateSelectorMap(session.resourceSelectors, requestedKinds)) return false;
-  return Object.keys(session.resourceSelectors).every((kind) =>
-    requestedKinds.has(kind),
-  );
 }
 
 export function computeEffectiveAgentAuthorization(input: {
@@ -352,11 +244,12 @@ export function computeEffectiveAgentAuthorization(input: {
       const buckets = selectorsByCapability.get(capability) ?? new Map();
       addSelectors(buckets, grant.resourceSelectors, resourceKinds);
       selectorsByCapability.set(capability, buckets);
+      const previousRisk = riskByCapability.get(capability);
       riskByCapability.set(
         capability,
-        riskByCapability.has(capability)
-          ? laterRisk(riskByCapability.get(capability) as AgentRiskCeiling, grant.riskCeiling)
-          : grant.riskCeiling,
+        previousRisk === undefined
+          ? grant.riskCeiling
+          : laterRisk(previousRisk, grant.riskCeiling),
       );
       contributingGrantIds.add(grant.id);
     }
@@ -390,22 +283,7 @@ export function computeEffectiveAgentAuthorization(input: {
   const grantIds = [...contributingGrantIds].sort((left, right) =>
     left.localeCompare(right, "en"),
   );
-  const grantIdSet = new Set(grantIds);
-  const trustSessionIds = uniqueRecordsById(input.trustSessions)
-    .filter((session) =>
-      trustSessionEffective({
-        session,
-        ownerId: input.ownerId,
-        clientId: input.clientId,
-        now: input.now,
-        grantIds: grantIdSet,
-        capabilitySelectors: capabilityResourceSelectors,
-        riskByCapability: riskCeilingByCapability,
-      }),
-    )
-    .map((session) => session.id);
-
-  return {
+  const baseAuthorization: EffectiveAgentAuthorization = {
     clientId: input.clientId,
     ownerId: input.ownerId,
     capabilities,
@@ -414,6 +292,18 @@ export function computeEffectiveAgentAuthorization(input: {
     riskCeiling,
     riskCeilingByCapability,
     grantIds,
-    trustSessionIds,
+    trustSessionIds: [],
   };
+
+  const trustSessionIds = uniqueRecordsById(input.trustSessions)
+    .filter((session) =>
+      trustSessionFitsAuthorization({
+        session,
+        baseAuthorization,
+        now: input.now,
+      }),
+    )
+    .map((session) => session.id);
+
+  return { ...baseAuthorization, trustSessionIds };
 }
