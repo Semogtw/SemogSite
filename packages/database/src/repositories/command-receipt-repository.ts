@@ -29,6 +29,7 @@ export type CommandReceiptRecord = CommandReceiptClaimInput & {
   resultSummaryJson: string | null;
   stableErrorCode: string | null;
   retryable: boolean | null;
+  retryableStorageValue: number | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -117,7 +118,9 @@ function fromRow(row: ReceiptRow): CommandReceiptRecord {
     resultHash: row.result_hash,
     resultSummaryJson: row.result_summary_json,
     stableErrorCode: row.stable_error_code,
-    retryable: row.retryable === null ? null : row.retryable === 1,
+    retryable:
+      row.retryable === 1 ? true : row.retryable === 0 ? false : null,
+    retryableStorageValue: row.retryable,
     claimedAt: row.claimed_at,
     leaseExpiresAt: row.lease_expires_at,
     completedAt: row.completed_at,
