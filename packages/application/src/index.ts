@@ -60,6 +60,18 @@ export type {
   RiskTier,
   UndoStrategy,
 } from "./core";
+export {
+  attentionLifecycleManifest,
+  roadmapStageCompletionManifest,
+  validateEditabilityCoverage,
+} from "./editability-manifest";
+export type {
+  EditabilityCoverageError,
+  EditabilityCoverageErrorCode,
+  EditabilityImplementationState,
+  EditabilityManifest,
+  EditabilityMcpExposure,
+} from "./editability-manifest";
 export { OwnerBrowserPolicy } from "./owner-browser-policy";
 export { completeStageCommand } from "./roadmap/complete-stage-command";
 export type {
