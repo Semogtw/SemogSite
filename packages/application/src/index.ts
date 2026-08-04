@@ -43,10 +43,14 @@ export {
   maximumTrustDurationMinutes,
   maximumTrustOperations,
   minimumTrustDurationMinutes,
+  trustSessionCoversCommand,
   trustSessionFitsAuthorization,
   validateTrustSessionRequest,
 } from "./authorization/trust-session";
-export type { TrustSessionState } from "./authorization/trust-session";
+export type {
+  TrustCoveredCommandRisk,
+  TrustSessionState,
+} from "./authorization/trust-session";
 export { writesAllowed } from "./authorization/write-switches";
 export type { AgentWriteSwitchState } from "./authorization/write-switches";
 export type {
