@@ -31,6 +31,15 @@ export type CheckpointWeightSnapshot = {
   checkpoints: readonly CheckpointWeightSnapshotItem[];
 };
 
+export type CheckpointWeightReplayRequest = {
+  ownerId: string;
+  goalId: string;
+  expectedGoalVersion: number;
+  expectedCheckpointVersions: readonly { id: string; version: number }[];
+  reason: string;
+  context: GrowthMutationContext;
+};
+
 export type ApplyCheckpointWeightRebalanceRecord = {
   before: CheckpointWeightSnapshot;
   after: CheckpointWeightSnapshot;
@@ -41,6 +50,9 @@ export type ApplyCheckpointWeightRebalanceRecord = {
 };
 
 export interface CheckpointWeightRebalanceRepository {
+  findReplay(
+    input: CheckpointWeightReplayRequest,
+  ): Promise<GrowthWriteResult<CheckpointWeightSnapshot> | null>;
   getSnapshot(
     ownerId: string,
     goalId: string,
@@ -114,6 +126,18 @@ function positiveVersion(value: number): boolean {
   return Number.isInteger(value) && value >= 1;
 }
 
+function versionsValid(
+  expected: readonly { id: string; version: number }[],
+): boolean {
+  if (expected.length === 0) return false;
+  const normalized = expected.map((item) => item.id.trim());
+  return (
+    normalized.every((id) => id.length >= 1 && id.length <= 200) &&
+    new Set(normalized).size === normalized.length &&
+    expected.every((item) => positiveVersion(item.version))
+  );
+}
+
 function versionsMatch(
   snapshot: CheckpointWeightSnapshot,
   expected: readonly { id: string; version: number }[],
@@ -179,12 +203,27 @@ export class CheckpointWeightRebalanceService {
       goalId === null ||
       reason === null ||
       !positiveVersion(input.expectedGoalVersion) ||
-      input.expectedCheckpointVersions.length === 0 ||
-      input.expectedCheckpointVersions.some(
-        (item) => item.id.trim().length === 0 || !positiveVersion(item.version),
-      )
+      !versionsValid(input.expectedCheckpointVersions)
     ) {
       return { ok: false, code: "VALIDATION_FAILED" };
+    }
+
+    const replay = await this.repository.findReplay({
+      ownerId: context.ownerId,
+      goalId,
+      expectedGoalVersion: input.expectedGoalVersion,
+      expectedCheckpointVersions: input.expectedCheckpointVersions,
+      reason,
+      context,
+    });
+    if (replay !== null) {
+      if (replay.kind === "conflict") return { ok: false, code: "CONFLICT" };
+      return {
+        ok: true,
+        snapshot: replay.value,
+        proposal: proposalFor(replay.value),
+        replayed: true,
+      };
     }
 
     const before = await this.repository.getSnapshot(context.ownerId, goalId);
