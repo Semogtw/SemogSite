@@ -11,7 +11,7 @@ describe("Today Attention Command Gateway wiring", () => {
     expect(source).toContain("expectedUpdatedAt");
     expect(source).toContain("idempotencyKey");
     expect(source).toContain("useState(() => crypto.randomUUID())");
-    expect(source).toContain("expectedUpdatedAt: item.updatedAt");
+    expect(source).toContain("expectedUpdatedAt={item.updatedAt}");
     expect(source).toContain("setIdempotencyKey(crypto.randomUUID())");
   });
 
