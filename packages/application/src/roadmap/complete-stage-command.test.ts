@@ -41,13 +41,13 @@ describe("roadmap.stages.complete command definition", () => {
     });
   });
 
-  it("never allows execution from owner confirmation alone", () => {
+  it("never allows execution from owner confirmation alone", async () => {
     const gateway = new CommandGateway(
       new CommandRegistry([completeStageCommand]),
       new OwnerBrowserPolicy(),
     );
 
-    expect(
+    await expect(
       gateway.prepare({
         commandId: "roadmap.stages.complete",
         commandVersion: 1,
@@ -69,12 +69,14 @@ describe("roadmap.stages.complete command definition", () => {
           confirmed: true,
           approvalId: "unverified-client-value",
         },
-      }).decision,
-    ).toMatchObject({
-      outcome: "approve_in_devos",
-      risk: "high",
-      approvalId: null,
-      reasonCode: "APPROVAL_EXECUTOR_NOT_AVAILABLE",
+      }),
+    ).resolves.toMatchObject({
+      decision: {
+        outcome: "approve_in_devos",
+        risk: "high",
+        approvalId: null,
+        reasonCode: "APPROVAL_EXECUTOR_NOT_AVAILABLE",
+      },
     });
   });
 });
