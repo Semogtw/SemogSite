@@ -1,3 +1,10 @@
+export {
+  transitionAttentionCommand,
+} from "./attention/transition-attention-command";
+export type {
+  TransitionAttentionPayload,
+  TransitionAttentionResult,
+} from "./attention/transition-attention-command";
 export { canonicalJson, canonicalSha256 } from "./canonical-json";
 export { CommandGateway } from "./command-gateway";
 export type {
