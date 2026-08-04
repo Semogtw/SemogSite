@@ -9,6 +9,7 @@ import type {
   AgentRiskCeiling,
   CommandResource,
   EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
 } from "./types";
 import {
   writesAllowed,
@@ -110,25 +111,47 @@ function requiredCeilingForRisk(
   return risk === "critical" ? "high" : risk;
 }
 
-function resourceAuthorized(input: {
-  authorization: EffectiveAgentAuthorization;
+function clauseCoversResource(input: {
+  clause: EffectiveAgentAuthorizationClause;
   capability: AgentCapability;
   resource: CommandResource;
 }): boolean {
+  if (
+    typeof input.clause !== "object" ||
+    input.clause === null ||
+    !bounded(input.clause.grantId, 200) ||
+    input.clause.capability !== input.capability ||
+    !riskCeilingValid(input.clause.riskCeiling) ||
+    typeof input.clause.resourceSelectors !== "object" ||
+    input.clause.resourceSelectors === null
+  ) {
+    return false;
+  }
+
+  const selectors = input.clause.resourceSelectors[input.resource.kind];
+  if (!Array.isArray(selectors) || selectors.length === 0) return false;
   try {
-    const selectorsByKind =
-      input.authorization.capabilityResourceSelectors?.[input.capability];
-    const selectors = selectorsByKind?.[input.resource.kind];
-    return (
-      Array.isArray(selectors) &&
-      selectors.length > 0 &&
-      selectors.some((selector) =>
-        selectorMatchesResource({ selector, resource: input.resource }),
-      )
+    return selectors.some((selector) =>
+      selectorMatchesResource({ selector, resource: input.resource }),
     );
   } catch {
     return false;
   }
+}
+
+function matchingAuthorizationClauses(input: {
+  authorization: EffectiveAgentAuthorization;
+  capability: AgentCapability;
+  resource: CommandResource;
+}): readonly EffectiveAgentAuthorizationClause[] {
+  if (!Array.isArray(input.authorization.authorizationClauses)) return [];
+  return input.authorization.authorizationClauses.filter((clause) =>
+    clauseCoversResource({
+      clause,
+      capability: input.capability,
+      resource: input.resource,
+    }),
+  );
 }
 
 export function decideAgentCommandDisposition(input: {
@@ -181,22 +204,22 @@ export function decideAgentCommandDisposition(input: {
     return deny(safeRisk, "COMMAND_POLICY_INPUT_INVALID");
   }
 
-  if (
-    !resourceAuthorized({
-      authorization: input.authorization,
-      capability: runtimeCapability,
-      resource: input.command.resource,
-    })
-  ) {
+  const matchingClauses = matchingAuthorizationClauses({
+    authorization: input.authorization,
+    capability: runtimeCapability,
+    resource: input.command.resource,
+  });
+  if (matchingClauses.length === 0) {
     return deny(runtimeRisk, "RESOURCE_DENIED");
   }
 
-  const riskCeiling =
-    input.authorization.riskCeilingByCapability?.[runtimeCapability];
   const requiredCeiling = requiredCeilingForRisk(runtimeRisk);
   if (
-    !riskCeilingValid(riskCeiling) ||
-    riskRank[riskCeiling] < riskRank[requiredCeiling]
+    !matchingClauses.some(
+      (clause) =>
+        riskCeilingValid(clause.riskCeiling) &&
+        riskRank[clause.riskCeiling] >= riskRank[requiredCeiling],
+    )
   ) {
     return deny(runtimeRisk, "RISK_CEILING_EXCEEDED");
   }
