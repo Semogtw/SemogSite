@@ -5,13 +5,20 @@ export type {
   TransitionAttentionPayload,
   TransitionAttentionResult,
 } from "./attention/transition-attention-command";
+export { createAgentCommandPolicy } from "./authorization/agent-command-policy";
+export type {
+  AgentCommandPolicyDependencies,
+  AgentCommandPolicyMaterial,
+} from "./authorization/agent-command-policy";
 export {
   agentCapabilities,
   capabilityForCommand,
+  domainForCapability,
   isAgentCapability,
   oauthScopeForCapability,
   resourceKindsForCapability,
 } from "./authorization/capabilities";
+export type { AgentAuthorizationDomain } from "./authorization/capabilities";
 export { validateAgentAuthorizationCatalog } from "./authorization/catalog-coverage";
 export type { AgentAuthorizationCommandEntry } from "./authorization/catalog-coverage";
 export {
