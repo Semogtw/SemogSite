@@ -2,6 +2,19 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const postServerFnPattern =
+  /createServerFn\s*\(\s*\{\s*method\s*:\s*["']POST["']\s*\}\s*\)/u;
+const mutationSurfaceStates = new Set([
+  "gateway",
+  "legacy_registered",
+  "excluded_noncanonical",
+]);
+const allowedExclusionReasons = new Set([
+  "authentication_infrastructure",
+  "bounded_evaluation",
+  "read_preparation",
+]);
+
 async function readText(path) {
   try {
     return await readFile(path, "utf8");
@@ -57,6 +70,9 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
   const commands = Array.isArray(catalog.commands) ? catalog.commands : [];
   const manifests = Array.isArray(catalog.manifests) ? catalog.manifests : [];
   const adapters = Array.isArray(catalog.adapters) ? catalog.adapters : [];
+  const mutationSurfaces = Array.isArray(catalog.mutationSurfaces)
+    ? catalog.mutationSurfaces
+    : [];
   const violations = [];
   const commandsById = new Map();
 
@@ -213,17 +229,84 @@ export async function checkEditabilityCoverage(root = process.cwd()) {
     }
   }
 
+  const mutationSurfacePaths = new Map();
+  for (const surface of mutationSurfaces) {
+    if (typeof surface?.path !== "string") continue;
+    if (mutationSurfacePaths.has(surface.path)) {
+      violations.push(
+        violation("DUPLICATE_MUTATION_SURFACE", { path: surface.path }),
+      );
+      continue;
+    }
+    mutationSurfacePaths.set(surface.path, surface);
+
+    const surfaceSource = await readText(resolve(root, surface.path));
+    if (surfaceSource === null || !postServerFnPattern.test(surfaceSource)) {
+      violations.push(
+        violation("MUTATION_SURFACE_NOT_POST", { path: surface.path }),
+      );
+      continue;
+    }
+    if (!mutationSurfaceStates.has(surface.state)) {
+      violations.push(
+        violation("MUTATION_SURFACE_STATE_INVALID", {
+          path: surface.path,
+          state: surface.state ?? null,
+        }),
+      );
+      continue;
+    }
+
+    if (surface.state === "gateway") {
+      if (adapterPaths.get(surface.path)?.state !== "gateway") {
+        violations.push(
+          violation("MUTATION_FILE_WITHOUT_MANIFEST_REFERENCE", {
+            path: surface.path,
+          }),
+        );
+      }
+      continue;
+    }
+
+    if (surface.state === "legacy_registered") {
+      const coverageRefs = Array.isArray(surface.coverageRefs)
+        ? surface.coverageRefs
+        : [];
+      if (
+        coverageRefs.length === 0 ||
+        coverageRefs.some(
+          (reference) =>
+            typeof reference !== "string" || reference.trim().length === 0,
+        )
+      ) {
+        violations.push(
+          violation("MUTATION_SURFACE_COVERAGE_MISSING", {
+            path: surface.path,
+          }),
+        );
+      }
+      continue;
+    }
+
+    if (!allowedExclusionReasons.has(surface.reason)) {
+      violations.push(
+        violation("MUTATION_SURFACE_EXCLUSION_INVALID", {
+          path: surface.path,
+          reason: surface.reason ?? null,
+        }),
+      );
+    }
+  }
+
   const serverDirectory = resolve(root, "apps/web/src/server");
   for (const path of await listFiles(serverDirectory)) {
     if (!/\.[cm]?[jt]s$/u.test(path) || /\.test\.[cm]?[jt]s$/u.test(path)) {
       continue;
     }
     const text = await readText(path);
-    if (text === null || !text.includes("createSqliteDevOSCommandGateway")) {
-      continue;
-    }
+    if (text === null || !postServerFnPattern.test(text)) continue;
     const relativePath = repositoryPath(root, path);
-    if (adapterPaths.get(relativePath)?.state !== "gateway") {
+    if (!mutationSurfacePaths.has(relativePath)) {
       violations.push(
         violation("MUTATION_FILE_WITHOUT_MANIFEST_REFERENCE", {
           path: relativePath,
