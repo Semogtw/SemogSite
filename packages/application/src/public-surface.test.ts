@@ -33,6 +33,7 @@ describe("@semogtw/application public surface", () => {
       capabilityForCommand: expect.any(Function),
       oauthScopeForCapability: expect.any(Function),
       resourceKindsForCapability: expect.any(Function),
+      validateAgentAuthorizationCatalog: expect.any(Function),
       validateResourceSelectorForKind: expect.any(Function),
       selectorMatchesResource: expect.any(Function),
       computeEffectiveAgentAuthorization: expect.any(Function),
