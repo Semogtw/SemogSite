@@ -3,11 +3,15 @@ import {
   isAgentCapability,
   resourceKindsForCapability,
 } from "./capabilities";
-import { validateResourceSelectorForKind } from "./resource-selectors";
+import {
+  selectorMatchesResource,
+  validateResourceSelectorForKind,
+} from "./resource-selectors";
 import type {
   AgentCapability,
   AgentRiskCeiling,
   AgentTrustSession,
+  CommandResource,
   EffectiveAgentAuthorization,
   ResourceSelector,
   ResourceSelectorMap,
@@ -27,6 +31,12 @@ export type TrustSessionState =
   | "exhausted"
   | "revoked"
   | "invalid";
+
+export type TrustCoveredCommandRisk =
+  | "low"
+  | "medium"
+  | "high"
+  | "critical";
 
 const riskRank: Readonly<Record<AgentRiskCeiling, number>> = {
   low: 0,
@@ -98,9 +108,9 @@ function requestedResourcesFitCapability(input: {
     const requested = input.requestedResources[resourceKind];
     const base = baseByKind[resourceKind];
     if (
-      requested === undefined ||
+      !Array.isArray(requested) ||
       requested.length === 0 ||
-      base === undefined ||
+      !Array.isArray(base) ||
       base.length === 0
     ) {
       return false;
@@ -160,6 +170,7 @@ export function validateTrustSessionRequest(input: {
   }
 
   if (
+    !Array.isArray(input.requestedCapabilities) ||
     input.requestedCapabilities.length < 1 ||
     new Set(input.requestedCapabilities).size !==
       input.requestedCapabilities.length
@@ -200,6 +211,8 @@ export function validateTrustSessionRequest(input: {
   }
 
   if (
+    typeof input.requestedResources !== "object" ||
+    input.requestedResources === null ||
     !Object.keys(input.requestedResources).every((resourceKind) =>
       requestedKinds.has(resourceKind),
     )
@@ -234,8 +247,10 @@ export function evaluateTrustSessionState(
     !Number.isInteger(session.version) ||
     session.version < 1 ||
     !bounded(session.reason, 500) ||
+    !Array.isArray(session.baseGrantIds) ||
     session.baseGrantIds.length < 1 ||
     new Set(session.baseGrantIds).size !== session.baseGrantIds.length ||
+    !Array.isArray(session.capabilities) ||
     session.capabilities.length < 1 ||
     new Set(session.capabilities).size !== session.capabilities.length ||
     session.capabilities.some((capability) => !isAgentCapability(capability))
@@ -281,6 +296,39 @@ export function trustSessionFitsAuthorization(input: {
       baseAuthorization: input.baseAuthorization,
     });
     return true;
+  } catch {
+    return false;
+  }
+}
+
+export function trustSessionCoversCommand(input: {
+  session: AgentTrustSession;
+  baseAuthorization: EffectiveAgentAuthorization;
+  capability: AgentCapability;
+  resource: CommandResource;
+  risk: TrustCoveredCommandRisk;
+  now: string;
+}): boolean {
+  if (
+    !trustSessionFitsAuthorization({
+      session: input.session,
+      baseAuthorization: input.baseAuthorization,
+      now: input.now,
+    }) ||
+    !input.session.capabilities.includes(input.capability) ||
+    (input.risk !== "low" && input.risk !== "medium") ||
+    riskRank[input.session.riskCeiling] < riskRank[input.risk] ||
+    !resourceKindsForCapability(input.capability).includes(input.resource.kind)
+  ) {
+    return false;
+  }
+
+  const selectors = input.session.resourceSelectors[input.resource.kind];
+  if (!Array.isArray(selectors) || selectors.length === 0) return false;
+  try {
+    return selectors.some((selector) =>
+      selectorMatchesResource({ selector, resource: input.resource }),
+    );
   } catch {
     return false;
   }
