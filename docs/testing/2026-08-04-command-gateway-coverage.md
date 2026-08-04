@@ -3,19 +3,21 @@
 ## Convenções
 
 - `legacy_direct`: continua no handler browser atual até uma migração dedicada.
-- `pilot`: será a primeira escrita executada pelo Gateway.
+- `pilot`: primeira escrita executada pelo Gateway.
 - `registered_blocked`: existe no registry, mas o executor deve negar até a condição indicada existir.
 - `low`: alteração privada e reversível com baixo impacto.
 - `medium`: exige confirmação explícita no cliente proprietário.
 - `high`: exige approval no DevOS; não pode ser reduzido por policy de cliente.
 - recursos usam IDs internos estáveis; nomes, slugs e branches não substituem identidade canônica.
+- `packages/application/src/editability-catalog.json#mutationSurfaces` classifica cada arquivo privado que registra `createServerFn({ method: "POST" })` como `gateway`, `legacy_registered` ou exclusão não canônica com motivo fechado.
 
 ## Matriz
 
 | Command ID | UI/handler atual | Serviço ou histórico atual | Capability | Recurso | Risco / confirmação | Conflito e idempotência | Undo/compensação | Estado |
 |---|---|---|---|---|---|---|---|---|
 | `attention.create` | `/devos/capture` → `captureAttentionFn` | `AttentionCaptureService`; attention + audit | `attention.write` | `attention:new` | low / allow owner | idempotency UUID; conflito semântico | resolve/cancelar por nova transição; histórico preservado | legacy_direct |
-| `attention.transition` | attention lifecycle controls → `transitionAttentionFn` | `AttentionTransitionService`; lifecycle audit | `attention.write` | `attention:{attentionId}` | medium / confirm_in_client | `expectedUpdatedAt` + receipt hash | nova transição explícita | **pilot** |
+| `attention.transition` | attention lifecycle controls → `transitionAttentionFn` | `AttentionLifecycleService`; lifecycle audit | `attention.write` | `attention_item:{attentionId}` | medium / confirm_in_client | `expectedUpdatedAt` + receipt hash | nova transição explícita | **pilot** |
+| `evidence.create` | project evidence form → `attachManualEvidenceFn` | `EvidenceService`; evidence + audit | `evidence.write` | `project:{projectId}` ou `stage:{stageId}` | medium / confirmação explícita | vínculos canônicos + auditoria transacional | nova evidência corretiva; histórico preservado | legacy_direct |
 | `growth.goals.quick_create` | `/devos/growth` → `quickCreateLearningGoalFn` | `QuickLearningGoalService`; goal/checkpoint events + audit | `growth.goals.write` | `growth-goal:new` | low / allow owner | idempotency UUID; slug/semantics | archive/cancel via comando futuro | legacy_direct |
 | `growth.checkpoints.rebalance_weights` | goal detail → `applyGrowthWeightRebalanceFn` | `CheckpointWeightRebalanceService`; checkpoint events + aggregate audit | `growth.checkpoints.write` | `growth-goal:{goalId}` | medium / confirmação quando custom muda | goal/checkpoint versions + semantic receipt | nova redistribuição server-derived | legacy_direct |
 | `runs.register` | runs UI → `registerCooperativeRunFn` | `CooperativeRunRegistrationService`; run event/audit | `runs.write` | `run:new` | low / allow owner | registration key + branch identity | cancel/complete por transição | legacy_direct |
@@ -43,14 +45,14 @@
 | `editorial.publications.rollback` | publication history → `rollbackEditorialPublicationFn` | `rollbackEditorialPublicationCommand`; publication event | `editorial.publish` | `editorial-document:{documentId}:revision:{revisionId}` | **high / approve_in_devos** | expectedUpdatedAt + target revision/hash + idempotency | novo rollback/publish | legacy_direct, future approval migration |
 | `editorial.redirects.create` | redirect manager → `createEditorialRedirectFn` | `createEditorialRedirectCommand`; redirect event | `editorial.redirects.write` | `editorial-redirect:{kind}:{sourceSlug}` | medium / confirm_in_client | target identity + source slug + idempotency | revoke | legacy_direct |
 | `editorial.redirects.revoke` | redirect manager → `revokeEditorialRedirectFn` | `revokeEditorialRedirectCommand`; redirect event | `editorial.redirects.write` | `editorial-redirect:{kind}:{sourceSlug}` | medium / confirm_in_client | active event + target identity + idempotency | create novo alias | legacy_direct |
-| `roadmap.stages.complete` | project detail → `completeStageFn` | `StageCompletionService`; stage/project/audit | `roadmap.stages.complete` | `project:{projectId}:stage:{stageId}` | **high / approve_in_devos** | expected project/stage timestamps + receipt | compensação explícita; sem restauração silenciosa | **registered_blocked** |
+| `roadmap.stages.complete` | project detail → `completeStageFn` | `StageCompletionService`; stage/project/audit | `roadmap.write` | `stage:{stageId}` | **high / approve_in_devos** | exact snapshot/evidence + receipt quando approvals existirem | compensação explícita; sem restauração silenciosa | **registered_blocked** |
 
 ## Operações fora do registry de editabilidade
 
 | Superfície | Motivo |
 |---|---|
-| `evaluateSafeWorkFn` | avaliação bounded sem commit canônico |
-| login/logout/session | infraestrutura de autenticação, não capability de entidade DevOS |
+| `evaluateSafeWorkFn` | avaliação bounded sem commit canônico; catálogo marca `bounded_evaluation` |
+| login/logout/session | infraestrutura de autenticação, não capability de entidade DevOS; catálogo marca `authentication_infrastructure` |
 | previews de template/rebalance | preparação de leitura, não execução |
 | consultas GET privadas | cobertas por autorização de leitura, fora do catálogo de writes desta fase |
 
@@ -62,4 +64,5 @@
 4. O receipt precisa distinguir replay exato de reutilização conflitante da chave.
 5. Undo significa nova ação explícita ou compensação; não delete de histórico.
 6. IDs, versões e hashes vêm do servidor ou de snapshots observados, nunca de labels de UI.
-7. Novas mutações devem entrar nesta matriz e em um manifest executável antes de serem consideradas completas.
+7. Todo arquivo privado que registra POST deve estar no catálogo executável; uma nova mutação não classificada falha `check:editability-coverage`.
+8. `legacy_registered` documenta dívida de migração, não paridade UI/MCP nem conclusão.
