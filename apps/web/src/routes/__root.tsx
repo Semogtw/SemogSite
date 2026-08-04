@@ -14,6 +14,7 @@ import editorialCss from "../styles/editorial.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
+import growthCss from "../styles/growth.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
@@ -43,6 +44,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: surfacesCss },
+      { rel: "stylesheet", href: growthCss },
       { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: evidenceCss },
       { rel: "stylesheet", href: editorialCss },
