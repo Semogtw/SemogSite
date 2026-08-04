@@ -29,38 +29,41 @@ describe("owner entity action SQLite resolution", () => {
         "2026-08-04T05:00:00.000Z",
       );
 
-    expect(
-      getOwnerEntityActions({
-        database,
-        ownerId: "owner-1",
-        resourceType: "attention_item",
-        resourceId: "attention-actions",
-      }),
-    ).toEqual([
+    const attentionActions = getOwnerEntityActions({
+      database,
+      ownerId: "owner-1",
+      resourceType: "attention_item",
+      resourceId: "attention-actions",
+    });
+    expect(attentionActions).toEqual([
       {
-        commandId: "attention.transition",
         labelPtBr: "Finalizar item",
         risk: "medium",
         reversible: true,
         availability: "confirmation_required",
       },
     ]);
-    expect(
-      getOwnerEntityActions({
-        database,
-        ownerId: "owner-1",
-        resourceType: "stage",
-        resourceId: "demo-stage-database",
-      }),
-    ).toEqual([
+    expect(JSON.stringify(attentionActions)).not.toContain(
+      "attention.transition",
+    );
+
+    const stageActions = getOwnerEntityActions({
+      database,
+      ownerId: "owner-1",
+      resourceType: "stage",
+      resourceId: "demo-stage-database",
+    });
+    expect(stageActions).toEqual([
       {
-        commandId: "roadmap.stages.complete",
         labelPtBr: "Concluir etapa",
         risk: "high",
         reversible: true,
         availability: "planned",
       },
     ]);
+    expect(JSON.stringify(stageActions)).not.toContain(
+      "roadmap.stages.complete",
+    );
     database.$client.close();
   });
 
