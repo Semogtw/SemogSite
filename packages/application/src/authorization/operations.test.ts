@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import * as operations from "./operations";
+
+describe("agent authorization operation plans", () => {
+  it("exports only pure grant and trust planning functions", () => {
+    expect(operations).toMatchObject({
+      evaluateAgentGrantState: expect.any(Function),
+      planAgentGrantStatusTransition: expect.any(Function),
+      planTrustSessionOperationConsumption: expect.any(Function),
+    });
+  });
+});
