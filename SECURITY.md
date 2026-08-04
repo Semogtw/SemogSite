@@ -10,6 +10,9 @@ The platform must protect:
 - scope reservations, overlap information, actors, purposes and expiry;
 - verification commands, required capabilities, classifications and results;
 - recovery snapshot JSON, Markdown, canonical hashes and continuation prompts;
+- Growth goals, checkpoints, skills, derived progress and private learning history;
+- command receipts, request/result hashes, leases, stable error codes and correlation IDs;
+- editability manifests, private action availability and approval state;
 - runtime capability declarations entered for session-only safe-work evaluation;
 - MCP resource/tool payloads containing private operational state;
 - audit before/after snapshots and correlation IDs;
@@ -21,13 +24,15 @@ The platform must protect:
 
 1. anonymous browser → public web/API;
 2. authenticated owner browser → DevOS/private server functions;
-3. server functions → domain services and storage adapters;
-4. read-only GitHub client → validated provider observations;
-5. external documents/provider strings → untrusted data ingestion;
-6. in-process MCP adapter → provider-neutral read service;
-7. future remote MCP/agent client → separately authenticated and authorized transport.
+3. server functions → framework-free Command Gateway preparation/policy;
+4. allowed prepared command → durable receipt and transaction-bound executor;
+5. executor → canonical domain planner/service and SQLite adapters;
+6. read-only GitHub client → validated provider observations;
+7. external documents/provider strings → untrusted data ingestion;
+8. in-process MCP adapter → provider-neutral read service;
+9. future remote MCP/agent client → separately authenticated and authorized transport.
 
-The in-process MCP adapter is not a public endpoint. Any future transport must establish caller identity and authorization before invoking private services.
+The in-process MCP adapter is not a public endpoint. Any future transport must establish caller identity and authorization before invoking private services. Command metadata and receipts do not grant remote access by themselves.
 
 ## Authentication controls
 
@@ -64,6 +69,50 @@ Every private write follows the same baseline:
 - UI success is shown only after commit and route invalidation.
 
 GitHub target registration, target pause/reactivation and active-branch acceptance change only local DevOS state. None writes to GitHub.
+
+## Command Gateway and editability controls
+
+`@semogtw/application` is a framework/persistence/provider-neutral boundary. Runtime files may not import React, TanStack, Hono, ORM, SQLite, MCP SDK, Node runtime, filesystem, shell or host-specific adapters. Canonical request hashes use Web Crypto.
+
+Command definitions have stable IDs/versions, strict payload parsers, server-derived resource binding, bounded capability/resource metadata and static risk floors. Caller metadata cannot lower risk, choose handlers, grant capabilities or change principal identity.
+
+The owner-browser phase keeps these dispositions:
+
+```text
+low -> allow
+medium without confirmation -> confirm_in_client
+medium with owner confirmation -> allow
+high -> approval required
+critical -> approval required
+```
+
+A client-supplied approval ID is not evidence of an approval. High/critical execution remains unavailable until immutable approval storage, recent authentication, payload/version binding, expiry/revocation and stale invalidation exist.
+
+### Durable receipts
+
+Migrations `0017_command_core.sql` and `0017a_command_receipt_semantic_key.sql` add command receipts. Receipts store bounded identity metadata, request/result hashes, lease timestamps, a bounded result summary or stable error code, correlation and idempotency identity. They do not store raw command payloads, cookies, bearer tokens, passwords or secrets.
+
+The semantic uniqueness key is principal + command/version + idempotency key. Resource ID is intentionally excluded, so attempting to reuse one key against another resource conflicts rather than creating a second execution.
+
+Expired in-progress leases require explicit recovery. Recovery preserves the original receipt ID, resource, principal and correlation; retry-supplied context cannot rewrite the audit chain. Final receipts are immutable.
+
+### Transaction-bound execution
+
+SQLite runners are synchronous and execute inside `IMMEDIATE` transactions. Domain state, audit and successful receipt finalization commit together. Missing/mismatched audit, invalid/oversized result summaries or receipt finalization conflicts roll back the mutation. Controlled failures roll back first and then persist only a stable failure receipt.
+
+External network/process/filesystem effects do not run inside this executor. Commands requiring external sagas need their own explicit plan and compensation model.
+
+### Initial command coverage
+
+`attention.transition` is medium-risk and migrated through the Gateway. The Today projection supplies the canonical `updatedAt`; the browser sends only human payload, observed timestamp, confirmation and a per-attempt UUID. The server owns command ID, capability, resource kind, principal and correlation.
+
+`roadmap.stages.complete` is registered as high-risk and `registered_blocked`. It has no Gateway runner. The legacy browser path remains unchanged until the real approval execution path exists.
+
+### Action discovery
+
+Owner action discovery resolves the owner before storage, checks the exact canonical resource and returns only human label, risk, reversibility and availability. Missing, unsupported, terminal or denied resources return an indistinguishable empty list. Input/output schemas, capabilities, handlers, grants, principals and private resource metadata are not returned.
+
+The shared editability catalog and `check:editability-coverage` guard command/manifest/route/adapter parity. A feature cannot claim complete editability while its MCP strategy remains `not_yet`.
 
 ## Workflow orchestration controls
 
@@ -111,9 +160,9 @@ Use a fine-grained token with the smallest repository selection and only Metadat
 
 Public routes and endpoints use dedicated query/serializer paths and explicit DTO allowlists. They never spread private entities and remove fields afterward, and never use private operational rows as editorial fallback.
 
-Repository targets, observations, runs, reservations, gates, snapshots, capability declarations and MCP payloads are not public fields. Unknown or unpublished routes return not-found/noindex behavior.
+Repository targets, observations, runs, reservations, gates, snapshots, Growth state, command receipts, principals, action discovery and MCP payloads are not public fields. Unknown or unpublished routes return not-found/noindex behavior.
 
-Static scanners cover public source, assets, private markers and forbidden imports. Playwright additionally verifies anonymous redirects and absence of workflow-only labels from the public homepage.
+Static scanners cover public source, assets, private markers and forbidden imports. Playwright additionally verifies anonymous redirects and absence of command labels/IDs/receipts from the public homepage.
 
 Private API responses use:
 
@@ -136,7 +185,7 @@ The current MCP catalog:
 - validates bounded input and output schemas;
 - returns stable expected errors and sanitizes unexpected exceptions.
 
-Annotations are advisory, not authentication. Remote exposure remains blocked until TLS, owner authorization, per-session isolation, request limits, rate limits, origin/host controls, private caching, logs, cancellation and rollback are proven.
+Annotations are advisory, not authentication. Remote exposure remains blocked until TLS, owner authorization, per-session isolation, request limits, rate limits, origin/host controls, private caching, logs, cancellation and rollback are proven. The Command Gateway foundation does not authorize MCP writes.
 
 ## Prompt injection and external content
 
@@ -148,7 +197,7 @@ GitHub observations intentionally store normalized metadata and heads rather tha
 
 Allowed structured fields include correlation ID, route/tool name, sanitized actor ID, duration/result and stable error/rate-limit codes.
 
-Never log request bodies, cookies, raw tokens, passwords, private URLs, audit snapshots, recovery content, MCP structured payloads or provider response bodies.
+Never log request bodies, cookies, raw tokens, passwords, private URLs, audit snapshots, recovery content, MCP structured payloads, command result summaries or provider response bodies.
 
 ## Secrets and backups
 
@@ -159,15 +208,15 @@ Verified backup commands:
 - operate only on explicit local paths;
 - refuse overwrite;
 - use SQLite online backup;
-- verify integrity, foreign keys and all migrations through `0013`;
+- verify integrity, foreign keys and all committed migrations through `0017a_command_receipt_semantic_key.sql` on this branch;
 - delete only a newly created invalid destination;
 - never upload, encrypt, rotate or commit automatically.
 
-Backups contain authentication digests, operational history, reservations, gates, snapshots, editorial drafts and audits. Encryption, filesystem permissions, off-device retention and deletion are owner responsibilities.
+Backups contain authentication digests, operational history, reservations, gates, snapshots, Growth state, command receipts, editorial drafts and audits. Encryption, filesystem permissions, off-device retention and deletion are owner responsibilities.
 
-## Verification evidence
+## Historical verification evidence
 
-Workflow run `30841132598` on August 3, 2026 observed:
+Workflow run `30841132598` on August 3, 2026 observed for commit `94956d10f805e13af7f11e5e2e4f63e8e4abe4b8`:
 
 - dependency installation and native SQLite loading;
 - package, MCP and public-confidentiality guardrails;
@@ -181,15 +230,21 @@ Workflow run `30841132598` on August 3, 2026 observed:
 - exact-SHA gate creation and `blocked/environment_missing` result;
 - recovery generation failing closed without a persisted GitHub branch observation.
 
-This evidence applies to commit `94956d10f805e13af7f11e5e2e4f63e8e4abe4b8` and its PR merge tree. Documentation changes require a final rerun before merge.
+This evidence predates Growth and Command Gateway implementation and does not apply to PR #24 or PR #26. Both require fresh exact-head gates.
 
 ## Known limitations
 
 - no production host or deployment mode is selected;
 - no remote MCP or external agent transport is enabled;
+- no MCP write scope/tool is enabled;
+- no immutable approval executor exists for high/critical commands;
+- only Attention has migrated to the Command Gateway;
+- Stage completion remains registered-blocked on the Gateway and legacy in the browser;
 - live GitHub token permissions and provider behavior are not yet exercised in the chosen production runtime;
 - the login limiter is not distributed;
 - deployment CSP, CDN/cache and secret rotation remain host-specific;
 - backups are not automatically encrypted or uploaded;
 - no public deployment is authorized;
-- inactivity of a branch is not proof that an AI session completed.
+- inactivity of a branch is not proof that an AI session completed;
+- `pnpm-lock.yaml` still requires regeneration for the new application workspace/dependency before frozen installation can pass;
+- no exact-head tests, typechecks, build or Playwright run were observed for PR #26.
