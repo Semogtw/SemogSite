@@ -20,7 +20,7 @@
     "dev:all": "pnpm --parallel --filter @semogtw/web --filter @semogtw/api dev",
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "vitest run --workspace vitest.workspace.ts",
-    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-editability-coverage.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs && node scripts/check-mcp-package-boundaries.test.mjs && node scripts/check-mcp-node-runtime-boundary.test.mjs",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-editability-coverage.test.mjs && node scripts/check-application-boundaries.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs && node scripts/check-mcp-package-boundaries.test.mjs && node scripts/check-mcp-node-runtime-boundary.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "verify:backup": "node scripts/verify-backup.mjs",
     "check:mcp-package-boundaries": "node scripts/check-mcp-package-boundaries.mjs",
