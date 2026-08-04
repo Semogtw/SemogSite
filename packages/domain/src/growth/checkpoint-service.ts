@@ -66,6 +66,14 @@ export type LearningCheckpointValidationError =
   | "CHECKPOINT_TITLE_TOO_LONG"
   | "CHECKPOINT_DESCRIPTION_TOO_LONG"
   | "CHECKPOINT_DUE_DATE_INVALID"
+  | "CHECKPOINT_WEIGHT_MUST_BE_FINITE"
+  | "CHECKPOINT_WEIGHT_MUST_BE_INTEGER"
+  | "CHECKPOINT_WEIGHT_OUT_OF_RANGE"
+  | "CHECKPOINT_COMPLETION_MODE_INVALID"
+  | "CHECKPOINT_NUMERIC_UNIT_REQUIRED"
+  | "CHECKPOINT_NUMERIC_UNIT_TOO_LONG"
+  | "CHECKPOINT_NUMERIC_TARGET_MUST_BE_FINITE"
+  | "CHECKPOINT_NUMERIC_TARGET_MUST_BE_POSITIVE"
   | "CHECKPOINT_ACCEPTED_VALUE_MUST_BE_FINITE"
   | "CHECKPOINT_ACCEPTED_VALUE_NEGATIVE"
   | "REASON_REQUIRED"
@@ -117,6 +125,33 @@ export type LearningCheckpointReorderResult =
         | "CHECKPOINT_ORDER_MISMATCH";
     };
 
+const VALIDATION_ERROR_CODES = new Set<LearningCheckpointValidationError>([
+  "CHECKPOINT_TITLE_REQUIRED",
+  "CHECKPOINT_TITLE_TOO_LONG",
+  "CHECKPOINT_DESCRIPTION_TOO_LONG",
+  "CHECKPOINT_DUE_DATE_INVALID",
+  "CHECKPOINT_WEIGHT_MUST_BE_FINITE",
+  "CHECKPOINT_WEIGHT_MUST_BE_INTEGER",
+  "CHECKPOINT_WEIGHT_OUT_OF_RANGE",
+  "CHECKPOINT_COMPLETION_MODE_INVALID",
+  "CHECKPOINT_NUMERIC_UNIT_REQUIRED",
+  "CHECKPOINT_NUMERIC_UNIT_TOO_LONG",
+  "CHECKPOINT_NUMERIC_TARGET_MUST_BE_FINITE",
+  "CHECKPOINT_NUMERIC_TARGET_MUST_BE_POSITIVE",
+]);
+
+function validationFailure(
+  errors: readonly LearningCheckpointValidationError[],
+): LearningCheckpointMutationResult {
+  return { ok: false, code: "VALIDATION_FAILED", errors };
+}
+
+function reorderValidationFailure(
+  errors: readonly LearningCheckpointValidationError[],
+): LearningCheckpointReorderResult {
+  return { ok: false, code: "VALIDATION_FAILED", errors };
+}
+
 function normalizeTitle(value: string): string {
   const normalized = value.trim();
   if (normalized.length === 0) throw new Error("CHECKPOINT_TITLE_REQUIRED");
@@ -132,7 +167,7 @@ function normalizeDescription(value: string): string {
   return normalized;
 }
 
-function validateDate(value: string | null): string | null {
+function normalizeDate(value: string | null): string | null {
   if (value === null) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new Error("CHECKPOINT_DUE_DATE_INVALID");
@@ -147,28 +182,33 @@ function validateDate(value: string | null): string | null {
   return value;
 }
 
-function normalizeReason(value: string): LearningCheckpointValidationError[] {
-  const normalized = value.trim();
-  if (normalized.length === 0) return ["REASON_REQUIRED"];
-  if (normalized.length > 500) return ["REASON_TOO_LONG"];
-  return [];
-}
-
-function exceptionValidationError(
+function mapValidationException(
   error: unknown,
 ): LearningCheckpointValidationError | null {
   if (!(error instanceof Error)) return null;
-  const supported = new Set<LearningCheckpointValidationError>([
-    "CHECKPOINT_TITLE_REQUIRED",
-    "CHECKPOINT_TITLE_TOO_LONG",
-    "CHECKPOINT_DESCRIPTION_TOO_LONG",
-    "CHECKPOINT_DUE_DATE_INVALID",
-  ]);
   const code = error.message as LearningCheckpointValidationError;
-  return supported.has(code) ? code : null;
+  return VALIDATION_ERROR_CODES.has(code) ? code : null;
 }
 
-function goalEditable(goal: LearningGoalAggregate): boolean {
+function normalizeReason(value: string): {
+  value: string;
+  errors: readonly LearningCheckpointValidationError[];
+} {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return { value: normalized, errors: ["REASON_REQUIRED"] };
+  }
+  if (normalized.length > 500) {
+    return { value: normalized, errors: ["REASON_TOO_LONG"] };
+  }
+  return { value: normalized, errors: [] };
+}
+
+function isPositiveVersion(value: number): boolean {
+  return Number.isInteger(value) && value >= 1;
+}
+
+function isGoalEditable(goal: LearningGoalAggregate): boolean {
   return (
     goal.status === "draft" ||
     goal.status === "active" ||
@@ -180,39 +220,44 @@ function findCheckpoint(
   goal: LearningGoalAggregate,
   checkpointId: string,
 ): LearningCheckpointRecord | null {
-  return goal.checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null;
+  return (
+    goal.checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ??
+    null
+  );
 }
 
-function nextTransitionStatus(input: {
-  current: LearningCheckpointStatus;
+function nextCheckpointStatus(input: {
+  checkpoint: LearningCheckpointRecord;
   action: LearningCheckpointTransitionAction;
-  completionMode: CheckpointCompletionMode;
-  acceptedValue: number | null;
 }): LearningCheckpointStatus | null {
-  switch (input.action) {
-    case "start":
-      return input.current === "pending" ? "in_progress" : null;
-    case "complete":
-      if (input.current !== "pending" && input.current !== "in_progress") {
-        return null;
-      }
-      if (
-        input.completionMode.kind === "numeric" &&
-        (input.acceptedValue === null ||
-          input.acceptedValue < input.completionMode.target)
-      ) {
-        return null;
-      }
-      return "completed";
-    case "waive":
-      return input.current === "pending" || input.current === "in_progress"
-        ? "waived"
-        : null;
-    case "cancel":
-      return input.current === "pending" || input.current === "in_progress"
-        ? "cancelled"
-        : null;
+  const { checkpoint, action } = input;
+  if (action === "start") {
+    return checkpoint.status === "pending" ? "in_progress" : null;
   }
+  if (action === "waive") {
+    return checkpoint.status === "pending" || checkpoint.status === "in_progress"
+      ? "waived"
+      : null;
+  }
+  if (action === "cancel") {
+    return checkpoint.status === "pending" || checkpoint.status === "in_progress"
+      ? "cancelled"
+      : null;
+  }
+  if (
+    checkpoint.status !== "pending" &&
+    checkpoint.status !== "in_progress"
+  ) {
+    return null;
+  }
+  if (
+    checkpoint.completionMode.kind === "numeric" &&
+    (checkpoint.acceptedValue === null ||
+      checkpoint.acceptedValue < checkpoint.completionMode.target)
+  ) {
+    return null;
+  }
+  return "completed";
 }
 
 export class LearningCheckpointService {
@@ -230,34 +275,27 @@ export class LearningCheckpointService {
     const goalId = input.goalId.trim();
     const errors: LearningCheckpointValidationError[] = [];
     if (goalId.length === 0) errors.push("GOAL_ID_REQUIRED");
-    if (
-      !Number.isInteger(input.expectedGoalVersion) ||
-      input.expectedGoalVersion < 1
-    ) {
+    if (!isPositiveVersion(input.expectedGoalVersion)) {
       errors.push("EXPECTED_VERSION_INVALID");
     }
-    if (errors.length > 0) {
-      return { ok: false, code: "VALIDATION_FAILED", errors };
-    }
+    if (errors.length > 0) return validationFailure(errors);
 
     try {
       const title = normalizeTitle(input.title);
       const description = normalizeDescription(input.description);
       const weight = normalizeCheckpointWeight(input.weight);
       const completionMode = validateCompletionMode(input.completionMode);
-      const dueDate = validateDate(input.dueDate);
+      const dueDate = normalizeDate(input.dueDate);
       const goal = await this.goalRepository.getById(context.ownerId, goalId);
       if (goal === null) return { ok: false, code: "GOAL_NOT_FOUND" };
       if (goal.version !== input.expectedGoalVersion) {
         return { ok: false, code: "CONFLICT" };
       }
-      if (!goalEditable(goal)) return { ok: false, code: "GOAL_NOT_EDITABLE" };
+      if (!isGoalEditable(goal)) {
+        return { ok: false, code: "GOAL_NOT_EDITABLE" };
+      }
 
       const now = validateIsoTimestamp(this.clock.now());
-      const maximumSequence = goal.checkpoints.reduce(
-        (maximum, checkpoint) => Math.max(maximum, checkpoint.sequence),
-        0,
-      );
       const checkpoint: LearningCheckpointRecord = {
         id: this.ids.next("checkpoint"),
         goalId: goal.id,
@@ -265,7 +303,11 @@ export class LearningCheckpointService {
         description,
         status: "pending",
         required: input.required,
-        sequence: maximumSequence + 1,
+        sequence:
+          goal.checkpoints.reduce(
+            (maximum, current) => Math.max(maximum, current.sequence),
+            0,
+          ) + 1,
         weight,
         completionMode,
         acceptedValue: null,
@@ -300,13 +342,9 @@ export class LearningCheckpointService {
         replayed: result.kind === "idempotent",
       };
     } catch (error) {
-      const validationError = exceptionValidationError(error);
+      const validationError = mapValidationException(error);
       if (validationError !== null) {
-        return {
-          ok: false,
-          code: "VALIDATION_FAILED",
-          errors: [validationError],
-        };
+        return validationFailure([validationError]);
       }
       throw error;
     }
@@ -316,7 +354,7 @@ export class LearningCheckpointService {
     input: RecordLearningCheckpointValueInput,
     context: GrowthMutationContext,
   ): Promise<LearningCheckpointMutationResult> {
-    const normalized = this.validateTargetAndReason({
+    const target = this.validateTarget({
       goalId: input.goalId,
       checkpointId: input.checkpointId,
       expectedVersion: input.expectedCheckpointVersion,
@@ -324,28 +362,22 @@ export class LearningCheckpointService {
       confirmed: true,
       confirmationRequired: false,
     });
-    if (!normalized.ok) return normalized.result;
+    if (!target.ok) return target.result;
     if (!Number.isFinite(input.acceptedValue)) {
-      return {
-        ok: false,
-        code: "VALIDATION_FAILED",
-        errors: ["CHECKPOINT_ACCEPTED_VALUE_MUST_BE_FINITE"],
-      };
+      return validationFailure([
+        "CHECKPOINT_ACCEPTED_VALUE_MUST_BE_FINITE",
+      ]);
     }
     if (input.acceptedValue < 0) {
-      return {
-        ok: false,
-        code: "VALIDATION_FAILED",
-        errors: ["CHECKPOINT_ACCEPTED_VALUE_NEGATIVE"],
-      };
+      return validationFailure(["CHECKPOINT_ACCEPTED_VALUE_NEGATIVE"]);
     }
 
-    const loaded = await this.loadEditableCheckpoint(
-      normalized.goalId,
-      normalized.checkpointId,
-      input.expectedCheckpointVersion,
-      context.ownerId,
-    );
+    const loaded = await this.loadCheckpoint({
+      ownerId: context.ownerId,
+      goalId: target.goalId,
+      checkpointId: target.checkpointId,
+      expectedVersion: input.expectedCheckpointVersion,
+    });
     if (!loaded.ok) return loaded.result;
     if (loaded.checkpoint.completionMode.kind !== "numeric") {
       return { ok: false, code: "CHECKPOINT_MODE_NOT_NUMERIC" };
@@ -357,22 +389,23 @@ export class LearningCheckpointService {
       return { ok: false, code: "INVALID_TRANSITION" };
     }
 
-    const status: LearningCheckpointStatus =
-      input.acceptedValue >= loaded.checkpoint.completionMode.target
-        ? "completed"
-        : "in_progress";
+    const now = validateIsoTimestamp(this.clock.now());
+    const after: LearningCheckpointRecord = {
+      ...loaded.checkpoint,
+      acceptedValue: input.acceptedValue,
+      status:
+        input.acceptedValue >= loaded.checkpoint.completionMode.target
+          ? "completed"
+          : "in_progress",
+      updatedAt: now,
+      version: loaded.checkpoint.version + 1,
+    };
     return this.persistUpdate({
       goal: loaded.goal,
       before: loaded.checkpoint,
-      after: {
-        ...loaded.checkpoint,
-        acceptedValue: input.acceptedValue,
-        status,
-        updatedAt: validateIsoTimestamp(this.clock.now()),
-        version: loaded.checkpoint.version + 1,
-      },
+      after,
       action: "learning_checkpoint.record_value",
-      reason: normalized.reason,
+      reason: target.reason,
       context,
     });
   }
@@ -381,31 +414,28 @@ export class LearningCheckpointService {
     input: TransitionLearningCheckpointInput,
     context: GrowthMutationContext,
   ): Promise<LearningCheckpointMutationResult> {
-    const confirmationRequired =
-      input.action === "waive" || input.action === "cancel";
-    const normalized = this.validateTargetAndReason({
+    const target = this.validateTarget({
       goalId: input.goalId,
       checkpointId: input.checkpointId,
       expectedVersion: input.expectedCheckpointVersion,
       reason: input.reason,
       confirmed: input.confirmed,
-      confirmationRequired,
+      confirmationRequired:
+        input.action === "waive" || input.action === "cancel",
     });
-    if (!normalized.ok) return normalized.result;
+    if (!target.ok) return target.result;
 
-    const loaded = await this.loadEditableCheckpoint(
-      normalized.goalId,
-      normalized.checkpointId,
-      input.expectedCheckpointVersion,
-      context.ownerId,
-    );
+    const loaded = await this.loadCheckpoint({
+      ownerId: context.ownerId,
+      goalId: target.goalId,
+      checkpointId: target.checkpointId,
+      expectedVersion: input.expectedCheckpointVersion,
+    });
     if (!loaded.ok) return loaded.result;
 
-    const status = nextTransitionStatus({
-      current: loaded.checkpoint.status,
+    const status = nextCheckpointStatus({
+      checkpoint: loaded.checkpoint,
       action: input.action,
-      completionMode: loaded.checkpoint.completionMode,
-      acceptedValue: loaded.checkpoint.acceptedValue,
     });
     if (status === null) {
       if (
@@ -420,17 +450,18 @@ export class LearningCheckpointService {
       return { ok: false, code: "INVALID_TRANSITION" };
     }
 
+    const after: LearningCheckpointRecord = {
+      ...loaded.checkpoint,
+      status,
+      updatedAt: validateIsoTimestamp(this.clock.now()),
+      version: loaded.checkpoint.version + 1,
+    };
     return this.persistUpdate({
       goal: loaded.goal,
       before: loaded.checkpoint,
-      after: {
-        ...loaded.checkpoint,
-        status,
-        updatedAt: validateIsoTimestamp(this.clock.now()),
-        version: loaded.checkpoint.version + 1,
-      },
+      after,
       action: `learning_checkpoint.${input.action}`,
-      reason: normalized.reason,
+      reason: target.reason,
       context,
     });
   }
@@ -440,51 +471,45 @@ export class LearningCheckpointService {
     context: GrowthMutationContext,
   ): Promise<LearningCheckpointReorderResult> {
     const goalId = input.goalId.trim();
-    const reason = input.reason.trim();
+    const reason = normalizeReason(input.reason);
+    const orderedIds = input.orderedCheckpointIds.map((id) => id.trim());
     const errors: LearningCheckpointValidationError[] = [];
     if (goalId.length === 0) errors.push("GOAL_ID_REQUIRED");
-    if (
-      !Number.isInteger(input.expectedGoalVersion) ||
-      input.expectedGoalVersion < 1
-    ) {
+    if (!isPositiveVersion(input.expectedGoalVersion)) {
       errors.push("EXPECTED_VERSION_INVALID");
     }
-    if (input.orderedCheckpointIds.length === 0) {
-      errors.push("CHECKPOINT_ORDER_REQUIRED");
-    }
-    const normalizedIds = input.orderedCheckpointIds.map((id) => id.trim());
+    if (orderedIds.length === 0) errors.push("CHECKPOINT_ORDER_REQUIRED");
     if (
-      normalizedIds.some((id) => id.length === 0) ||
-      new Set(normalizedIds).size !== normalizedIds.length
+      orderedIds.some((id) => id.length === 0) ||
+      new Set(orderedIds).size !== orderedIds.length
     ) {
       errors.push("CHECKPOINT_ORDER_DUPLICATE");
     }
-    errors.push(...normalizeReason(reason));
-    if (errors.length > 0) {
-      return { ok: false, code: "VALIDATION_FAILED", errors };
-    }
+    errors.push(...reason.errors);
+    if (errors.length > 0) return reorderValidationFailure(errors);
 
     const goal = await this.goalRepository.getById(context.ownerId, goalId);
     if (goal === null) return { ok: false, code: "GOAL_NOT_FOUND" };
     if (goal.version !== input.expectedGoalVersion) {
       return { ok: false, code: "CONFLICT" };
     }
-    if (!goalEditable(goal)) return { ok: false, code: "GOAL_NOT_EDITABLE" };
+    if (!isGoalEditable(goal)) {
+      return { ok: false, code: "GOAL_NOT_EDITABLE" };
+    }
 
-    const existingIds = new Set(goal.checkpoints.map((checkpoint) => checkpoint.id));
+    const checkpointsById = new Map(
+      goal.checkpoints.map((checkpoint) => [checkpoint.id, checkpoint]),
+    );
     if (
-      existingIds.size !== normalizedIds.length ||
-      normalizedIds.some((id) => !existingIds.has(id))
+      checkpointsById.size !== orderedIds.length ||
+      orderedIds.some((id) => !checkpointsById.has(id))
     ) {
       return { ok: false, code: "CHECKPOINT_ORDER_MISMATCH" };
     }
 
-    const byId = new Map(
-      goal.checkpoints.map((checkpoint) => [checkpoint.id, checkpoint]),
-    );
     const now = validateIsoTimestamp(this.clock.now());
-    const after = normalizedIds.map((id, index) => {
-      const checkpoint = byId.get(id);
+    const after = orderedIds.map((id, index) => {
+      const checkpoint = checkpointsById.get(id);
       if (checkpoint === undefined) {
         throw new Error("CHECKPOINT_ORDER_MISMATCH");
       }
@@ -507,7 +532,7 @@ export class LearningCheckpointService {
         action: "learning_checkpoint.reorder",
         before: goal.checkpoints,
         after,
-        reason,
+        reason: reason.value,
         actorId: context.actorId,
         occurredAt: now,
         correlationId: context.correlationId,
@@ -523,7 +548,7 @@ export class LearningCheckpointService {
     };
   }
 
-  private validateTargetAndReason(input: {
+  private validateTarget(input: {
     goalId: string;
     checkpointId: string;
     expectedVersion: number;
@@ -535,55 +560,59 @@ export class LearningCheckpointService {
     | { ok: false; result: LearningCheckpointMutationResult } {
     const goalId = input.goalId.trim();
     const checkpointId = input.checkpointId.trim();
-    const reason = input.reason.trim();
+    const reason = normalizeReason(input.reason);
     const errors: LearningCheckpointValidationError[] = [];
     if (goalId.length === 0) errors.push("GOAL_ID_REQUIRED");
     if (checkpointId.length === 0) errors.push("CHECKPOINT_ID_REQUIRED");
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
+    if (!isPositiveVersion(input.expectedVersion)) {
       errors.push("EXPECTED_VERSION_INVALID");
     }
-    errors.push(...normalizeReason(reason));
+    errors.push(...reason.errors);
     if (input.confirmationRequired && !input.confirmed) {
       errors.push("CONFIRMATION_REQUIRED");
     }
     if (errors.length > 0) {
-      return {
-        ok: false,
-        result: { ok: false, code: "VALIDATION_FAILED", errors },
-      };
+      return { ok: false, result: validationFailure(errors) };
     }
-    return { ok: true, goalId, checkpointId, reason };
+    return {
+      ok: true,
+      goalId,
+      checkpointId,
+      reason: reason.value,
+    };
   }
 
-  private async loadEditableCheckpoint(
-    goalId: string,
-    checkpointId: string,
-    expectedCheckpointVersion: number,
-    ownerId: string,
-  ):
-    Promise<
-      | {
-          ok: true;
-          goal: LearningGoalAggregate;
-          checkpoint: LearningCheckpointRecord;
-        }
-      | { ok: false; result: LearningCheckpointMutationResult }
-    > {
-    const goal = await this.goalRepository.getById(ownerId, goalId);
+  private async loadCheckpoint(input: {
+    ownerId: string;
+    goalId: string;
+    checkpointId: string;
+    expectedVersion: number;
+  }): Promise<
+    | {
+        ok: true;
+        goal: LearningGoalAggregate;
+        checkpoint: LearningCheckpointRecord;
+      }
+    | { ok: false; result: LearningCheckpointMutationResult }
+  > {
+    const goal = await this.goalRepository.getById(
+      input.ownerId,
+      input.goalId,
+    );
     if (goal === null) {
       return { ok: false, result: { ok: false, code: "GOAL_NOT_FOUND" } };
     }
-    if (!goalEditable(goal)) {
+    if (!isGoalEditable(goal)) {
       return { ok: false, result: { ok: false, code: "GOAL_NOT_EDITABLE" } };
     }
-    const checkpoint = findCheckpoint(goal, checkpointId);
+    const checkpoint = findCheckpoint(goal, input.checkpointId);
     if (checkpoint === null) {
       return {
         ok: false,
         result: { ok: false, code: "CHECKPOINT_NOT_FOUND" },
       };
     }
-    if (checkpoint.version !== expectedCheckpointVersion) {
+    if (checkpoint.version !== input.expectedVersion) {
       return { ok: false, result: { ok: false, code: "CONFLICT" } };
     }
     return { ok: true, goal, checkpoint };
