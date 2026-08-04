@@ -1,8 +1,16 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { EmptyState } from "@semogtw/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { readCookie } from "../client/cookies";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { GrowthGoalDetail } from "../components/devos/growth-goal-detail";
+import { GrowthWeightRebalance } from "../components/devos/growth-weight-rebalance";
 import { getGrowthGoalFn } from "../server/devos-growth";
+import {
+  applyGrowthWeightRebalanceFn,
+  previewGrowthWeightRebalanceFn,
+} from "../server/devos-growth-weight-rebalance";
 import { requireOwner } from "../server/require-owner";
 
 export const Route = createFileRoute("/devos/growth/$goalId")({
@@ -13,15 +21,36 @@ export const Route = createFileRoute("/devos/growth/$goalId")({
     const result = await getGrowthGoalFn({
       data: { goalId: params.goalId },
     });
-    if (result.ok) return result.goal;
-    if (result.code === "NOT_FOUND") return null;
-    throw new Error(
-      result.code === "UNAUTHORIZED"
-        ? "GROWTH_ROUTE_UNAUTHORIZED"
-        : result.code === "VALIDATION_FAILED"
-          ? "GROWTH_GOAL_ID_INVALID"
-          : "GROWTH_ROUTE_READ_FAILED",
-    );
+    if (!result.ok) {
+      if (result.code === "NOT_FOUND") return { goal: null, rebalance: null };
+      throw new Error(
+        result.code === "UNAUTHORIZED"
+          ? "GROWTH_ROUTE_UNAUTHORIZED"
+          : result.code === "VALIDATION_FAILED"
+            ? "GROWTH_GOAL_ID_INVALID"
+            : "GROWTH_ROUTE_READ_FAILED",
+      );
+    }
+
+    const preview = await previewGrowthWeightRebalanceFn({
+      data: { goalId: params.goalId },
+    });
+    if (
+      !preview.ok &&
+      preview.code !== "CHECKPOINTS_REQUIRED" &&
+      preview.code !== "GOAL_NOT_EDITABLE"
+    ) {
+      throw new Error(
+        preview.code === "UNAUTHORIZED"
+          ? "GROWTH_ROUTE_UNAUTHORIZED"
+          : "GROWTH_WEIGHT_PREVIEW_FAILED",
+      );
+    }
+
+    return {
+      goal: result.goal,
+      rebalance: preview.ok ? preview : null,
+    };
   },
   head: () => ({
     meta: [
@@ -33,7 +62,11 @@ export const Route = createFileRoute("/devos/growth/$goalId")({
 });
 
 function GrowthGoalRoutePage() {
-  const goal = Route.useLoaderData();
+  const { goal, rebalance } = Route.useLoaderData();
+  const router = useRouter();
+  const [idempotencyKey, setIdempotencyKey] = useState(() =>
+    crypto.randomUUID(),
+  );
 
   if (goal === null) {
     return (
@@ -55,6 +88,10 @@ function GrowthGoalRoutePage() {
     );
   }
 
+  const checkpointLabels = Object.fromEntries(
+    goal.checkpoints.map((checkpoint) => [checkpoint.id, checkpoint.title]),
+  );
+
   return (
     <DevOSShell activePath="/devos/growth">
       <p>
@@ -63,6 +100,38 @@ function GrowthGoalRoutePage() {
         </Link>
       </p>
       <GrowthGoalDetail goal={goal} />
+      {rebalance === null ? null : (
+        <GrowthWeightRebalance
+          checkpointLabels={checkpointLabels}
+          proposal={rebalance.proposal}
+          onApply={async ({ confirmed }) => {
+            const csrfToken = readCookie(CSRF_COOKIE_NAME);
+            if (csrfToken === null) {
+              return { ok: false, code: "WRITE_FAILED" };
+            }
+            const result = await applyGrowthWeightRebalanceFn({
+              data: {
+                csrfToken,
+                idempotencyKey,
+                goalId: goal.id,
+                expectedGoalVersion: rebalance.goalVersion,
+                expectedCheckpointVersions: rebalance.checkpointVersions,
+                reason: "Redistribuir pesos dos checkpoints",
+                confirmed,
+              },
+            });
+            if (!result.ok) {
+              return {
+                ok: false,
+                code: result.code === "CONFLICT" ? "CONFLICT" : "WRITE_FAILED",
+              };
+            }
+            setIdempotencyKey(crypto.randomUUID());
+            await router.invalidate();
+            return { ok: true };
+          }}
+        />
+      )}
     </DevOSShell>
   );
 }
