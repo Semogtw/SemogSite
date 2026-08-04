@@ -9,15 +9,16 @@ O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizz
 ## Documentação essencial
 
 - [Workflow orchestration core](docs/WORKFLOW_ORCHESTRATION.md) — reservas, gates, recuperação, fila segura, privacidade e evidências atuais.
+- [Learning, Growth, Evidence and Credentials](docs/LEARNING_GROWTH.md) — direção aprovada para metas de aprendizado, checkpoints, evidências, certificados e workflows Spark; ainda não implementada.
 - [Matriz de testes do workflow core](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md) — comandos e resultados realmente observados.
 - [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, checksums, remontagem, instalação sem rede, Chromium e SQLite nativo.
 - [Arquitetura e fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md) — fronteiras, composição e decisões estruturais.
-- [Modelo de dados](docs/DATA_MODEL.md) — entidades, projeções, aliases e migrations.
+- [Índice de especificações](docs/superpowers/specs/README.md) — decisões aprovadas e seus limites.
+- [Índice de planos](docs/superpowers/plans/README.md) — ordem executável e dependências.
+- [Modelo de dados](docs/DATA_MODEL.md) — entidades, projeções, aliases e migrations implementadas.
 - [Segurança](docs/security/README.md) — autenticação, privacidade, integrações e threat models.
 - [Testes](docs/TESTING.md) — gates gerais, comandos e evidências observadas.
 - [Runbook do ledger](docs/runbook/2026-08-01-cooperative-run-ledger.md) — operação e recuperação do fluxo cooperativo.
-- [Especificação da fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md).
-- [Plano da fundação](docs/superpowers/plans/2026-08-01-semogtw-platform-foundation.md).
 
 ## Estrutura
 
@@ -34,6 +35,8 @@ packages/auth          autenticação local e sessões revogáveis
 packages/ui            tokens, primitivas e navegação
 packages/config        configuração tipada e fail-closed
 ```
+
+Pacotes/Apps planejados, ainda inexistentes, incluem `packages/mcp-auth`, `apps/mcp-http` e módulos Growth sob os pacotes existentes. A documentação de planejamento não deve ser interpretada como código implementado.
 
 ## Requisitos
 
@@ -73,7 +76,7 @@ Sem autenticação válida, `/devos` e `/api/v1/private/*` falham fechados. Sem 
 
 Não existe transporte MCP remoto nesta fase. `apps/mcp` compõe o servidor somente leitura sem abrir HTTP, stdio ou outra porta.
 
-## Banco e migrations
+## Banco e migrations implementadas
 
 Uma base nova aplica, em ordem:
 
@@ -99,13 +102,15 @@ As migrations `0011`–`0013` adicionam coordenação cooperativa sem reescrever
 - obrigações de verificação vinculadas a SHA completo;
 - snapshots canônicos de recuperação com SHA-256 e idempotência.
 
+Planejamento reserva `0014_mcp_oauth.sql`, `0015_learning_goals.sql` e `0016_learning_evidence_credentials.sql`; esses arquivos/tabelas não existem ainda e precisam ser reconciliados com a branch mais nova antes de implementação.
+
 ## Semogtw DevOS
 
 As superfícies privadas implementadas incluem:
 
 - Overview, Hoje, Projetos, hub e Roadmap;
 - captura e ciclo de vida de atenção;
-- handoff de sessões e evidências;
+- handoff de sessões e evidências operacionais;
 - conclusão guardada de etapas;
 - Auditoria paginada;
 - Operação GitHub somente leitura;
@@ -128,9 +133,25 @@ A coordenação de desenvolvimento permanece provider-neutral:
 
 A sincronização GitHub nunca altera automaticamente branch ativa, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local auditado do DevOS e não escreve no GitHub.
 
+### Growth planejado — não implementado
+
+A direção aprovada adiciona futuramente:
+
+- metas privadas de aprendizado;
+- checkpoints ordenados, ponderados e binários/numéricos;
+- habilidades e estágios baseados em evidência;
+- progresso derivado, sem campo/mutação direta de porcentagem;
+- candidatos de evidência, claims, revisão e políticas determinísticas estreitas;
+- certificados/credenciais com estados de verificação;
+- referências exatas a evidências GitHub;
+- extrações Gmail/Spark como propostas normalizadas, sem credenciais Gmail no site;
+- seis leituras MCP Growth depois dos domínios e endpoint remoto verificados.
+
+O Spark é um adapter/coordenador opcional. DevOS permanece canônico, e nenhum commit, extensão de arquivo, assunto de e-mail ou confiança de modelo prova aprendizado/completude sozinho.
+
 ## MCP somente leitura
 
-`DevOSReadService` reutiliza os serviços de Overview, Today, Projetos e Roadmap. O catálogo inicial contém:
+`DevOSReadService` reutiliza os serviços de Overview, Today, Projetos e Roadmap. O catálogo inicial implementado contém:
 
 ```text
 Resources
@@ -150,6 +171,8 @@ devos_query_roadmap
 Todos os tools são anotados como somente leitura, não destrutivos e idempotentes. Entradas, saídas, limites de coleção, tamanho JSON e campos sensíveis são validados antes de responder.
 
 Isso não constitui endpoint remoto. Exposição futura exige autenticação, autorização, isolamento de sessão, TLS, validação de Host/Origin, rate limiting, timeouts, cache privado, logging sanitizado, revogação e rollback.
+
+Os catálogos de workflow/recovery e Growth descritos nos planos são futuros. Não há write scope/tool aprovado.
 
 ## API local
 
@@ -185,6 +208,8 @@ A evidência atual, os IDs das execuções e qualquer limitação permanecem reg
 
 O checkpoint offline observado em 3 de agosto de 2026 passou 157 arquivos / 600 testes, build de produção, validação das 13 migrations no SSR e 6/6 cenários Playwright do workflow core. O `pnpm check` agregado excedeu o limite externo somente durante a suíte monorepo; os mesmos testes passaram integralmente por workspace.
 
+Planejamento/documentação posterior não constitui evidência de OAuth, endpoint remoto, Growth, certificados, Gmail/Spark ou novos MCP tools.
+
 ## Backup
 
 ```bash
@@ -192,7 +217,7 @@ pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw.sqlite
 pnpm verify:backup -- ./backups/semogtw.sqlite ./data/semogtw.sqlite
 ```
 
-Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e estado das migrations. Upload, criptografia e rotação continuam responsabilidades do runtime escolhido.
+Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e estado das migrations implementadas. Upload, criptografia e rotação continuam responsabilidades do runtime escolhido.
 
 ## Segurança
 
@@ -206,6 +231,8 @@ Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e est
 - snapshots rejeitam conteúdo com aparência de credencial e caminhos de documento inseguros;
 - MCP não possui ferramenta de escrita nem transporte remoto;
 - migrations e dependências nativas necessárias ao SSR são verificadas no build.
+
+Futuros dados Growth, evidências, motivos pessoais, credential IDs, anexos e referências de e-mail permanecem igualmente privados e exigem DTOs/logs allowlist.
 
 ## Estado atual
 
@@ -229,9 +256,12 @@ Implementado e verificado por gates focados:
 - canonical provider-neutral em índices e projeções publicadas;
 - registry append-only de aliases e redirects `308` sem cache persistente.
 
-Ainda bloqueado ou pendente de fase separada:
+Ainda bloqueado, planejado ou pendente de fase separada:
 
 - autenticação e transporte MCP remoto;
+- workflow/recovery MCP read expansion;
+- Growth goals/checkpoints/skills, evidence/credentials and Growth MCP reads;
+- qualquer MCP write scope/tool, incluindo criação/propostas via Spark;
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
 - adapter e deploy no host definitivo;
 - migração de conteúdo real do Notion;
@@ -240,4 +270,4 @@ Ainda bloqueado ou pendente de fase separada:
 
 ## Referência upstream
 
-A fundação avaliou seletivamente o upstream registrado em `docs/UPSTREAM_REFERENCE.md`. Conteúdo pessoal, taxonomia de PDI e identidade visual literal do projeto de referência não devem ser reintroduzidos.
+A fundação avaliou seletivamente o upstream registrado em `docs/UPSTREAM_REFERENCE.md`. Conteúdo pessoal, taxonomia de PDI e identidade visual literal do projeto de referência não devem ser reintroduzidos. O novo Growth é um domínio Semogtw próprio, não uma cópia da taxonomia upstream.
