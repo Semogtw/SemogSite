@@ -96,6 +96,9 @@ export const learningCheckpoints = sqliteTable(
     required: integer("required", { mode: "boolean" }).notNull(),
     sequence: integer("sequence").notNull(),
     weight: integer("weight").notNull(),
+    weightMode: text("weight_mode", {
+      enum: ["automatic", "custom"],
+    }).notNull(),
     completionMode: text("completion_mode", {
       enum: ["binary", "numeric"],
     }).notNull(),
