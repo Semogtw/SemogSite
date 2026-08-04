@@ -25,6 +25,7 @@ export type CommandReceiptClaimInput = {
 
 export type CommandReceiptRecord = CommandReceiptClaimInput & {
   status: "in_progress" | "succeeded" | "failed";
+  statusStorageValue: string;
   resultHash: string | null;
   resultSummaryJson: string | null;
   stableErrorCode: string | null;
@@ -62,6 +63,7 @@ export type CommandReceiptClaimOutcome =
   | { kind: "in_progress"; receipt: CommandReceiptRecord }
   | { kind: "replay_succeeded"; receipt: CommandReceiptRecord }
   | { kind: "replay_failed"; receipt: CommandReceiptRecord }
+  | { kind: "corrupt"; receipt: CommandReceiptRecord }
   | { kind: "conflict" };
 
 type ReceiptRow = {
@@ -76,7 +78,7 @@ type ReceiptRow = {
   actor_id: string;
   client_id: string;
   request_hash: string;
-  status: CommandReceiptRecord["status"];
+  status: string;
   result_hash: string | null;
   result_summary_json: string | null;
   stable_error_code: string | null;
@@ -100,6 +102,7 @@ const actorKinds = new Set([
   "system",
   "external_adapter",
 ]);
+const receiptStatuses = new Set(["in_progress", "succeeded", "failed"]);
 
 function fromRow(row: ReceiptRow): CommandReceiptRecord {
   return {
@@ -114,7 +117,8 @@ function fromRow(row: ReceiptRow): CommandReceiptRecord {
     actorId: row.actor_id,
     clientId: row.client_id,
     requestHash: row.request_hash,
-    status: row.status,
+    status: row.status as CommandReceiptRecord["status"],
+    statusStorageValue: row.status,
     resultHash: row.result_hash,
     resultSummaryJson: row.result_summary_json,
     stableErrorCode: row.stable_error_code,
@@ -176,6 +180,35 @@ function claimValid(input: CommandReceiptClaimInput): boolean {
   return input.clientId.length === 0;
 }
 
+function storedReceiptBaseValid(receipt: CommandReceiptRecord): boolean {
+  if (
+    !receiptStatuses.has(receipt.statusStorageValue) ||
+    (receipt.retryableStorageValue !== null &&
+      receipt.retryableStorageValue !== 0 &&
+      receipt.retryableStorageValue !== 1) ||
+    !isCanonicalUtcTimestamp(receipt.claimedAt) ||
+    !isCanonicalUtcTimestamp(receipt.leaseExpiresAt) ||
+    !isCanonicalUtcTimestamp(receipt.createdAt) ||
+    !isCanonicalUtcTimestamp(receipt.updatedAt) ||
+    receipt.createdAt !== receipt.claimedAt ||
+    receipt.leaseExpiresAt <= receipt.claimedAt ||
+    receipt.updatedAt < receipt.claimedAt
+  ) {
+    return false;
+  }
+
+  if (receipt.statusStorageValue === "in_progress") {
+    return (
+      receipt.resultHash === null &&
+      receipt.resultSummaryJson === null &&
+      receipt.stableErrorCode === null &&
+      receipt.retryableStorageValue === null &&
+      receipt.completedAt === null
+    );
+  }
+  return true;
+}
+
 function validSummary(value: string): boolean {
   if (Buffer.byteLength(value, "utf8") > 4000) return false;
   try {
@@ -206,6 +239,23 @@ function finalizationValid(input: CommandReceiptFinalization): boolean {
     );
   }
   return stableErrorPattern.test(input.stableErrorCode);
+}
+
+function outcomeForExisting(
+  existing: CommandReceiptRecord,
+  requestHash: string,
+): CommandReceiptClaimOutcome {
+  if (!storedReceiptBaseValid(existing)) {
+    return { kind: "corrupt", receipt: existing };
+  }
+  if (existing.requestHash !== requestHash) return { kind: "conflict" };
+  if (existing.statusStorageValue === "succeeded") {
+    return { kind: "replay_succeeded", receipt: existing };
+  }
+  if (existing.statusStorageValue === "failed") {
+    return { kind: "replay_failed", receipt: existing };
+  }
+  return { kind: "in_progress", receipt: existing };
 }
 
 export class SqliteCommandReceiptRepository {
@@ -257,18 +307,9 @@ export class SqliteCommandReceiptRepository {
         return { kind: "claimed", recovered: false, receipt: inserted } as const;
       }
 
-      if (existing.requestHash !== input.requestHash) {
-        return { kind: "conflict" } as const;
-      }
-      if (existing.status === "succeeded") {
-        return { kind: "replay_succeeded", receipt: existing } as const;
-      }
-      if (existing.status === "failed") {
-        return { kind: "replay_failed", receipt: existing } as const;
-      }
-      if (existing.leaseExpiresAt > input.claimedAt) {
-        return { kind: "in_progress", receipt: existing } as const;
-      }
+      const existingOutcome = outcomeForExisting(existing, input.requestHash);
+      if (existingOutcome.kind !== "in_progress") return existingOutcome;
+      if (existing.leaseExpiresAt > input.claimedAt) return existingOutcome;
 
       const updated = this.database.$client
         .prepare(
@@ -287,14 +328,13 @@ export class SqliteCommandReceiptRepository {
       if (updated.changes !== 1) {
         const current = this.findById(existing.id);
         if (current === null) return { kind: "conflict" } as const;
-        return current.status === "succeeded"
-          ? ({ kind: "replay_succeeded", receipt: current } as const)
-          : current.status === "failed"
-            ? ({ kind: "replay_failed", receipt: current } as const)
-            : ({ kind: "in_progress", receipt: current } as const);
+        return outcomeForExisting(current, input.requestHash);
       }
       const recovered = this.findById(existing.id);
       if (recovered === null) throw new Error("COMMAND_RECEIPT_RECOVERY_FAILED");
+      if (!storedReceiptBaseValid(recovered)) {
+        return { kind: "corrupt", receipt: recovered } as const;
+      }
       return { kind: "claimed", recovered: true, receipt: recovered } as const;
     });
 
@@ -303,14 +343,8 @@ export class SqliteCommandReceiptRepository {
     } catch (error) {
       if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
         const existing = this.findBySemanticKey(input);
-        if (existing === null || existing.requestHash !== input.requestHash) {
-          return { kind: "conflict" };
-        }
-        return existing.status === "succeeded"
-          ? { kind: "replay_succeeded", receipt: existing }
-          : existing.status === "failed"
-            ? { kind: "replay_failed", receipt: existing }
-            : { kind: "in_progress", receipt: existing };
+        if (existing === null) return { kind: "conflict" };
+        return outcomeForExisting(existing, input.requestHash);
       }
       throw error;
     }
@@ -323,7 +357,8 @@ export class SqliteCommandReceiptRepository {
     const existing = this.findById(input.receiptId);
     if (
       existing === null ||
-      existing.status !== "in_progress" ||
+      !storedReceiptBaseValid(existing) ||
+      existing.statusStorageValue !== "in_progress" ||
       existing.requestHash !== input.requestHash ||
       input.completedAt < existing.claimedAt
     ) {
