@@ -70,8 +70,8 @@ describe("CommandGateway.prepare", () => {
     new OwnerBrowserPolicy(),
   );
 
-  it("validates payload, binds the resource and returns a policy decision", () => {
-    const prepared = gateway.prepare(envelope());
+  it("validates payload, binds the resource and returns a policy decision", async () => {
+    const prepared = await gateway.prepare(envelope());
 
     expect(prepared).toMatchObject({
       commandId: "attention.transition",
@@ -89,9 +89,9 @@ describe("CommandGateway.prepare", () => {
     expect(prepared.requestHash).toMatch(/^[a-f0-9]{64}$/u);
   });
 
-  it("keeps the semantic request hash stable when only confirmation changes", () => {
-    const first = gateway.prepare(envelope());
-    const second = gateway.prepare(
+  it("keeps the semantic request hash stable when only confirmation changes", async () => {
+    const first = await gateway.prepare(envelope());
+    const second = await gateway.prepare(
       envelope({
         payload: { action: "acknowledge", attentionId: "attention-1" },
         context: { ...envelope().context, confirmed: true },
@@ -103,14 +103,14 @@ describe("CommandGateway.prepare", () => {
     expect(second.decision.outcome).toBe("allow");
   });
 
-  it("rejects a client target that differs from the server binding", () => {
-    expect(() =>
+  it("rejects a client target that differs from the server binding", async () => {
+    await expect(
       gateway.prepare(
         envelope({
           target: { resourceType: "attention", resourceId: "attention-other" },
         }),
       ),
-    ).toThrow("COMMAND_TARGET_MISMATCH");
+    ).rejects.toThrow("COMMAND_TARGET_MISMATCH");
   });
 
   it.each([
@@ -118,19 +118,19 @@ describe("CommandGateway.prepare", () => {
     ["correlation", { correlationId: " correlation " }],
     ["idempotency", { idempotencyKey: "" }],
     ["reason", { reason: "" }],
-  ] as const)("rejects invalid %s context", (_name, contextOverride) => {
-    expect(() =>
+  ] as const)("rejects invalid %s context", async (_name, contextOverride) => {
+    await expect(
       gateway.prepare(
         envelope({
           context: { ...envelope().context, ...contextOverride },
         }),
       ),
-    ).toThrow("COMMAND_CONTEXT_INVALID");
+    ).rejects.toThrow("COMMAND_CONTEXT_INVALID");
   });
 
-  it("fails closed for unknown commands before hashing", () => {
-    expect(() =>
+  it("fails closed for unknown commands before hashing", async () => {
+    await expect(
       gateway.prepare(envelope({ commandId: "attention.unknown" })),
-    ).toThrow("COMMAND_DEFINITION_NOT_FOUND");
+    ).rejects.toThrow("COMMAND_DEFINITION_NOT_FOUND");
   });
 });
