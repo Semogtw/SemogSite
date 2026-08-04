@@ -27,6 +27,7 @@ type InternalOwnerEntityAction = {
   action: OwnerEntityAction;
 };
 
+const maximumDiscoveredActions = 20;
 const commandLabels = new Map(
   (catalogJson.commands as readonly CatalogCommandLabel[]).map((command) => [
     command.commandId,
@@ -131,5 +132,6 @@ export function listOwnerEntityActions(input: {
           ? 1
           : 0,
     )
+    .slice(0, maximumDiscoveredActions)
     .map((entry) => entry.action);
 }
