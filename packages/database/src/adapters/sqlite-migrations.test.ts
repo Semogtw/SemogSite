@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteDatabase, migrate } from "./sqlite";
 
 describe("SQLite migrations", () => {
-  it("applies every committed migration including workflow orchestration", () => {
+  it("applies every committed migration including Growth", () => {
     const database = createSqliteDatabase(":memory:");
 
     migrate(database);
@@ -26,6 +26,7 @@ describe("SQLite migrations", () => {
       { name: "0011_scope_reservations.sql" },
       { name: "0012_verification_obligations.sql" },
       { name: "0013_recovery_snapshots.sql" },
+      { name: "0015_learning_goals.sql" },
     ]);
     expect(
       database.$client
@@ -83,6 +84,33 @@ describe("SQLite migrations", () => {
       { name: "scope_reservations" },
       { name: "verification_obligation_events" },
       { name: "verification_obligations" },
+    ]);
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name IN (
+             'learning_goals',
+             'learning_goal_events',
+             'learning_checkpoints',
+             'learning_checkpoint_events',
+             'skills',
+             'skill_alias_events',
+             'learning_goal_skills',
+             'learning_checkpoint_skills'
+           )
+           ORDER BY name ASC`,
+        )
+        .all(),
+    ).toEqual([
+      { name: "learning_checkpoint_events" },
+      { name: "learning_checkpoint_skills" },
+      { name: "learning_checkpoints" },
+      { name: "learning_goal_events" },
+      { name: "learning_goal_skills" },
+      { name: "learning_goals" },
+      { name: "skill_alias_events" },
+      { name: "skills" },
     ]);
 
     const syncRunColumns = new Set(
