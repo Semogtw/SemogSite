@@ -26,7 +26,7 @@ function insertGoal(database: ReturnType<typeof createSqliteDatabase>): void {
 }
 
 describe("learning goals migration", () => {
-  it("applies 0015 idempotently without claiming migration 0014", () => {
+  it("applies Growth migrations idempotently without claiming migration 0014", () => {
     const database = createSqliteDatabase(":memory:");
 
     migrate(database);
@@ -38,8 +38,13 @@ describe("learning goals migration", () => {
       .map((row) => (row as { name: string }).name);
 
     expect(migrationNames).toContain("0015_learning_goals.sql");
+    expect(migrationNames).toContain(
+      "0015a_learning_checkpoint_weight_modes.sql",
+    );
     expect(migrationNames).not.toContain("0014_mcp_oauth.sql");
-    expect(migrationNames.at(-1)).toBe("0015_learning_goals.sql");
+    expect(migrationNames.at(-1)).toBe(
+      "0015a_learning_checkpoint_weight_modes.sql",
+    );
 
     database.$client.close();
   });
