@@ -38,6 +38,10 @@ function commandRiskValid(value: string): value is AgentCommandRisk {
   );
 }
 
+function riskCeilingValid(value: unknown): value is AgentRiskCeiling {
+  return value === "low" || value === "medium" || value === "high";
+}
+
 function decision(input: {
   outcome: PolicyDecision["outcome"];
   risk: AgentCommandRisk;
@@ -69,16 +73,20 @@ function resourceAuthorized(input: {
   capability: AgentCapability;
   resource: CommandResource;
 }): boolean {
-  const selectorsByKind =
-    input.authorization.capabilityResourceSelectors[input.capability];
-  const selectors = selectorsByKind?.[input.resource.kind];
-  return (
-    selectors !== undefined &&
-    selectors.length > 0 &&
-    selectors.some((selector) =>
-      selectorMatchesResource({ selector, resource: input.resource }),
-    )
-  );
+  try {
+    const selectorsByKind =
+      input.authorization.capabilityResourceSelectors?.[input.capability];
+    const selectors = selectorsByKind?.[input.resource.kind];
+    return (
+      Array.isArray(selectors) &&
+      selectors.length > 0 &&
+      selectors.some((selector) =>
+        selectorMatchesResource({ selector, resource: input.resource }),
+      )
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function decideAgentCommandDisposition(input: {
@@ -98,7 +106,10 @@ export function decideAgentCommandDisposition(input: {
     ? runtimeRisk
     : "low";
 
-  if (input.authorization === null) {
+  if (
+    typeof input.authorization !== "object" ||
+    input.authorization === null
+  ) {
     return deny(safeRisk, "NO_EFFECTIVE_GRANT");
   }
 
@@ -109,6 +120,7 @@ export function decideAgentCommandDisposition(input: {
   const runtimeCapability = input.command?.capability as string;
   if (
     !isAgentCapability(runtimeCapability) ||
+    !Array.isArray(input.authorization.capabilities) ||
     !input.authorization.capabilities.includes(runtimeCapability)
   ) {
     return deny(safeRisk, "CAPABILITY_DENIED");
@@ -134,10 +146,10 @@ export function decideAgentCommandDisposition(input: {
   }
 
   const riskCeiling =
-    input.authorization.riskCeilingByCapability[runtimeCapability];
+    input.authorization.riskCeilingByCapability?.[runtimeCapability];
   const requiredCeiling = requiredCeilingForRisk(runtimeRisk);
   if (
-    riskCeiling === undefined ||
+    !riskCeilingValid(riskCeiling) ||
     riskRank[riskCeiling] < riskRank[requiredCeiling]
   ) {
     return deny(runtimeRisk, "RISK_CEILING_EXCEEDED");
