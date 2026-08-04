@@ -85,7 +85,10 @@ function includes<Value extends string>(
 function validateDefinition<Payload extends JsonValue, Result extends JsonValue>(
   definition: CommandDefinition<Payload, Result>,
 ): void {
-  if (!commandIdPattern.test(definition.commandId)) {
+  if (
+    !commandIdPattern.test(definition.commandId) ||
+    definition.commandId.length > 160
+  ) {
     throw new Error("COMMAND_ID_INVALID");
   }
   if (
@@ -97,14 +100,21 @@ function validateDefinition<Payload extends JsonValue, Result extends JsonValue>
   }
   if (
     !Number.isInteger(definition.commandVersion) ||
-    definition.commandVersion < 1
+    definition.commandVersion < 1 ||
+    definition.commandVersion > 2_147_483_647
   ) {
     throw new Error("COMMAND_VERSION_INVALID");
   }
-  if (!capabilityPattern.test(definition.capability)) {
+  if (
+    !capabilityPattern.test(definition.capability) ||
+    definition.capability.length > 160
+  ) {
     throw new Error("COMMAND_CAPABILITY_INVALID");
   }
-  if (!resourceTypePattern.test(definition.resourceType)) {
+  if (
+    !resourceTypePattern.test(definition.resourceType) ||
+    definition.resourceType.length > 120
+  ) {
     throw new Error("COMMAND_RESOURCE_TYPE_INVALID");
   }
   if (
