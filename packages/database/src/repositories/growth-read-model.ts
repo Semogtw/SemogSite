@@ -1,9 +1,9 @@
+import type { Priority } from "@semogtw/domain";
 import {
   deriveGoalProgress,
   type CheckpointCompletionMode,
   type LearningCheckpointStatus,
   type LearningGoalStatus,
-  type Priority,
   type SkillStage,
 } from "@semogtw/domain/growth";
 import type { SqliteDatabase } from "../adapters/sqlite";
@@ -152,7 +152,6 @@ type SkillRow = {
 type GoalSkillRow = {
   skill_id: string;
   desired_stage: SkillStage;
-  skill_name: string;
 };
 
 const GOAL_STATUSES = new Set<LearningGoalStatus>([
@@ -193,10 +192,7 @@ function validateStatuses(
 }
 
 function completionModeFromRow(row: CheckpointRow): CheckpointCompletionMode {
-  if (
-    row.required !== 0 &&
-    row.required !== 1
-  ) {
+  if (row.required !== 0 && row.required !== 1) {
     throw new Error("GROWTH_CHECKPOINT_ROW_INVALID");
   }
   if (row.completion_mode === "binary") {
@@ -346,7 +342,7 @@ export class SqliteGrowthReadModel {
     const progress = progressFromCheckpoints(checkpoints);
     const skills = this.database.$client
       .prepare(
-        `SELECT link.skill_id, link.desired_stage, skill.name AS skill_name
+        `SELECT link.skill_id, link.desired_stage
          FROM learning_goal_skills AS link
          INNER JOIN skills AS skill ON skill.id = link.skill_id
          WHERE link.goal_id = ? AND skill.owner_id = ?
@@ -359,15 +355,18 @@ export class SqliteGrowthReadModel {
       description: row.description,
       motivation: row.motivation,
       checkpoints,
-      skills: skills.map((skill) => ({
-        skillId: skill.skill_id,
-        canonicalSkillId: this.resolveCanonicalSkillId(
+      skills: skills.map((skill) => {
+        const canonical = this.resolveCanonicalSkill(
           ownerId,
           skill.skill_id,
-        ),
-        name: skill.skill_name,
-        desiredStage: skill.desired_stage,
-      })),
+        );
+        return {
+          skillId: skill.skill_id,
+          canonicalSkillId: canonical.id,
+          name: canonical.name,
+          desiredStage: skill.desired_stage,
+        };
+      }),
       progressExplanation: progress.explanation,
     };
   }
@@ -391,17 +390,20 @@ export class SqliteGrowthReadModel {
       )
       .all(ownerId, input.includeArchived ? 1 : 0, limit) as SkillRow[];
 
-    return rows.map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      description: row.description,
-      status: row.status,
-      canonicalSkillId: this.resolveCanonicalSkillId(ownerId, row.id),
-      aliases: this.listActiveAliases(ownerId, row.id),
-      updatedAt: row.updated_at,
-      version: row.version,
-    }));
+    return rows.map((row) => {
+      const canonical = this.resolveCanonicalSkill(ownerId, row.id);
+      return {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+        status: row.status,
+        canonicalSkillId: canonical.id,
+        aliases: this.listActiveAliases(ownerId, row.id),
+        updatedAt: row.updated_at,
+        version: row.version,
+      };
+    });
   }
 
   private goalSummaryFromRow(
@@ -409,8 +411,7 @@ export class SqliteGrowthReadModel {
     suppliedCheckpoints?: readonly LearningCheckpointRead[],
     suppliedProgress?: GrowthProgressRead,
   ): LearningGoalSummaryRead {
-    const checkpoints =
-      suppliedCheckpoints ?? this.listGoalCheckpoints(row.id);
+    const checkpoints = suppliedCheckpoints ?? this.listGoalCheckpoints(row.id);
     const progress =
       suppliedProgress ?? progressFromCheckpoints(checkpoints).summary;
     const nextCheckpoint = checkpoints.find(
@@ -511,7 +512,10 @@ export class SqliteGrowthReadModel {
     });
   }
 
-  private resolveCanonicalSkillId(ownerId: string, skillId: string): string {
+  private resolveCanonicalSkill(
+    ownerId: string,
+    skillId: string,
+  ): { id: string; name: string } {
     let currentId: string | null = skillId;
     const visited = new Set<string>();
 
@@ -522,18 +526,19 @@ export class SqliteGrowthReadModel {
       visited.add(currentId);
       const row = this.database.$client
         .prepare(
-          `SELECT status, merged_into_skill_id
+          `SELECT name, status, merged_into_skill_id
            FROM skills
            WHERE id = ? AND owner_id = ?`,
         )
         .get(currentId, ownerId) as
         | {
+            name: string;
             status: "active" | "archived" | "merged";
             merged_into_skill_id: string | null;
           }
         | undefined;
       if (row === undefined) throw new Error("GROWTH_SKILL_ALIAS_INVALID");
-      if (row.status !== "merged") return currentId;
+      if (row.status !== "merged") return { id: currentId, name: row.name };
       if (row.merged_into_skill_id === null) {
         throw new Error("GROWTH_SKILL_ALIAS_INVALID");
       }
