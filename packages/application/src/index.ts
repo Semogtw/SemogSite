@@ -12,6 +12,8 @@ export {
   oauthScopeForCapability,
   resourceKindsForCapability,
 } from "./authorization/capabilities";
+export { validateAgentAuthorizationCatalog } from "./authorization/catalog-coverage";
+export type { AgentAuthorizationCommandEntry } from "./authorization/catalog-coverage";
 export {
   confirmationChallengeResponseBytes,
   confirmationChallengeTtlMinutes,
