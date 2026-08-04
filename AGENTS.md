@@ -1,6 +1,6 @@
 # SemogSite Agent Handoff
 
-This file exists on the consolidated development-planning branch so agents see pending product decisions before changing overlapping areas.
+This file exists on the consolidated development-planning branch so agents see pending product decisions and implementation sequencing before changing overlapping areas.
 
 ## Current consolidated branch
 
@@ -10,13 +10,13 @@ The current consolidated planning baseline is:
 develop/learning-growth-spark-planning
 ```
 
-Always inspect the newest commits and open stacked pull requests before assuming this branch contains every approved design decision.
+Always inspect the newest commits and open stacked pull requests before assuming this branch contains every approved design decision or executable plan.
 
 ## Pending canonical design work
 
 PR #22, branch `develop/agent-editability-control-plane-spec`, contains approved design direction that is not yet merged into this branch and is not implemented code.
 
-Before changing owner UX, MCP writes, agent permissions, Spark automation, Growth creation flows, percentages, templates, or AI-assisted behavior, review these documents in PR #22:
+Before changing owner UX, MCP writes, agent permissions, Spark automation, Growth creation flows, percentages, templates, AI-assisted behavior, code execution or deployment, review these documents in PR #22:
 
 ```text
 docs/superpowers/specs/2026-08-03-semogtw-adaptive-owner-experience-design.md
@@ -36,6 +36,35 @@ Canonical decisions include:
 - Spark must retrieve the canonical event through authenticated MCP before acting;
 - the email wake bridge is not real-time and must not be used for critical or time-sensitive operations.
 
+## Executable implementation plans
+
+PR #23, branch `develop/agent-editability-implementation-plans`, is stacked on PR #22 and contains documentation-only implementation plans. It does not make any planned capability implemented.
+
+Canonical index:
+
+```text
+docs/superpowers/plans/2026-08-03-semogtw-agent-editability-plan-stack.md
+```
+
+The stack covers:
+
+```text
+adaptive Growth owner experience
+Command Gateway, durable idempotency and editability coverage
+agent profiles, resource grants, temporary trust and write kill switches
+immutable approvals, recent authentication and change sets
+operational domain UI/MCP write rollout
+Growth domain UI/MCP write rollout
+editorial and appearance UI/MCP write rollout
+Development Requests and exact-SHA workflow control
+isolated development executor and exact-head draft PRs
+merge, artifacts, deployment health and rollback
+```
+
+Authorization infrastructure alone does not make a feature editable. Each domain rollout must inventory supported mutations, migrate owner UI to canonical commands, add filtered MCP tools and pass its own confidentiality, idempotency, conflict, audit and approval gates.
+
+Do not execute a later plan merely because its file exists. The index defines hard gates for remote MCP writes, critical actions, domain rollouts, executor enablement, deployment and the optional Spark email wake bridge.
+
 ## Documentation rule
 
 Do not duplicate these cross-cutting rules in new specs or plans.
@@ -50,4 +79,4 @@ Before adding documentation:
 
 ## Implementation boundary
 
-Do not treat PR #22 as implemented functionality. The current MCP rollout remains read-only until its existing OAuth, transport, isolation, revocation, backup and client-acceptance gates pass. Future writes, internal model integration and the Spark email wake bridge require separate executable plans and fresh owner approval at their implementation gates.
+Do not treat PR #22 or PR #23 as implemented functionality. The current MCP rollout remains read-only until its OAuth, transport, isolation, revocation, backup and client-acceptance gates pass. Future writes, internal model integration and the Spark email wake bridge remain separately gated. The development executor requires a verified host-enforced sandbox; a plain Node child process is insufficient. Production deployment remains unavailable until the owner selects a host and a provider-specific adapter passes a separate reviewed implementation plan.
