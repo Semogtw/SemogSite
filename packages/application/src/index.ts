@@ -61,3 +61,8 @@ export type {
   UndoStrategy,
 } from "./core";
 export { OwnerBrowserPolicy } from "./owner-browser-policy";
+export { completeStageCommand } from "./roadmap/complete-stage-command";
+export type {
+  CompleteStagePayload,
+  CompleteStageResult,
+} from "./roadmap/complete-stage-command";
