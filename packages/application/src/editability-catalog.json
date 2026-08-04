@@ -3,6 +3,7 @@
     {
       "commandId": "attention.transition",
       "commandVersion": 1,
+      "labelPtBr": "Finalizar item",
       "capability": "attention.write",
       "resourceType": "attention_item",
       "riskFloor": "medium",
@@ -17,6 +18,7 @@
     {
       "commandId": "roadmap.stages.complete",
       "commandVersion": 1,
+      "labelPtBr": "Concluir etapa",
       "capability": "roadmap.write",
       "resourceType": "stage",
       "riskFloor": "high",
