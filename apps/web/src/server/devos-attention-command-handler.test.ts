@@ -1,3 +1,4 @@
+import type { SqliteDevOSCommandGateway } from "@semogtw/database/commands";
 import { describe, expect, it, vi } from "vitest";
 import { createDevOSAttentionCommandHandler } from "./devos-attention-command-handler";
 
@@ -11,24 +12,39 @@ const input = {
   confirmed: true as const,
 };
 
+type Owner = { id: string; sessionId: string };
+type TestDatabase = { marker: string };
+type GatewayInput = Parameters<SqliteDevOSCommandGateway["execute"]>[0];
+type GatewayResult = Awaited<
+  ReturnType<SqliteDevOSCommandGateway["execute"]>
+>;
+
 function dependencies() {
-  const execute = vi.fn(async () => ({
-    ok: true as const,
-    value: {
-      attentionId: "attention-1",
-      status: "resolved",
-      updatedAt: "2026-08-04T06:00:00.000Z",
-    },
-    replayed: false,
-    receiptId: "receipt-1",
-  }));
+  const execute = vi.fn<(input: GatewayInput) => Promise<GatewayResult>>(
+    async () => ({
+      ok: true,
+      value: {
+        attentionId: "attention-1",
+        status: "resolved",
+        updatedAt: "2026-08-04T06:00:00.000Z",
+      },
+      replayed: false,
+      receiptId: "receipt-1",
+    }),
+  );
+  const authorizeMutation = vi.fn<
+    (csrfToken: string) => Promise<Owner | null>
+  >(async () => ({ id: "owner-1", sessionId: "session-1" }));
+  const getDatabase = vi.fn<() => Promise<TestDatabase | null>>(
+    async () => ({ marker: "database" }),
+  );
+  const createGateway = vi.fn<
+    (database: TestDatabase) => SqliteDevOSCommandGateway
+  >(() => ({ execute }));
   return {
-    authorizeMutation: vi.fn(async () => ({
-      id: "owner-1",
-      sessionId: "session-1",
-    })),
-    getDatabase: vi.fn(async () => ({ marker: "database" })),
-    createGateway: vi.fn(() => ({ execute })),
+    authorizeMutation,
+    getDatabase,
+    createGateway,
     execute,
   };
 }
