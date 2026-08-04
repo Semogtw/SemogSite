@@ -9,6 +9,7 @@ export type {
   LearningGoalSummaryRead,
   SkillSummaryRead,
 } from "./repositories/growth-read-model";
+export { SqliteCheckpointWeightRebalanceRepository } from "./repositories/checkpoint-weight-rebalance-repository";
 export { SqliteLearningCheckpointRepository } from "./repositories/learning-checkpoint-repository";
 export { SqliteLearningGoalRepository } from "./repositories/learning-goal-repository";
 export { SqliteQuickLearningGoalRepository } from "./repositories/quick-learning-goal-repository";
