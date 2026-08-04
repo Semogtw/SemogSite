@@ -70,19 +70,79 @@ class ControlledExecutionFailure extends Error {
   }
 }
 
+const hashPattern = /^[a-f0-9]{64}$/u;
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-function parseSummary(value: string | null): Readonly<Record<string, unknown>> {
-  if (value === null) return {};
-  const parsed = JSON.parse(value) as unknown;
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error("COMMAND_RECEIPT_RESULT_INVALID");
+function invalidReplay(receipt: CommandReceiptRecord): SqliteCommandExecutionResult {
+  return {
+    kind: "failed",
+    replayed: true,
+    receiptId: receipt.id,
+    stableErrorCode: "COMMAND_RECEIPT_RESULT_INVALID",
+    retryable: false,
+  };
+}
+
+function replaySuccess(
+  receipt: CommandReceiptRecord,
+): SqliteCommandExecutionResult {
+  const serialized = receipt.resultSummaryJson;
+  const resultHash = receipt.resultHash;
+  if (
+    serialized === null ||
+    resultHash === null ||
+    !hashPattern.test(resultHash) ||
+    receipt.stableErrorCode !== null ||
+    receipt.retryable !== null ||
+    receipt.completedAt === null ||
+    Buffer.byteLength(serialized, "utf8") > 4000 ||
+    sha256(serialized) !== resultHash
+  ) {
+    return invalidReplay(receipt);
   }
-  return parsed as Readonly<Record<string, unknown>>;
+
+  try {
+    const parsed = JSON.parse(serialized) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return invalidReplay(receipt);
+    }
+    const summary = parsed as Readonly<Record<string, unknown>>;
+    if (canonicalJson(summary) !== serialized) return invalidReplay(receipt);
+    return {
+      kind: "succeeded",
+      replayed: true,
+      receiptId: receipt.id,
+      summary,
+    };
+  } catch {
+    return invalidReplay(receipt);
+  }
+}
+
+function replayFailure(
+  receipt: CommandReceiptRecord,
+): SqliteCommandExecutionResult {
+  if (
+    receipt.resultHash !== null ||
+    receipt.resultSummaryJson !== null ||
+    receipt.stableErrorCode === null ||
+    !stableErrorPattern.test(receipt.stableErrorCode) ||
+    typeof receipt.retryable !== "boolean" ||
+    receipt.completedAt === null
+  ) {
+    return invalidReplay(receipt);
+  }
+  return {
+    kind: "failed",
+    replayed: true,
+    receiptId: receipt.id,
+    stableErrorCode: receipt.stableErrorCode,
+    retryable: receipt.retryable,
+  };
 }
 
 function serializeSummary(
@@ -154,22 +214,10 @@ export class SqliteTransactionalCommandExecutor {
       return { kind: "in_progress", receiptId: claimed.receipt.id };
     }
     if (claimed.kind === "replay_succeeded") {
-      return {
-        kind: "succeeded",
-        replayed: true,
-        receiptId: claimed.receipt.id,
-        summary: parseSummary(claimed.receipt.resultSummaryJson),
-      };
+      return replaySuccess(claimed.receipt);
     }
     if (claimed.kind === "replay_failed") {
-      return {
-        kind: "failed",
-        replayed: true,
-        receiptId: claimed.receipt.id,
-        stableErrorCode:
-          claimed.receipt.stableErrorCode ?? "COMMAND_RECEIPT_RESULT_INVALID",
-        retryable: claimed.receipt.retryable ?? false,
-      };
+      return replayFailure(claimed.receipt);
     }
 
     const receipt = claimed.receipt;
