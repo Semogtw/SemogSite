@@ -15,9 +15,9 @@ describe("owner entity action disclosure structure", () => {
     expect(source).toContain("Planejado");
   });
 
-  it("uses commandId only as an internal React key", () => {
-    expect(source).toContain("key={action.commandId}");
-    expect(source).not.toContain("<code>{action.commandId}</code>");
-    expect(source).not.toContain("<span>{action.commandId}</span>");
+  it("does not depend on or render technical command identities", () => {
+    expect(source).not.toContain("action.commandId");
+    expect(source).not.toContain("attention.transition");
+    expect(source).not.toContain("roadmap.stages.complete");
   });
 });
