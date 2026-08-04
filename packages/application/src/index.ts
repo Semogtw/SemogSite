@@ -1,3 +1,4 @@
+export { canonicalJson, canonicalSha256 } from "./canonical-json";
 export {
   auditStrategies,
   confirmationOutcomes,
