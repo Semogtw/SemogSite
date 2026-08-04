@@ -73,6 +73,7 @@ export type {
   EditabilityManifest,
   EditabilityMcpExposure,
 } from "./editability-manifest";
+export { isCanonicalUtcTimestamp } from "./iso-timestamp";
 export {
   listOwnerEntityActions,
 } from "./owner-entity-actions";
