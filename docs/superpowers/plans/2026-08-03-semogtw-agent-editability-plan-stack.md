@@ -94,8 +94,9 @@ These plans remain authoritative for their current read-only/domain slices.
 
 3. Agent Write Authorization
    branch: develop/agent-write-authorization-implementation
-   state: in progress
-   pure application authorization: ready
+   PR: #27 (draft)
+   pure application authorization: implemented; branch gates not yet executed
+   effective grants preserve atomic grant/capability/resource/risk clauses
    OAuth-backed persistence: blocked_internal because migration 0014 and @semogtw/mcp-auth are absent
    remote write enablement: blocked until authenticated remote read gates and concrete domain rollouts pass
 
@@ -103,11 +104,14 @@ These plans remain authoritative for their current read-only/domain slices.
    state: planned only
 ```
 
-The authorization gate matrix is canonical for the current prerequisite decision:
+The authorization gate matrix and current handoff are canonical for this implementation state:
 
-`docs/testing/2026-08-03-agent-write-authorization-test-matrix.md`
+```text
+docs/testing/2026-08-03-agent-write-authorization-test-matrix.md
+docs/testing/2026-08-04-agent-write-authorization-progress.md
+```
 
-Do not create a placeholder OAuth table in plan 3. The provider-neutral capability, selector, grant-intersection and trust validation modules may progress, but `0018_agent_authorization.sql` must retain its real foreign-key dependency on the OAuth client schema defined by plan 1 of the remote MCP stack.
+Do not create a placeholder OAuth table in plan 3. The provider-neutral capability, selector, grant-intersection, trust, challenge, switch and policy modules exist, but `0018_agent_authorization.sql` must retain its real foreign-key dependency on the OAuth client schema defined by plan 1 of the remote MCP stack.
 
 ## Hard gates
 
@@ -221,6 +225,7 @@ If another migration landed, renumber every unimplemented affected plan/spec tog
 - Secrets are write-only/replace-only and never returned through MCP.
 - Immutable history is corrected through append-only supersede/compensation.
 - Every write has authorization, resource resolution, risk, idempotency, conflict and audit semantics.
+- A risk ceiling and resource selector may authorize together only when they belong to the same effective grant clause.
 - Critical operations require DevOS recent-auth approval.
 - Public loaders/DTOs never expose private command, approval, agent, Growth, executor, deployment or event-wake state.
 - Imported email/repository/provider content is data, not instruction.
