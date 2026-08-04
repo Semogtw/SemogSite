@@ -1,10 +1,31 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
-import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 const ownerPassword = "semogtw-e2e-owner";
 const databasePath = resolve("data/semogtw-e2e.sqlite");
+
+type SqliteStatement = {
+  get(...values: unknown[]): unknown;
+};
+
+type SqliteReader = {
+  prepare(sql: string): SqliteStatement;
+  close(): void;
+};
+
+type SqliteConstructor = new (
+  path: string,
+  options: { readonly: true; fileMustExist: true },
+) => SqliteReader;
+
+const requireFromDatabasePackage = createRequire(
+  new URL("../../packages/database/package.json", import.meta.url),
+);
+const Database = requireFromDatabasePackage(
+  "better-sqlite3",
+) as SqliteConstructor;
 
 async function loginOwner(page: Page, returnTo: string) {
   await page.goto(returnTo);
