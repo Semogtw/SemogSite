@@ -19,6 +19,16 @@ const availabilityLabels: Readonly<
   planned: "Planejado",
 };
 
+function actionKey(action: OwnerEntityAction, index: number): string {
+  return [
+    action.labelPtBr,
+    action.risk,
+    action.availability,
+    action.reversible ? "reversible" : "irreversible",
+    String(index),
+  ].join(":");
+}
+
 export function OwnerEntityActionsDisclosure({
   resourceType,
   resourceId,
@@ -63,8 +73,8 @@ export function OwnerEntityActionsDisclosure({
       ) : null}
       {actions !== null && actions.length > 0 ? (
         <ul>
-          {actions.map((action) => (
-            <li key={action.commandId}>
+          {actions.map((action, index) => (
+            <li key={actionKey(action, index)}>
               <strong>{action.labelPtBr}</strong>
               <span>{riskLabels[action.risk]}</span>
               <span>{availabilityLabels[action.availability]}</span>
