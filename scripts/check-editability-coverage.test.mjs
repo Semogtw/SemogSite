@@ -36,6 +36,7 @@ const validCatalog = {
     {
       commandId: "attention.transition",
       commandVersion: 1,
+      labelPtBr: "Finalizar item",
       capability: "attention.write",
       resourceType: "attention_item",
       riskFloor: "medium",
@@ -119,6 +120,17 @@ try {
   assert.ok(codes.includes("COMMAND_WITHOUT_MANIFEST"));
   assert.ok(codes.includes("CRITICAL_WITHOUT_APPROVAL_PATH"));
   assert.ok(codes.includes("MUTATION_FILE_WITHOUT_MANIFEST_REFERENCE"));
+  assert.ok(codes.includes("DUPLICATE_RESOURCE_ACTION_LABEL"));
+
+  const invalidLabelRoot = await fixture({
+    ...validCatalog,
+    commands: [{ ...validCatalog.commands[0], labelPtBr: " label inválido " }],
+  });
+  assert.ok(
+    (await checkEditabilityCoverage(invalidLabelRoot)).some(
+      (item) => item.code === "COMMAND_LABEL_INVALID",
+    ),
+  );
 
   const untrackedRoot = await fixture(validCatalog, {
     "untracked.ts": 'createServerFn({ method: "POST" });',
