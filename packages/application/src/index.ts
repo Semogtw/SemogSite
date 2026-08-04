@@ -12,7 +12,25 @@ export {
   oauthScopeForCapability,
   resourceKindsForCapability,
 } from "./authorization/capabilities";
+export {
+  confirmationChallengeResponseBytes,
+  confirmationChallengeTtlMinutes,
+  createConfirmationChallengeService,
+} from "./authorization/confirmation-challenge";
+export type {
+  ConfirmationChallengePublic,
+  ConfirmationChallengeRecord,
+  ConfirmationChallengeRisk,
+  ConfirmationChallengeService,
+  ConfirmationChallengeStatus,
+  ConfirmationChallengeStore,
+} from "./authorization/confirmation-challenge";
 export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
+export { decideAgentCommandDisposition } from "./authorization/policy-engine";
+export type {
+  AgentCommandPolicyDecision,
+  AgentCommandRisk,
+} from "./authorization/policy-engine";
 export {
   reviewedResourceKinds,
   selectorMatchesResource,
@@ -29,6 +47,8 @@ export {
   validateTrustSessionRequest,
 } from "./authorization/trust-session";
 export type { TrustSessionState } from "./authorization/trust-session";
+export { writesAllowed } from "./authorization/write-switches";
+export type { AgentWriteSwitchState } from "./authorization/write-switches";
 export type {
   AgentCapability,
   AgentGrantDefinition,
