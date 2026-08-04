@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./growth": "./src/growth/index.ts",
     "./orchestration": "./src/orchestration/index.ts"
   },
   "scripts": {
