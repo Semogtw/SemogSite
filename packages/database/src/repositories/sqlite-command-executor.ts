@@ -1,3 +1,4 @@
+import { canonicalJson } from "@semogtw/application";
 import { createHash } from "node:crypto";
 import type { SqliteDatabase } from "../adapters/sqlite";
 import {
@@ -71,66 +72,6 @@ class ControlledExecutionFailure extends Error {
 
 const stableErrorPattern = /^[A-Z][A-Z0-9_]{0,119}$/u;
 
-function jsonString(value: string | number): string {
-  const encoded = JSON.stringify(value);
-  if (encoded === undefined) throw new Error("COMMAND_RESULT_INVALID");
-  return encoded;
-}
-
-function canonicalJson(value: unknown, active = new WeakSet<object>()): string {
-  if (value === null) return "null";
-  if (typeof value === "string") return jsonString(value);
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) throw new Error("COMMAND_RESULT_INVALID");
-    return Object.is(value, -0) ? "0" : jsonString(value);
-  }
-  if (typeof value !== "object") throw new Error("COMMAND_RESULT_INVALID");
-  if (active.has(value)) throw new Error("COMMAND_RESULT_INVALID");
-  active.add(value);
-  try {
-    if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index += 1) {
-        if (!Object.prototype.hasOwnProperty.call(value, index)) {
-          throw new Error("COMMAND_RESULT_INVALID");
-        }
-      }
-      return `[${value.map((item) => canonicalJson(item, active)).join(",")}]`;
-    }
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new Error("COMMAND_RESULT_INVALID");
-    }
-    const descriptors = Object.getOwnPropertyDescriptors(value);
-    const keys = Reflect.ownKeys(value);
-    if (keys.some((key) => typeof key !== "string")) {
-      throw new Error("COMMAND_RESULT_INVALID");
-    }
-    const stringKeys = keys as string[];
-    for (const key of stringKeys) {
-      const descriptor = descriptors[key];
-      if (
-        descriptor === undefined ||
-        !descriptor.enumerable ||
-        !("value" in descriptor) ||
-        descriptor.get !== undefined ||
-        descriptor.set !== undefined
-      ) {
-        throw new Error("COMMAND_RESULT_INVALID");
-      }
-    }
-    return `{${stringKeys
-      .sort()
-      .map(
-        (key) =>
-          `${jsonString(key)}:${canonicalJson(descriptors[key]!.value, active)}`,
-      )
-      .join(",")}}`;
-  } finally {
-    active.delete(value);
-  }
-}
-
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -142,6 +83,24 @@ function parseSummary(value: string | null): Readonly<Record<string, unknown>> {
     throw new Error("COMMAND_RECEIPT_RESULT_INVALID");
   }
   return parsed as Readonly<Record<string, unknown>>;
+}
+
+function serializeSummary(
+  summary: Readonly<Record<string, unknown>>,
+): string {
+  try {
+    const serialized = canonicalJson(summary);
+    if (Buffer.byteLength(serialized, "utf8") > 4000) {
+      throw new ControlledExecutionFailure(
+        "COMMAND_RESULT_TOO_LARGE",
+        false,
+      );
+    }
+    return serialized;
+  } catch (error) {
+    if (error instanceof ControlledExecutionFailure) throw error;
+    throw new ControlledExecutionFailure("COMMAND_RESULT_INVALID", false);
+  }
 }
 
 function failureFromRunner(result: SqliteCommandRunnerFailure): ControlledExecutionFailure {
@@ -238,13 +197,7 @@ export class SqliteTransactionalCommandExecutor {
         if (result.kind === "failure") throw failureFromRunner(result);
         this.requireAudit(result.auditEventId, receipt);
 
-        const resultSummaryJson = canonicalJson(result.summary);
-        if (resultSummaryJson.length > 4000) {
-          throw new ControlledExecutionFailure(
-            "COMMAND_RESULT_TOO_LARGE",
-            false,
-          );
-        }
+        const resultSummaryJson = serializeSummary(result.summary);
         const updated = this.database.$client
           .prepare(
             `UPDATE command_receipts
