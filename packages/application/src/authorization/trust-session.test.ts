@@ -214,6 +214,10 @@ describe("agent trust-session state", () => {
     [session({ operationsUsed: 25 }), "exhausted"],
     [session({ revokedAt: "2026-08-04T19:30:00.000Z" }), "revoked"],
     [session({ startsAt: "not-a-time" }), "invalid"],
+    [session({ operationsUsed: 26 }), "invalid"],
+    [session({ revokedAt: "2026-08-04T18:59:59.999Z" }), "invalid"],
+    [session({ revokedAt: "2026-08-04T20:30:00.000Z" }), "invalid"],
+    [session({ reason: " motivo com espaços " }), "invalid"],
   ] as const)("evaluates %# as %s", (candidate, expected) => {
     expect(evaluateTrustSessionState(candidate, now)).toBe(expected);
   });
