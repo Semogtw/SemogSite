@@ -107,6 +107,8 @@ describe("confirmation challenge creation", () => {
     expect(stored?.responseDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(JSON.stringify(stored)).not.toContain(created.responseToken);
     expect(JSON.stringify(stored)).not.toContain("responseToken");
+    expect(JSON.stringify(stored)).not.toContain(validCreate.summary);
+    expect(JSON.stringify(stored)).not.toContain("summary");
   });
 
   it.each([
