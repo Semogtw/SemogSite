@@ -31,9 +31,13 @@ function dependencies() {
     proposal: previewResult.proposal,
     replayed: false,
   }));
+  const resolveOwner = vi.fn(async (): Promise<typeof owner | null> => owner);
+  const authorizeMutation = vi.fn(
+    async (): Promise<typeof owner | null> => owner,
+  );
   return {
-    resolveOwner: vi.fn(async () => owner),
-    authorizeMutation: vi.fn(async () => owner),
+    resolveOwner,
+    authorizeMutation,
     createService: vi.fn(async () => ({ preview, apply })),
     nextCorrelationId: () => "correlation-1",
     preview,
