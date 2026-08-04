@@ -44,7 +44,7 @@ export type GrowthWriteResult<T> =
 
 export type CreateLearningGoalRecord = {
   goal: LearningGoalRecord;
-  event: GrowthDomainEvent<null, LearningGoalRecord>;
+  event: GrowthDomainEvent<LearningGoalRecord | null, LearningGoalRecord>;
   context: GrowthMutationContext;
 };
 
@@ -68,7 +68,7 @@ export interface LearningGoalRepository {
 export type AddLearningCheckpointRecord = {
   goal: LearningGoalAggregate;
   checkpoint: LearningCheckpointRecord;
-  event: GrowthDomainEvent<null, LearningCheckpointRecord>;
+  event: GrowthDomainEvent<LearningCheckpointRecord | null, LearningCheckpointRecord>;
   context: GrowthMutationContext;
 };
 
@@ -108,7 +108,7 @@ export interface LearningCheckpointRepository {
 
 export type CreateSkillRecord = {
   skill: SkillRecord;
-  event: GrowthDomainEvent<null, SkillRecord>;
+  event: GrowthDomainEvent<SkillRecord | null, SkillRecord>;
   context: GrowthMutationContext;
 };
 
