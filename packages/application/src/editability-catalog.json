@@ -74,5 +74,138 @@
       "requiredMarkers": ["StageCompletionService"],
       "forbiddenMarkers": ["createSqliteDevOSCommandGateway"]
     }
+  ],
+  "mutationSurfaces": [
+    {
+      "path": "apps/web/src/server/auth.ts",
+      "state": "excluded_noncanonical",
+      "reason": "authentication_infrastructure"
+    },
+    {
+      "path": "apps/web/src/server/devos-safe-work.ts",
+      "state": "excluded_noncanonical",
+      "reason": "bounded_evaluation"
+    },
+    {
+      "path": "apps/web/src/server/devos-attention-lifecycle.ts",
+      "state": "gateway",
+      "coverageRefs": ["attention.transition"]
+    },
+    {
+      "path": "apps/web/src/server/devos-capture.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["attention.create"]
+    },
+    {
+      "path": "apps/web/src/server/devos-evidence.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["evidence.create"]
+    },
+    {
+      "path": "apps/web/src/server/devos-growth-server-functions.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["growth.goals.quick_create"]
+    },
+    {
+      "path": "apps/web/src/server/devos-growth-weight-rebalance.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["growth.checkpoints.rebalance_weights"]
+    },
+    {
+      "path": "apps/web/src/server/devos-run-registration.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["runs.register"]
+    },
+    {
+      "path": "apps/web/src/server/devos-run-transitions.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["runs.transition"]
+    },
+    {
+      "path": "apps/web/src/server/devos-run-checkpoints.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["runs.checkpoints.record"]
+    },
+    {
+      "path": "apps/web/src/server/devos-run-commands.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["runs.commands.enqueue"]
+    },
+    {
+      "path": "apps/web/src/server/devos-session-handoff.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["sessions.handoff.record"]
+    },
+    {
+      "path": "apps/web/src/server/devos-recovery-snapshot.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["recovery.snapshots.create"]
+    },
+    {
+      "path": "apps/web/src/server/devos-repository-target.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["repositories.targets.register"]
+    },
+    {
+      "path": "apps/web/src/server/devos-repository-target-lifecycle.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["repositories.targets.lifecycle_change"]
+    },
+    {
+      "path": "apps/web/src/server/devos-branch-recommendation.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["repositories.branches.accept_recommendation"]
+    },
+    {
+      "path": "apps/web/src/server/devos-github-sync.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["github.repositories.sync_observations"]
+    },
+    {
+      "path": "apps/web/src/server/devos-workflow-mutations.ts",
+      "state": "legacy_registered",
+      "coverageRefs": [
+        "scope_reservations.acquire",
+        "scope_reservations.release",
+        "verification_obligations.create"
+      ]
+    },
+    {
+      "path": "apps/web/src/server/devos-scope-reservation-override.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["scope_reservations.override"]
+    },
+    {
+      "path": "apps/web/src/server/devos-verification-obligation-result.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["verification_obligations.record_result"]
+    },
+    {
+      "path": "apps/web/src/server/devos-editorial.ts",
+      "state": "legacy_registered",
+      "coverageRefs": [
+        "editorial.documents.create",
+        "editorial.revisions.create",
+        "editorial.review.submit",
+        "editorial.review.approve",
+        "editorial.drafts.reopen",
+        "editorial.publications.publish",
+        "editorial.publications.withdraw",
+        "editorial.publications.rollback"
+      ]
+    },
+    {
+      "path": "apps/web/src/server/devos-editorial-redirects.ts",
+      "state": "legacy_registered",
+      "coverageRefs": [
+        "editorial.redirects.create",
+        "editorial.redirects.revoke"
+      ]
+    },
+    {
+      "path": "apps/web/src/server/devos-stage-completion.ts",
+      "state": "legacy_registered",
+      "coverageRefs": ["roadmap.stages.complete"]
+    }
   ]
 }
