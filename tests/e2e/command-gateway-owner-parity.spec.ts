@@ -159,9 +159,7 @@ test.describe("owner Command Gateway parity", () => {
       failOnStatusCode: false,
     });
     expect(replay.status()).toBe(200);
-    await expect(replay.text()).resolves.toContain(
-      "Item resolvido e auditado.",
-    );
+    expect(await replay.text()).toContain("Item resolvido e auditado.");
 
     const changedReason =
       "Tentativa divergente com a mesma chave idempotente do E2E.";
@@ -174,9 +172,7 @@ test.describe("owner Command Gateway parity", () => {
       failOnStatusCode: false,
     });
     expect(conflict.status()).toBe(200);
-    await expect(conflict.text()).resolves.toContain(
-      "IDEMPOTENCY_PAYLOAD_CONFLICT",
-    );
+    expect(await conflict.text()).toContain("IDEMPOTENCY_PAYLOAD_CONFLICT");
 
     expect(readAttentionCommandState(title)).toEqual({
       attention: expect.objectContaining({ status: "resolved" }),
