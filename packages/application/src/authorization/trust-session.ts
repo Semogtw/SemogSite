@@ -13,6 +13,7 @@ import type {
   AgentTrustSession,
   CommandResource,
   EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
   ResourceSelector,
   ResourceSelectorMap,
   TrustRiskCeiling,
@@ -56,6 +57,10 @@ function trustRiskValid(value: string): value is TrustRiskCeiling {
   return value === "low" || value === "medium";
 }
 
+function agentRiskValid(value: unknown): value is AgentRiskCeiling {
+  return value === "low" || value === "medium" || value === "high";
+}
+
 function selectorCoveredByBase(
   requested: ResourceSelector,
   base: readonly ResourceSelector[],
@@ -95,26 +100,62 @@ function selectorCoveredByBase(
   }
 }
 
+function clausesForCapability(input: {
+  authorization: EffectiveAgentAuthorization;
+  capability: AgentCapability;
+}): readonly EffectiveAgentAuthorizationClause[] {
+  if (!Array.isArray(input.authorization.authorizationClauses)) return [];
+  return input.authorization.authorizationClauses.filter(
+    (clause) =>
+      typeof clause === "object" &&
+      clause !== null &&
+      bounded(clause.grantId, 200) &&
+      clause.capability === input.capability &&
+      agentRiskValid(clause.riskCeiling) &&
+      typeof clause.resourceSelectors === "object" &&
+      clause.resourceSelectors !== null,
+  );
+}
+
+function clauseSupportsSelector(input: {
+  clause: EffectiveAgentAuthorizationClause;
+  resourceKind: string;
+  selector: ResourceSelector;
+  requestedRisk: TrustRiskCeiling;
+}): boolean {
+  if (riskRank[input.clause.riskCeiling] < riskRank[input.requestedRisk]) {
+    return false;
+  }
+  const base = input.clause.resourceSelectors[input.resourceKind];
+  return Array.isArray(base) && selectorCoveredByBase(input.selector, base);
+}
+
+function capabilityHasRisk(input: {
+  authorization: EffectiveAgentAuthorization;
+  capability: AgentCapability;
+  requestedRisk: TrustRiskCeiling;
+}): boolean {
+  return clausesForCapability(input).some(
+    (clause) =>
+      riskRank[clause.riskCeiling] >= riskRank[input.requestedRisk],
+  );
+}
+
 function requestedResourcesFitCapability(input: {
   capability: AgentCapability;
   requestedResources: ResourceSelectorMap;
+  requestedRisk: TrustRiskCeiling;
   baseAuthorization: EffectiveAgentAuthorization;
 }): boolean {
-  const baseByKind =
-    input.baseAuthorization.capabilityResourceSelectors[input.capability];
-  if (baseByKind === undefined) return false;
+  const clauses = clausesForCapability({
+    authorization: input.baseAuthorization,
+    capability: input.capability,
+  });
+  if (clauses.length === 0) return false;
 
   for (const resourceKind of resourceKindsForCapability(input.capability)) {
     const requested = input.requestedResources[resourceKind];
-    const base = baseByKind[resourceKind];
-    if (
-      !Array.isArray(requested) ||
-      requested.length === 0 ||
-      !Array.isArray(base) ||
-      base.length === 0
-    ) {
-      return false;
-    }
+    if (!Array.isArray(requested) || requested.length === 0) return false;
 
     for (const selector of requested) {
       try {
@@ -126,7 +167,18 @@ function requestedResourcesFitCapability(input: {
       } catch {
         return false;
       }
-      if (!selectorCoveredByBase(selector, base)) return false;
+      if (
+        !clauses.some((clause) =>
+          clauseSupportsSelector({
+            clause,
+            resourceKind,
+            selector,
+            requestedRisk: input.requestedRisk,
+          }),
+        )
+      ) {
+        return false;
+      }
     }
   }
 
@@ -182,16 +234,18 @@ export function validateTrustSessionRequest(input: {
   for (const capability of input.requestedCapabilities) {
     if (
       !isAgentCapability(capability) ||
+      !Array.isArray(input.baseAuthorization.capabilities) ||
       !input.baseAuthorization.capabilities.includes(capability)
     ) {
       throw new Error("TRUST_CAPABILITY_NOT_GRANTED");
     }
 
-    const baseRisk =
-      input.baseAuthorization.riskCeilingByCapability[capability];
     if (
-      baseRisk === undefined ||
-      riskRank[input.riskCeiling] > riskRank[baseRisk]
+      !capabilityHasRisk({
+        authorization: input.baseAuthorization,
+        capability,
+        requestedRisk: input.riskCeiling,
+      })
     ) {
       throw new Error("TRUST_RISK_ESCALATION");
     }
@@ -203,6 +257,7 @@ export function validateTrustSessionRequest(input: {
       !requestedResourcesFitCapability({
         capability,
         requestedResources: input.requestedResources,
+        requestedRisk: input.riskCeiling,
         baseAuthorization: input.baseAuthorization,
       })
     ) {
@@ -274,13 +329,27 @@ export function trustSessionFitsAuthorization(input: {
     evaluateTrustSessionState(input.session, input.now) !== "active" ||
     input.session.ownerId !== input.baseAuthorization.ownerId ||
     input.session.clientId !== input.baseAuthorization.clientId ||
+    !Array.isArray(input.baseAuthorization.grantIds) ||
     !input.session.baseGrantIds.every((grantId) =>
       input.baseAuthorization.grantIds.includes(grantId),
-    )
+    ) ||
+    !Array.isArray(input.baseAuthorization.authorizationClauses)
   ) {
     return false;
   }
 
+  const allowedGrantIds = new Set(input.session.baseGrantIds);
+  const authorizationClauses = input.baseAuthorization.authorizationClauses.filter(
+    (clause) => allowedGrantIds.has(clause.grantId),
+  );
+  if (authorizationClauses.length === 0) return false;
+
+  const narrowedAuthorization: EffectiveAgentAuthorization = {
+    ...input.baseAuthorization,
+    authorizationClauses,
+    grantIds: [...input.session.baseGrantIds],
+    trustSessionIds: [],
+  };
   const durationMinutes =
     (Date.parse(input.session.expiresAt) -
       Date.parse(input.session.startsAt)) /
@@ -293,7 +362,7 @@ export function trustSessionFitsAuthorization(input: {
       riskCeiling: input.session.riskCeiling,
       requestedCapabilities: input.session.capabilities,
       requestedResources: input.session.resourceSelectors,
-      baseAuthorization: input.baseAuthorization,
+      baseAuthorization: narrowedAuthorization,
     });
     return true;
   } catch {
