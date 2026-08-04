@@ -57,7 +57,10 @@ describe("command receipt backup", () => {
     const backup = await createVerifiedSqliteBackup(database, destination);
     database.$client.close();
 
-    expect(backup.migrations.at(-1)).toBe("0017_command_core.sql");
+    expect(backup.migrations.at(-1)).toBe(
+      "0017a_command_receipt_semantic_key.sql",
+    );
+    expect(backup.migrations).toContain("0017_command_core.sql");
     const restored = createSqliteDatabase(destination);
     expect(
       restored.$client
