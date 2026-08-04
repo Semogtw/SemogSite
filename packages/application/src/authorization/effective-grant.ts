@@ -1,6 +1,6 @@
 import { canonicalJson } from "../canonical-json";
-import { isCanonicalUtcTimestamp } from "../iso-timestamp";
 import type { JsonValue } from "../core";
+import { isCanonicalUtcTimestamp } from "../iso-timestamp";
 import {
   agentCapabilities,
   isAgentCapability,
@@ -15,6 +15,7 @@ import type {
   AgentRiskCeiling,
   AgentTrustSession,
   EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
   OAuthScope,
   ResourceSelector,
   ResourceSelectorMap,
@@ -76,7 +77,7 @@ function validateSelectorMap(
   for (const [resourceKind, values] of entries) {
     if (
       !allowedKinds.has(resourceKind) ||
-      values === undefined ||
+      !Array.isArray(values) ||
       values.length === 0
     ) {
       return false;
@@ -170,7 +171,7 @@ function addSelectors(
 ): void {
   for (const resourceKind of allowedKinds) {
     const selectors = source[resourceKind];
-    if (selectors === undefined) continue;
+    if (!Array.isArray(selectors)) continue;
     const bucket =
       target.get(resourceKind) ?? new Map<string, ResourceSelector>();
     for (const selector of selectors) {
@@ -196,6 +197,27 @@ function selectorBucketsToMap(
   return result;
 }
 
+function selectorMapForCapability(
+  grant: AgentGrantDefinition,
+  capability: AgentCapability,
+): ResourceSelectorMap | null {
+  const buckets = new Map<string, Map<string, ResourceSelector>>();
+  const resourceKinds = resourceKindsForCapability(capability);
+  addSelectors(buckets, grant.resourceSelectors, resourceKinds);
+  const selectorMap = selectorBucketsToMap(buckets);
+  return Object.keys(selectorMap).length === 0 ? null : selectorMap;
+}
+
+function clauseOrder(
+  left: EffectiveAgentAuthorizationClause,
+  right: EffectiveAgentAuthorizationClause,
+): number {
+  const byGrant = left.grantId.localeCompare(right.grantId, "en");
+  return byGrant === 0
+    ? left.capability.localeCompare(right.capability, "en")
+    : byGrant;
+}
+
 export function computeEffectiveAgentAuthorization(input: {
   ownerId: string;
   clientId: string;
@@ -219,6 +241,23 @@ export function computeEffectiveAgentAuthorization(input: {
     grantActive({ ...input, grant }),
   );
 
+  const authorizationClauses: EffectiveAgentAuthorizationClause[] = [];
+  for (const grant of grants) {
+    for (const capability of [...new Set(grant.capabilities)].sort()) {
+      if (!scopes.has(oauthScopeForCapability(capability))) continue;
+      const resourceSelectors = selectorMapForCapability(grant, capability);
+      if (resourceSelectors === null) continue;
+      authorizationClauses.push({
+        grantId: grant.id,
+        capability,
+        resourceSelectors,
+        riskCeiling: grant.riskCeiling,
+      });
+    }
+  }
+  authorizationClauses.sort(clauseOrder);
+  if (authorizationClauses.length === 0) return null;
+
   const selectorsByCapability = new Map<
     AgentCapability,
     Map<string, Map<string, ResourceSelector>>
@@ -226,40 +265,27 @@ export function computeEffectiveAgentAuthorization(input: {
   const riskByCapability = new Map<AgentCapability, AgentRiskCeiling>();
   const contributingGrantIds = new Set<string>();
 
-  for (const grant of grants) {
-    for (const capability of [...new Set(grant.capabilities)].sort()) {
-      const requiredScope = oauthScopeForCapability(capability);
-      if (!scopes.has(requiredScope)) continue;
-
-      const resourceKinds = resourceKindsForCapability(capability);
-      if (
-        !resourceKinds.some(
-          (resourceKind) =>
-            (grant.resourceSelectors[resourceKind]?.length ?? 0) > 0,
-        )
-      ) {
-        continue;
-      }
-
-      const buckets = selectorsByCapability.get(capability) ?? new Map();
-      addSelectors(buckets, grant.resourceSelectors, resourceKinds);
-      selectorsByCapability.set(capability, buckets);
-      const previousRisk = riskByCapability.get(capability);
-      riskByCapability.set(
-        capability,
-        previousRisk === undefined
-          ? grant.riskCeiling
-          : laterRisk(previousRisk, grant.riskCeiling),
-      );
-      contributingGrantIds.add(grant.id);
-    }
+  for (const clause of authorizationClauses) {
+    const buckets = selectorsByCapability.get(clause.capability) ?? new Map();
+    addSelectors(
+      buckets,
+      clause.resourceSelectors,
+      resourceKindsForCapability(clause.capability),
+    );
+    selectorsByCapability.set(clause.capability, buckets);
+    const previousRisk = riskByCapability.get(clause.capability);
+    riskByCapability.set(
+      clause.capability,
+      previousRisk === undefined
+        ? clause.riskCeiling
+        : laterRisk(previousRisk, clause.riskCeiling),
+    );
+    contributingGrantIds.add(clause.grantId);
   }
 
   const capabilities = [...selectorsByCapability.keys()].sort((left, right) =>
     left.localeCompare(right, "en"),
   );
-  if (capabilities.length === 0) return null;
-
   const capabilityResourceSelectors: Partial<
     Record<AgentCapability, ResourceSelectorMap>
   > = {};
@@ -291,6 +317,7 @@ export function computeEffectiveAgentAuthorization(input: {
     capabilityResourceSelectors,
     riskCeiling,
     riskCeilingByCapability,
+    authorizationClauses,
     grantIds,
     trustSessionIds: [],
   };
