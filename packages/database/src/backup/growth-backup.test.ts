@@ -128,6 +128,9 @@ describe("Growth backup", () => {
     database.$client.close();
 
     expect(backup.migrations.at(-1)).toBe(
+      "0017a_command_receipt_semantic_key.sql",
+    );
+    expect(backup.migrations).toContain(
       "0015a_learning_checkpoint_weight_modes.sql",
     );
     const restored = createSqliteDatabase(destination);
