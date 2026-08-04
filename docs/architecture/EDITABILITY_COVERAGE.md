@@ -40,9 +40,19 @@ The semantic uniqueness boundary is:
 owner + actor kind + actor ID + client ID + command ID + command version + idempotency key
 ```
 
-The resource is deliberately not part of that key. Reusing the same principal/command/key against another resource conflicts rather than creating a second receipt.
+The resource is deliberately not part of that key. Reusing the same principal/command/key against another resource conflicts rather than creating a second receipt. The repository lookup uses the same columns as the incremental unique index instead of relying on a constraint exception after an attempted insert.
 
 Expired in-progress leases are recovered explicitly. A recovered runner receives the original receipt ID, resource, principal and correlation; retry-supplied identity cannot alter the audit chain.
+
+A final receipt is not trusted merely because its `status` says `succeeded` or `failed`. Before replay:
+
+- success requires a canonical JSON object no larger than 4,000 UTF-8 bytes;
+- the stored lowercase SHA-256 must match the exact canonical JSON bytes;
+- success and failure column combinations must match their final state;
+- malformed restored or adulterated rows fail closed as `COMMAND_RECEIPT_RESULT_INVALID`;
+- the runner is never called to repair or reinterpret a corrupt final receipt.
+
+Repository finalization applies the same canonical JSON and hash checks before changing an in-progress receipt to succeeded.
 
 ## Initial registry
 
@@ -59,7 +69,7 @@ Expired in-progress leases are recovered explicitly. A recovered runner receives
 - execution: enabled
 - owner route: `/devos/today`
 
-The Today projection carries the canonical Attention `updatedAt`. The browser sends only the human payload, observed timestamp, confirmation and a per-attempt UUID. The server constructs command identity, principal, target, correlation and capability. The transaction uses the domain Attention planner shared with the legacy service.
+The Today projection carries the canonical Attention `updatedAt`. The browser sends only the human payload, observed timestamp, confirmation and a per-attempt UUID. The server constructs command identity, principal, target, correlation and capability. The transaction uses the Attention lifecycle planner shared with `AttentionLifecycleService`.
 
 ### `roadmap.stages.complete`
 
@@ -86,9 +96,28 @@ This command has no Gateway runner and its existing browser mutation has not bee
 - MCP strategy;
 - risk summaries;
 - conflict, undo and audit expectations;
-- mutation adapter state.
+- Gateway adapter state;
+- every current private server file that registers a POST mutation.
 
-Application tests validate the catalog against the actual registry. `scripts/check-editability-coverage.mjs` validates the same catalog without executing TypeScript, verifies command/route/adapter files and rejects untracked Gateway adapters.
+Every mutation surface is classified as one of:
+
+```text
+gateway
+legacy_registered
+excluded_noncanonical
+```
+
+`legacy_registered` requires one or more coverage references and means only that the existing browser mutation has been inventoried for a later rollout. It does not claim Gateway parity, MCP exposure or completion.
+
+`excluded_noncanonical` accepts only closed reasons such as authentication infrastructure, bounded evaluation or read preparation. An arbitrary bypass reason is rejected.
+
+Application tests validate the catalog against the actual registry. `scripts/check-editability-coverage.mjs` validates the same catalog without executing TypeScript, verifies command/route/adapter files, recursively scans `apps/web/src/server`, and rejects:
+
+- any new `createServerFn({ method: "POST" })` file absent from the catalog;
+- stale catalog entries that no longer contain a POST;
+- Gateway surfaces without a manifest-backed adapter;
+- legacy entries without coverage references;
+- unknown states or non-allowlisted exclusions.
 
 Current implementation states are intentionally not `complete`:
 
@@ -112,14 +141,14 @@ No input/output schema, capability grant, handler, payload, principal metadata o
 
 ## Guardrails
 
-The root `pnpm check` now includes:
+The root `pnpm check` includes:
 
 ```text
 pnpm check:editability-coverage
 pnpm check:boundaries
 ```
 
-The boundary check scans runtime files in `packages/application` and rejects framework, persistence, MCP, UI and Node-runtime imports. Canonical hashes use Web Crypto.
+The boundary check scans runtime files in `packages/application` and rejects framework, persistence, MCP, UI and Node-runtime imports, including side-effect-only imports. Canonical hashes use Web Crypto.
 
 Package surfaces are explicit:
 
@@ -128,6 +157,8 @@ Package surfaces are explicit:
 @semogtw/domain/attention
 @semogtw/database/commands
 ```
+
+The focused Playwright scenario captures the real Attention server-function request, replays the same request, changes only the reason while retaining the same idempotency key, and inspects the known E2E SQLite database to require one state transition, one audit event and one succeeded receipt. This scenario is implemented but has not been executed on the current head.
 
 ## Deliberately unavailable capabilities
 
