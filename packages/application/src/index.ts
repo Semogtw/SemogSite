@@ -1,4 +1,33 @@
 export { canonicalJson, canonicalSha256 } from "./canonical-json";
+export { CommandGateway } from "./command-gateway";
+export type {
+  CommandPolicy,
+  PreparedCommand,
+} from "./command-gateway";
+export {
+  createReceiptClaim,
+  createReceiptFailure,
+  createReceiptSuccess,
+  commandReceiptStatuses,
+} from "./command-receipt";
+export type {
+  CommandReceiptClaim,
+  CommandReceiptClaimOutcome,
+  CommandReceiptFailure,
+  CommandReceiptFinalization,
+  CommandReceiptRecord,
+  CommandReceiptStatus,
+  CommandReceiptStore,
+  CommandReceiptSuccess,
+} from "./command-receipt";
+export { CommandRegistry } from "./command-registry";
+export type {
+  CommandDefinition,
+  CommandExecutionState,
+  CommandManifest,
+  CommandSchema,
+  IdempotencyStrategy,
+} from "./command-registry";
 export {
   auditStrategies,
   confirmationOutcomes,
@@ -24,3 +53,4 @@ export type {
   RiskTier,
   UndoStrategy,
 } from "./core";
+export { OwnerBrowserPolicy } from "./owner-browser-policy";
