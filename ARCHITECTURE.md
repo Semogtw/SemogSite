@@ -4,7 +4,9 @@
 
 Semogtw Platform is a pnpm TypeScript monorepo. TanStack Start provides the public site and private DevOS; Hono provides the versioned HTTP surface. Domain rules remain independent from frameworks, storage engines, AI providers and hosting products.
 
-Production hosting is not selected. The executable baseline is Node.js 22 with SQLite. Cloudflare D1, PostgreSQL, serverless/edge runtimes and ChatGPT Sites remain adapter choices rather than domain dependencies.
+The selected production target is **Cloudflare Workers + D1**. TanStack Start, the public site, private DevOS and the versioned Hono surface will run through a Cloudflare adapter; D1 will be the production relational store. The Node.js 22 + `better-sqlite3` composition remains the portable local-development, test, export and fallback adapter until Cloudflare migrations, authentication, backup and rollback pass their gates.
+
+The complete decision, cost guards, rejected alternatives and cross-project boundary with `Semogtw/goanime-mobile` are owned by [`docs/HOSTING_DECISION.md`](docs/HOSTING_DECISION.md). GPT Sites is no longer a candidate. The Oracle Always Free VM is reserved for the complete Jikan metadata stack and is not the target host for Semogtw Platform.
 
 ## Dependency direction
 
@@ -37,6 +39,8 @@ Node-specific composition lives in `.server.ts` modules or dedicated runtime app
 Client-safe modules contain only components, browser helpers, generated `createServerFn` RPC stubs, public contracts and serialized data. SQLite, the MCP SDK, secrets, migrations and server composition must never enter the browser bundle.
 
 The production build verifies that all 13 migrations exist in the SSR bundle and none exist in `dist/client`.
+
+The Cloudflare migration must preserve these boundaries: Workers, Wrangler and D1 bindings belong in runtime adapters and application composition, never in `packages/domain`. The Node bundle remains a supported verification target until D1 reaches contract parity.
 
 ## Surfaces
 
@@ -87,7 +91,7 @@ The initial web read supplies an empty capability set. An owner may re-evaluate 
 - `/api/v1/private/*`: authentication before handlers and private/no-store headers;
 - `/health`: infrastructure health without private state.
 
-The Hono application remains an embeddable adapter. Node, edge and hosted-function bindings are separate deployment work.
+The Hono application remains an embeddable adapter. The selected first Cloudflare deployment should compose it into the same Worker as the web application unless a measured isolation requirement justifies a separate Worker. Node and other hosted-function bindings remain portability targets.
 
 ### MCP read adapter
 
@@ -95,7 +99,7 @@ The Hono application remains an embeddable adapter. Node, edge and hosted-functi
 
 `apps/mcp` accepts an already-open migrated database and returns an `McpServer`; it opens no listener. Stdio and Streamable HTTP are not enabled. A remote transport requires a separate reviewed adapter proving authentication, authorization, session isolation, origin/host policy, TLS, rate limits, timeouts, private caching, observability and rollback.
 
-Future MCP writes must call the same audited domain services used by the DevOS UI. Tool annotations do not authorize mutation.
+The selected production direction is a separately deployable Cloudflare MCP adapter after the base Site and D1 storage are stable. Future MCP writes must call the same audited domain services used by the DevOS UI. Tool annotations do not authorize mutation.
 
 ## Authentication and mutation composition
 
@@ -110,6 +114,8 @@ Private writes use a shared pattern:
 5. perform entity/event/audit writes in one immediate transaction;
 6. reject stale versions and context/entity mismatches before persistence mutation;
 7. invalidate the route only after a committed response.
+
+The D1 adapter must preserve the same observable invariants even where transaction APIs, connection lifecycle or runtime bindings differ. Cloudflare identity headers or access policy do not replace application-level authorization unless a later reviewed adapter proves equivalent revocation and owner semantics.
 
 ## Storage and migrations
 
@@ -133,6 +139,8 @@ Expiration and staleness are derived at read time. No semantic state depends on 
 
 The demonstration seed is low-confidence private sample data. It is not treated as migrated Notion content, verified GitHub state or real project progress, and the safe-work source excludes it.
 
+Production migration to D1 requires explicit compatibility tests for every migration, repository contract, transaction boundary, backup/export and restore path. The local SQLite database remains a supported adapter; D1 does not redefine domain semantics.
+
 ## External observations
 
 GitHub remains read-only. Provider responses are structurally validated and normalized before persistence. Commit messages and other instruction-bearing provider text are not used as commands. Synchronization never changes active branch, project progress, stage state, repository role or target lifecycle automatically.
@@ -141,11 +149,29 @@ Silence or absence of commits is evidence of inactivity only, never proof that a
 
 ## Deployment modes
 
-- **A — Unified:** web, API, storage and authenticated MCP on one compatible host;
+The selected target is:
+
+- **D — Cloudflare primary:** public web, DevOS, Hono API and D1 on Cloudflare; remote MCP in a separate Cloudflare adapter after the base runtime passes its gates.
+
+The portable alternatives remain documented for rollback and future constraints:
+
+- **A — Unified Node:** web, API, storage and authenticated MCP on one compatible Node host;
 - **B — External MCP bridge:** web/API/storage together with a minimal authenticated MCP bridge;
 - **C — External backend:** frontend separated from API/storage/MCP.
 
-A mode is unselected until storage, secrets, authentication, routes, transport, versioning, backup and rollback are verified in the target runtime.
+Mode D is a decision, not a completed deployment. It becomes production-confirmed only after storage, secrets, authentication, routes, transport, versioning, backup, restore, cost limits and rollback are verified in the real Cloudflare runtime.
+
+## Cross-project hosting boundary
+
+SemogSite and GoAnime-Mobile intentionally do not share a primary compute host:
+
+```text
+SemogSite → Cloudflare Workers + D1
+GoAnime Metadata entry/fallback → Cloudflare Worker
+Complete Jikan origin → Oracle Always Free A1
+```
+
+SemogSite must not access Jikan databases or volumes. GoAnime-Mobile must not access private DevOS storage. Any future integration uses a bounded authenticated HTTP contract.
 
 ## Time
 
