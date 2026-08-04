@@ -221,13 +221,16 @@ export function evaluateTrustSessionState(
     !isCanonicalUtcTimestamp(session.expiresAt) ||
     session.startsAt >= session.expiresAt ||
     (session.revokedAt !== null &&
-      !isCanonicalUtcTimestamp(session.revokedAt)) ||
+      (!isCanonicalUtcTimestamp(session.revokedAt) ||
+        session.revokedAt < session.startsAt ||
+        session.revokedAt > now)) ||
     !trustRiskValid(session.riskCeiling) ||
     !Number.isInteger(session.maxOperations) ||
     session.maxOperations < 1 ||
     session.maxOperations > maximumTrustOperations ||
     !Number.isInteger(session.operationsUsed) ||
     session.operationsUsed < 0 ||
+    session.operationsUsed > session.maxOperations ||
     !Number.isInteger(session.version) ||
     session.version < 1 ||
     !bounded(session.reason, 500) ||
@@ -243,7 +246,7 @@ export function evaluateTrustSessionState(
   if (session.revokedAt !== null) return "revoked";
   if (session.startsAt > now) return "not_started";
   if (session.expiresAt <= now) return "expired";
-  if (session.operationsUsed >= session.maxOperations) return "exhausted";
+  if (session.operationsUsed === session.maxOperations) return "exhausted";
   return "active";
 }
 
