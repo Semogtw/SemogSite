@@ -19,7 +19,19 @@ function plainRecord(value: unknown): value is Record<string, unknown> {
     return false;
   }
   const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  return Reflect.ownKeys(value).every((key) => {
+    if (typeof key !== "string") return false;
+    const descriptor = descriptors[key];
+    return (
+      descriptor !== undefined &&
+      descriptor.enumerable &&
+      "value" in descriptor &&
+      descriptor.get === undefined &&
+      descriptor.set === undefined
+    );
+  });
 }
 
 function parseEntry(value: unknown): AgentAuthorizationCommandEntry {
@@ -28,8 +40,9 @@ function parseEntry(value: unknown): AgentAuthorizationCommandEntry {
     typeof value.commandId !== "string" ||
     value.commandId.length > 160 ||
     !commandIdPattern.test(value.commandId) ||
+    typeof value.commandVersion !== "number" ||
     !Number.isInteger(value.commandVersion) ||
-    (value.commandVersion as number) < 1 ||
+    value.commandVersion < 1 ||
     typeof value.capability !== "string" ||
     typeof value.resourceType !== "string" ||
     value.resourceType.length > 120 ||
@@ -45,7 +58,7 @@ function parseEntry(value: unknown): AgentAuthorizationCommandEntry {
 
   return {
     commandId: value.commandId,
-    commandVersion: value.commandVersion as number,
+    commandVersion: value.commandVersion,
     capability,
     resourceType: value.resourceType,
   };
