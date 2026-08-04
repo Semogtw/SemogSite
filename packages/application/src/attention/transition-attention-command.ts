@@ -11,7 +11,7 @@ export type TransitionAttentionResult = {
   status: "resolved" | "dismissed";
 };
 
-const expectedKeys = ["attentionId", "reason", "targetStatus"] as const;
+const expectedKeys = new Set(["attentionId", "reason", "targetStatus"]);
 
 function invalid(): never {
   throw new Error("ATTENTION_TRANSITION_INPUT_INVALID");
@@ -24,8 +24,8 @@ function parsePayload(value: unknown): TransitionAttentionPayload {
 
   const keys = Reflect.ownKeys(value);
   if (
-    keys.length !== expectedKeys.length ||
-    keys.some((key) => typeof key !== "string" || !expectedKeys.includes(key as never))
+    keys.length !== expectedKeys.size ||
+    keys.some((key) => typeof key !== "string" || !expectedKeys.has(key))
   ) {
     invalid();
   }
