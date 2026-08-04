@@ -22,7 +22,26 @@ export type SqliteCommandRunnerResult =
   | SqliteCommandRunnerSuccess
   | SqliteCommandRunnerFailure;
 
-export type SqliteCommandRunner = () => SqliteCommandRunnerResult;
+export type SqliteCommandExecutionContext = {
+  receiptId: string;
+  recovered: boolean;
+  ownerId: string;
+  commandId: string;
+  commandVersion: number;
+  capability: string;
+  resourceType: string;
+  resourceId: string;
+  actorKind: CommandReceiptRecord["actorKind"];
+  actorId: string;
+  clientId: string;
+  requestHash: string;
+  correlationId: string;
+  idempotencyKey: string;
+};
+
+export type SqliteCommandRunner = (
+  context: SqliteCommandExecutionContext,
+) => SqliteCommandRunnerResult;
 
 export type SqliteCommandExecutionResult =
   | {
@@ -135,6 +154,28 @@ function asyncRunner(runner: SqliteCommandRunner): boolean {
   return runner.constructor.name === "AsyncFunction";
 }
 
+function executionContext(
+  receipt: CommandReceiptRecord,
+  recovered: boolean,
+): SqliteCommandExecutionContext {
+  return {
+    receiptId: receipt.id,
+    recovered,
+    ownerId: receipt.ownerId,
+    commandId: receipt.commandId,
+    commandVersion: receipt.commandVersion,
+    capability: receipt.capability,
+    resourceType: receipt.resourceType,
+    resourceId: receipt.resourceId,
+    actorKind: receipt.actorKind,
+    actorId: receipt.actorId,
+    clientId: receipt.clientId,
+    requestHash: receipt.requestHash,
+    correlationId: receipt.correlationId,
+    idempotencyKey: receipt.idempotencyKey,
+  };
+}
+
 export class SqliteTransactionalCommandExecutor {
   constructor(
     private readonly database: SqliteDatabase,
@@ -173,6 +214,7 @@ export class SqliteTransactionalCommandExecutor {
     }
 
     const receipt = claimed.receipt;
+    const context = executionContext(receipt, claimed.recovered);
     try {
       const transaction = this.database.$client.transaction(() => {
         if (asyncRunner(runner)) {
@@ -181,7 +223,7 @@ export class SqliteTransactionalCommandExecutor {
             false,
           );
         }
-        const result = runner();
+        const result = runner(context);
         if (
           typeof result === "object" &&
           result !== null &&
