@@ -36,9 +36,11 @@ describe("private Growth routes", () => {
 
   it("loads Growth styles and exposes the workspace in DevOS navigation", () => {
     const root = source("__root.tsx");
-    const sidebar = source("../../../packages/ui/src/navigation/devos-sidebar.tsx");
+    const sidebar = source(
+      "../../../../packages/ui/src/navigation/devos-sidebar.tsx",
+    );
     const bottomNav = source(
-      "../../../packages/ui/src/navigation/devos-bottom-nav.tsx",
+      "../../../../packages/ui/src/navigation/devos-bottom-nav.tsx",
     );
 
     expect(root).toContain('../styles/growth.css?url');
