@@ -35,7 +35,7 @@ export function GrowthPage({
   createIdempotencyKey,
 }: GrowthPageProps): React.JSX.Element {
   return (
-    <main className="growth-page">
+    <div className="growth-page">
       <header className="growth-page__header">
         <h1>Growth</h1>
         <p>
@@ -58,6 +58,6 @@ export function GrowthPage({
       </section>
 
       <GrowthOverview overview={overview} goalHref={goalHref} />
-    </main>
+    </div>
   );
 }
