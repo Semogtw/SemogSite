@@ -3,24 +3,33 @@ import { trustSessionCoversCommand } from "./trust-session";
 import type {
   AgentTrustSession,
   EffectiveAgentAuthorization,
+  ResourceSelectorMap,
 } from "./types";
+
+const selectors: ResourceSelectorMap = {
+  attention_item: [
+    { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
+  ],
+};
 
 const authorization: EffectiveAgentAuthorization = {
   clientId: "client_1",
   ownerId: "owner_1",
   capabilities: ["attention.write"],
-  resourceSelectors: {
-    attention_item: [{ kind: "exact_ids", ids: ["attention_1", "attention_2"] }],
-  },
+  resourceSelectors: selectors,
   capabilityResourceSelectors: {
-    "attention.write": {
-      attention_item: [
-        { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
-      ],
-    },
+    "attention.write": selectors,
   },
   riskCeiling: "medium",
   riskCeilingByCapability: { "attention.write": "medium" },
+  authorizationClauses: [
+    {
+      grantId: "grant_1",
+      capability: "attention.write",
+      resourceSelectors: selectors,
+      riskCeiling: "medium",
+    },
+  ],
   grantIds: ["grant_1"],
   trustSessionIds: [],
 };
