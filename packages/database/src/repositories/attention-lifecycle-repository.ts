@@ -31,7 +31,7 @@ export class SqliteAttentionLifecycleRepository
 {
   constructor(private readonly database: SqliteDatabase) {}
 
-  async findById(id: string): Promise<AttentionLifecycleSnapshot | null> {
+  findByIdSync(id: string): AttentionLifecycleSnapshot | null {
     const row = this.database
       .select({
         id: attentionItems.id,
@@ -58,49 +58,62 @@ export class SqliteAttentionLifecycleRepository
     };
   }
 
+  async findById(id: string): Promise<AttentionLifecycleSnapshot | null> {
+    return this.findByIdSync(id);
+  }
+
+  transitionWithAuditSync(
+    before: AttentionLifecycleSnapshot,
+    after: AttentionLifecycleSnapshot,
+    audit: AttentionLifecycleAuditEvent,
+  ): boolean {
+    const update = this.database
+      .update(attentionItems)
+      .set({
+        status: after.status,
+        type: toPersistenceType(after.type),
+        resolvedAt: after.resolvedAt,
+        updatedAt: after.updatedAt,
+      })
+      .where(
+        and(
+          eq(attentionItems.id, before.id),
+          eq(attentionItems.status, before.status),
+          eq(attentionItems.updatedAt, before.updatedAt),
+        ),
+      )
+      .run();
+
+    if (update.changes !== 1) return false;
+
+    this.database
+      .insert(auditEvents)
+      .values({
+        id: audit.id,
+        actor: audit.actor,
+        action: audit.action,
+        entityType: audit.entityType,
+        entityId: audit.entityId,
+        beforeJson: JSON.stringify(audit.before),
+        afterJson: JSON.stringify(audit.after),
+        reason: audit.reason,
+        occurredAt: audit.occurredAt,
+        source: audit.source,
+        confirmed: audit.confirmed,
+        correlationId: audit.correlationId,
+      })
+      .run();
+    return true;
+  }
+
   async transitionWithAudit(
     before: AttentionLifecycleSnapshot,
     after: AttentionLifecycleSnapshot,
     audit: AttentionLifecycleAuditEvent,
   ): Promise<boolean> {
-    return this.database.transaction((transaction) => {
-      const update = transaction
-        .update(attentionItems)
-        .set({
-          status: after.status,
-          type: toPersistenceType(after.type),
-          resolvedAt: after.resolvedAt,
-          updatedAt: after.updatedAt,
-        })
-        .where(
-          and(
-            eq(attentionItems.id, before.id),
-            eq(attentionItems.status, before.status),
-            eq(attentionItems.updatedAt, before.updatedAt),
-          ),
-        )
-        .run();
-
-      if (update.changes !== 1) return false;
-
-      transaction
-        .insert(auditEvents)
-        .values({
-          id: audit.id,
-          actor: audit.actor,
-          action: audit.action,
-          entityType: audit.entityType,
-          entityId: audit.entityId,
-          beforeJson: JSON.stringify(audit.before),
-          afterJson: JSON.stringify(audit.after),
-          reason: audit.reason,
-          occurredAt: audit.occurredAt,
-          source: audit.source,
-          confirmed: audit.confirmed,
-          correlationId: audit.correlationId,
-        })
-        .run();
-      return true;
-    });
+    const transaction = this.database.$client.transaction(() =>
+      this.transitionWithAuditSync(before, after, audit),
+    );
+    return transaction.immediate();
   }
 }
