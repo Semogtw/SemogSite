@@ -71,6 +71,7 @@ export type {
   CommandResource,
   CommandResourceParentRef,
   EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
   OAuthScope,
   OAuthWriteScope,
   ResourceSelector,
