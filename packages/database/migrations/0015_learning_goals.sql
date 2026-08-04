@@ -107,9 +107,6 @@ CREATE TABLE learning_checkpoints (
   required INTEGER NOT NULL CHECK (required IN (0, 1)),
   sequence INTEGER NOT NULL CHECK (sequence >= 1),
   weight INTEGER NOT NULL CHECK (weight BETWEEN 1 AND 100),
-  weight_mode TEXT NOT NULL DEFAULT 'automatic' CHECK (
-    weight_mode IN ('automatic', 'custom')
-  ),
   completion_mode TEXT NOT NULL CHECK (completion_mode IN ('binary', 'numeric')),
   numeric_unit TEXT CHECK (
     numeric_unit IS NULL OR length(trim(numeric_unit)) BETWEEN 1 AND 40
