@@ -1,5 +1,6 @@
 export type {
   CheckpointCompletionMode,
+  CheckpointWeightMode,
   LearningCheckpointRecord,
   LearningCheckpointSkillLink,
   LearningCheckpointStatus,
