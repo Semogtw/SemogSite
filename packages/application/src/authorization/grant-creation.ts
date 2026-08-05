@@ -1,0 +1,100 @@
+import type { CommandActor } from "../core";
+import {
+  validateAgentGrantRequest,
+  type AgentGrantRequest,
+} from "./grant-request";
+import type {
+  AgentGrantDefinition,
+  ResourceSelector,
+  ResourceSelectorMap,
+} from "./types";
+
+export type AgentGrantCreationPlan = {
+  grant: AgentGrantDefinition;
+  createdAt: string;
+  reason: string;
+};
+
+function bounded(value: unknown, maximum: number): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= 1 &&
+    value.length <= maximum &&
+    value.trim() === value
+  );
+}
+
+function cloneSelector(selector: ResourceSelector): ResourceSelector {
+  switch (selector.kind) {
+    case "all":
+      return { kind: "all" };
+    case "exact_ids":
+      return { kind: "exact_ids", ids: [...selector.ids] };
+    case "canonical_prefixes":
+      return {
+        kind: "canonical_prefixes",
+        prefixes: [...selector.prefixes],
+      };
+    case "lifecycle_states":
+      return {
+        kind: "lifecycle_states",
+        states: [...selector.states],
+      };
+  }
+}
+
+function cloneSelectorMap(
+  resourceSelectors: ResourceSelectorMap,
+): ResourceSelectorMap {
+  const cloned: Record<string, readonly ResourceSelector[]> = {};
+  for (const resourceKind of Object.keys(resourceSelectors).sort((left, right) =>
+    left.localeCompare(right, "en"),
+  )) {
+    const selectors = resourceSelectors[resourceKind];
+    if (selectors !== undefined) {
+      cloned[resourceKind] = selectors.map(cloneSelector);
+    }
+  }
+  return cloned;
+}
+
+export function planAgentGrantCreation(input: {
+  actor: CommandActor;
+  grantId: string;
+  request: AgentGrantRequest;
+  explicitAllResourceKinds: readonly string[];
+  now: string;
+}): AgentGrantCreationPlan {
+  if (input.actor.kind !== "owner_ui") {
+    throw new Error("AGENT_GRANT_OWNER_REQUIRED");
+  }
+  if (!bounded(input.grantId, 200)) {
+    throw new Error("AGENT_GRANT_CREATION_INVALID");
+  }
+
+  const request = validateAgentGrantRequest({
+    actor: input.actor,
+    request: input.request,
+    explicitAllResourceKinds: input.explicitAllResourceKinds,
+    now: input.now,
+  });
+
+  return {
+    grant: {
+      id: input.grantId,
+      ownerId: request.ownerId,
+      clientId: request.clientId,
+      profileId: request.profileId,
+      status: "active",
+      capabilities: [...request.capabilities].sort((left, right) =>
+        left.localeCompare(right, "en"),
+      ),
+      resourceSelectors: cloneSelectorMap(request.resourceSelectors),
+      riskCeiling: request.riskCeiling,
+      expiresAt: request.expiresAt,
+      version: 1,
+    },
+    createdAt: input.now,
+    reason: request.reason,
+  };
+}
