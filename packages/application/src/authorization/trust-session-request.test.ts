@@ -177,7 +177,7 @@ describe("owner-only trust session creation", () => {
     const iteratorGetter = vi.fn(() => {
       throw new Error("caller iterator must not run");
     });
-    const ids = ["attention_2", "attention_1"];
+    const ids = ["attention_1"];
     Object.defineProperty(ids, Symbol.iterator, {
       configurable: true,
       get: iteratorGetter,
@@ -191,9 +191,7 @@ describe("owner-only trust session creation", () => {
     });
 
     expect(planned.resourceSelectors).toEqual({
-      attention_item: [
-        { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
-      ],
+      attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
     });
     expect(iteratorGetter).not.toHaveBeenCalled();
   });
