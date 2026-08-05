@@ -48,9 +48,6 @@ export function planAgentClientRevocation(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("AGENT_CLIENT_REVOCATION_OWNER_REQUIRED");
   }
-  if (input.actor.actorId !== input.ownerId) {
-    throw new Error("AGENT_CLIENT_REVOCATION_OWNER_MISMATCH");
-  }
 
   const revokeGrantIds = normalizeIds(input.activeGrantIds);
   const revokeTrustSessionIds = normalizeIds(input.activeTrustSessionIds);
@@ -68,6 +65,9 @@ export function planAgentClientRevocation(input: {
     cancelChallengeIds === null
   ) {
     throw new Error("AGENT_CLIENT_REVOCATION_INVALID");
+  }
+  if (input.actor.actorId !== input.ownerId) {
+    throw new Error("AGENT_CLIENT_REVOCATION_OWNER_MISMATCH");
   }
 
   return {
