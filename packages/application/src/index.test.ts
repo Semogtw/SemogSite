@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as application from "./index";
 import {
   confirmationOutcomes,
   riskTiers,
@@ -18,6 +19,14 @@ describe("@semogtw/application public contracts", () => {
       "approve_in_devos",
       "deny",
     ]);
+  });
+
+  it("exports owner authorization request planners", () => {
+    expect(application).toMatchObject({
+      validateAgentGrantRequest: expect.any(Function),
+      planAgentClientRevocation: expect.any(Function),
+      planAgentTrustSessionCreation: expect.any(Function),
+    });
   });
 
   it("models a transport-neutral command envelope", () => {
