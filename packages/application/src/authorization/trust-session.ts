@@ -1,12 +1,15 @@
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { sanitizeAgentTrustSessionBoundary } from "./agent-trust-session-boundary";
 import {
   isAgentCapability,
   resourceKindsForCapability,
 } from "./capabilities";
+import { sanitizeEffectiveAgentAuthorizationBoundary } from "./effective-authorization-boundary";
 import {
   selectorMatchesResource,
   validateResourceSelectorForKind,
 } from "./resource-selectors";
+import { sanitizeTrustSessionRequestBoundary } from "./trust-session-request-boundary";
 import type {
   AgentCapability,
   AgentRiskCeiling,
@@ -45,21 +48,8 @@ const riskRank: Readonly<Record<AgentRiskCeiling, number>> = {
   high: 2,
 };
 
-function bounded(value: unknown, maximum: number): value is string {
-  return (
-    typeof value === "string" &&
-    value.length >= 1 &&
-    value.length <= maximum &&
-    value.trim() === value
-  );
-}
-
-function trustRiskValid(value: string): value is TrustRiskCeiling {
+function trustRiskValid(value: unknown): value is TrustRiskCeiling {
   return value === "low" || value === "medium";
-}
-
-function agentRiskValid(value: unknown): value is AgentRiskCeiling {
-  return value === "low" || value === "medium" || value === "high";
 }
 
 function selectorCoveredByBase(
@@ -105,16 +95,8 @@ function clausesForCapability(input: {
   authorization: EffectiveAgentAuthorization;
   capability: AgentCapability;
 }): readonly EffectiveAgentAuthorizationClause[] {
-  if (!Array.isArray(input.authorization.authorizationClauses)) return [];
   return input.authorization.authorizationClauses.filter(
-    (clause) =>
-      typeof clause === "object" &&
-      clause !== null &&
-      bounded(clause.grantId, 200) &&
-      clause.capability === input.capability &&
-      agentRiskValid(clause.riskCeiling) &&
-      typeof clause.resourceSelectors === "object" &&
-      clause.resourceSelectors !== null,
+    (clause) => clause.capability === input.capability,
   );
 }
 
@@ -222,28 +204,41 @@ export function validateTrustSessionRequest(input: {
     throw new Error("TRUST_DELEGATION_FORBIDDEN");
   }
 
-  if (
-    !Array.isArray(input.requestedCapabilities) ||
-    input.requestedCapabilities.length < 1 ||
-    new Set(input.requestedCapabilities).size !==
-      input.requestedCapabilities.length
-  ) {
-    throw new Error("TRUST_CAPABILITY_INVALID");
+  let requested: ReturnType<typeof sanitizeTrustSessionRequestBoundary>;
+  try {
+    requested = sanitizeTrustSessionRequestBoundary({
+      requestedCapabilities: input.requestedCapabilities,
+      requestedResources: input.requestedResources,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "TRUST_CAPABILITY_INVALID"
+    ) {
+      throw error;
+    }
+    throw new Error("TRUST_RESOURCE_NOT_GRANTED");
   }
 
+  let baseAuthorization: EffectiveAgentAuthorization;
+  try {
+    baseAuthorization = sanitizeEffectiveAgentAuthorizationBoundary(
+      input.baseAuthorization,
+    );
+  } catch {
+    throw new Error("TRUST_CAPABILITY_NOT_GRANTED");
+  }
+
+  const baseCapabilities = new Set(baseAuthorization.capabilities);
   const requestedKinds = new Set<string>();
-  for (const capability of input.requestedCapabilities) {
-    if (
-      !isAgentCapability(capability) ||
-      !Array.isArray(input.baseAuthorization.capabilities) ||
-      !input.baseAuthorization.capabilities.includes(capability)
-    ) {
+  for (const capability of requested.requestedCapabilities) {
+    if (!isAgentCapability(capability) || !baseCapabilities.has(capability)) {
       throw new Error("TRUST_CAPABILITY_NOT_GRANTED");
     }
 
     if (
       !capabilityHasRisk({
-        authorization: input.baseAuthorization,
+        authorization: baseAuthorization,
         capability,
         requestedRisk: input.riskCeiling,
       })
@@ -257,9 +252,9 @@ export function validateTrustSessionRequest(input: {
     if (
       !requestedResourcesFitCapability({
         capability,
-        requestedResources: input.requestedResources,
+        requestedResources: requested.requestedResources,
         requestedRisk: input.riskCeiling,
-        baseAuthorization: input.baseAuthorization,
+        baseAuthorization,
       })
     ) {
       throw new Error("TRUST_RESOURCE_NOT_GRANTED");
@@ -267,9 +262,7 @@ export function validateTrustSessionRequest(input: {
   }
 
   if (
-    typeof input.requestedResources !== "object" ||
-    input.requestedResources === null ||
-    !Object.keys(input.requestedResources).every((resourceKind) =>
+    !Object.keys(requested.requestedResources).every((resourceKind) =>
       requestedKinds.has(resourceKind),
     )
   ) {
@@ -277,44 +270,17 @@ export function validateTrustSessionRequest(input: {
   }
 }
 
-export function evaluateTrustSessionState(
+function evaluateSanitizedTrustSessionState(
   session: AgentTrustSession,
   now: string,
 ): TrustSessionState {
   if (
     !isCanonicalUtcTimestamp(now) ||
-    !bounded(session.id, 200) ||
-    !bounded(session.ownerId, 200) ||
-    !bounded(session.clientId, 200) ||
-    !isCanonicalUtcTimestamp(session.startsAt) ||
-    !isCanonicalUtcTimestamp(session.expiresAt) ||
-    session.startsAt >= session.expiresAt ||
     (session.revokedAt !== null &&
-      (!isCanonicalUtcTimestamp(session.revokedAt) ||
-        session.revokedAt < session.startsAt ||
-        session.revokedAt > now)) ||
-    !trustRiskValid(session.riskCeiling) ||
-    !Number.isInteger(session.maxOperations) ||
-    session.maxOperations < 1 ||
-    session.maxOperations > maximumTrustOperations ||
-    !Number.isInteger(session.operationsUsed) ||
-    session.operationsUsed < 0 ||
-    session.operationsUsed > session.maxOperations ||
-    !Number.isInteger(session.version) ||
-    session.version < 1 ||
-    !bounded(session.reason, 500) ||
-    !Array.isArray(session.baseGrantIds) ||
-    session.baseGrantIds.length < 1 ||
-    session.baseGrantIds.some((grantId) => !bounded(grantId, 200)) ||
-    new Set(session.baseGrantIds).size !== session.baseGrantIds.length ||
-    !Array.isArray(session.capabilities) ||
-    session.capabilities.length < 1 ||
-    new Set(session.capabilities).size !== session.capabilities.length ||
-    session.capabilities.some((capability) => !isAgentCapability(capability))
+      (session.revokedAt < session.startsAt || session.revokedAt > now))
   ) {
     return "invalid";
   }
-
   if (session.revokedAt !== null) return "revoked";
   if (session.startsAt > now) return "not_started";
   if (session.expiresAt <= now) return "expired";
@@ -322,40 +288,44 @@ export function evaluateTrustSessionState(
   return "active";
 }
 
-export function trustSessionFitsAuthorization(input: {
+export function evaluateTrustSessionState(
+  session: AgentTrustSession,
+  now: string,
+): TrustSessionState {
+  const sanitized = sanitizeAgentTrustSessionBoundary(session);
+  return sanitized === null
+    ? "invalid"
+    : evaluateSanitizedTrustSessionState(sanitized, now);
+}
+
+function trustSessionFitsSanitizedAuthorization(input: {
   session: AgentTrustSession;
   baseAuthorization: EffectiveAgentAuthorization;
   now: string;
 }): boolean {
   if (
-    evaluateTrustSessionState(input.session, input.now) !== "active" ||
+    evaluateSanitizedTrustSessionState(input.session, input.now) !== "active" ||
     input.session.ownerId !== input.baseAuthorization.ownerId ||
-    input.session.clientId !== input.baseAuthorization.clientId ||
-    !Array.isArray(input.baseAuthorization.grantIds) ||
-    input.baseAuthorization.grantIds.some((grantId) => !bounded(grantId, 200)) ||
-    !input.session.baseGrantIds.every((grantId) =>
-      input.baseAuthorization.grantIds.includes(grantId),
-    ) ||
-    !Array.isArray(input.baseAuthorization.authorizationClauses)
+    input.session.clientId !== input.baseAuthorization.clientId
   ) {
+    return false;
+  }
+
+  const baseGrantIds = new Set(input.baseAuthorization.grantIds);
+  if (!input.session.baseGrantIds.every((grantId) => baseGrantIds.has(grantId))) {
     return false;
   }
 
   const allowedGrantIds = new Set(input.session.baseGrantIds);
   const authorizationClauses = input.baseAuthorization.authorizationClauses.filter(
-    (clause) =>
-      typeof clause === "object" &&
-      clause !== null &&
-      bounded(clause.grantId, 200) &&
-      allowedGrantIds.has(clause.grantId) &&
-      input.baseAuthorization.grantIds.includes(clause.grantId),
+    (clause) => allowedGrantIds.has(clause.grantId),
   );
   if (authorizationClauses.length === 0) return false;
 
   const narrowedAuthorization: EffectiveAgentAuthorization = {
     ...input.baseAuthorization,
     authorizationClauses,
-    grantIds: [...input.session.baseGrantIds],
+    grantIds: input.session.baseGrantIds,
     trustSessionIds: [],
   };
   const durationMinutes =
@@ -378,6 +348,30 @@ export function trustSessionFitsAuthorization(input: {
   }
 }
 
+export function trustSessionFitsAuthorization(input: {
+  session: AgentTrustSession;
+  baseAuthorization: EffectiveAgentAuthorization;
+  now: string;
+}): boolean {
+  const session = sanitizeAgentTrustSessionBoundary(input.session);
+  if (session === null) return false;
+
+  let baseAuthorization: EffectiveAgentAuthorization;
+  try {
+    baseAuthorization = sanitizeEffectiveAgentAuthorizationBoundary(
+      input.baseAuthorization,
+    );
+  } catch {
+    return false;
+  }
+
+  return trustSessionFitsSanitizedAuthorization({
+    session,
+    baseAuthorization,
+    now: input.now,
+  });
+}
+
 export function trustSessionCoversCommand(input: {
   session: AgentTrustSession;
   baseAuthorization: EffectiveAgentAuthorization;
@@ -386,27 +380,38 @@ export function trustSessionCoversCommand(input: {
   risk: TrustCoveredCommandRisk;
   now: string;
 }): boolean {
+  const session = sanitizeAgentTrustSessionBoundary(input.session);
+  if (session === null) return false;
+
+  let baseAuthorization: EffectiveAgentAuthorization;
+  try {
+    baseAuthorization = sanitizeEffectiveAgentAuthorizationBoundary(
+      input.baseAuthorization,
+    );
+  } catch {
+    return false;
+  }
+
   if (
-    !trustSessionFitsAuthorization({
-      session: input.session,
-      baseAuthorization: input.baseAuthorization,
+    !trustSessionFitsSanitizedAuthorization({
+      session,
+      baseAuthorization,
       now: input.now,
     }) ||
-    !input.session.capabilities.includes(input.capability) ||
+    !new Set(session.capabilities).has(input.capability) ||
     (input.risk !== "low" && input.risk !== "medium") ||
-    riskRank[input.session.riskCeiling] < riskRank[input.risk] ||
+    riskRank[session.riskCeiling] < riskRank[input.risk] ||
     !resourceKindsForCapability(input.capability).includes(input.resource.kind)
   ) {
     return false;
   }
 
-  const selectors = input.session.resourceSelectors[input.resource.kind];
+  const selectors = session.resourceSelectors[input.resource.kind];
   if (!Array.isArray(selectors) || selectors.length === 0) return false;
-  try {
-    return selectors.some((selector) =>
-      selectorMatchesResource({ selector, resource: input.resource }),
-    );
-  } catch {
-    return false;
+  for (const selector of selectors) {
+    if (selectorMatchesResource({ selector, resource: input.resource })) {
+      return true;
+    }
   }
+  return false;
 }
