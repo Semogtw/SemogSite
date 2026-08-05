@@ -1,4 +1,5 @@
 import type { AgentClientRevocationPlan } from "./client-revocation";
+import type { AgentGrantCreationPlan } from "./grant-creation";
 import type { AgentGrantRevocationPlan } from "./grant-revocation";
 import type { TrustSessionOperationConsumptionPlan } from "./trust-session-consumption";
 import type { AgentTrustSessionRevocationPlan } from "./trust-session-revocation";
@@ -15,6 +16,10 @@ export type AgentAuthorizationMutationResult = {
 };
 
 export type AgentAuthorizationMutation =
+  | {
+      kind: "grant.create";
+      plan: AgentGrantCreationPlan;
+    }
   | {
       kind: "trust.consume";
       plan: TrustSessionOperationConsumptionPlan;
@@ -38,6 +43,9 @@ export type AgentAuthorizationMutation =
  * a method must never report `applied` after a partial cascade.
  */
 export interface AgentAuthorizationMutationRepository {
+  createGrant(
+    plan: AgentGrantCreationPlan,
+  ): Promise<AgentAuthorizationMutationResult>;
   consumeTrustSessionOperation(
     plan: TrustSessionOperationConsumptionPlan,
   ): Promise<AgentAuthorizationMutationResult>;
@@ -54,6 +62,7 @@ export interface AgentAuthorizationMutationRepository {
 
 function expectedAffectedRows(mutation: AgentAuthorizationMutation): number {
   switch (mutation.kind) {
+    case "grant.create":
     case "trust.consume":
     case "trust.revoke":
       return 1;
@@ -102,6 +111,9 @@ export function createAgentAuthorizationMutationExecutor(
   return async (mutation) => {
     let result: AgentAuthorizationMutationResult;
     switch (mutation.kind) {
+      case "grant.create":
+        result = await repository.createGrant(mutation.plan);
+        break;
       case "trust.consume":
         result = await repository.consumeTrustSessionOperation(mutation.plan);
         break;
