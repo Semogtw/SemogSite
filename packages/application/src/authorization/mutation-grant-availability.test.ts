@@ -11,8 +11,9 @@ function repository(): AgentAuthorizationMutationRepository {
   });
   return {
     createGrant: vi.fn(applied),
-    createTrustSession: vi.fn(applied),
     transitionGrantAvailability: vi.fn(applied),
+    expireGrant: vi.fn(applied),
+    createTrustSession: vi.fn(applied),
     consumeTrustSessionOperation: vi.fn(applied),
     revokeTrustSession: vi.fn(applied),
     revokeGrant: vi.fn(applied),
