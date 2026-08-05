@@ -12,3 +12,9 @@ export {
 export type {
   TrustSessionOperationConsumptionPlan,
 } from "./trust-session-consumption";
+export {
+  planAgentTrustSessionRevocation,
+} from "./trust-session-revocation";
+export type {
+  AgentTrustSessionRevocationPlan,
+} from "./trust-session-revocation";
