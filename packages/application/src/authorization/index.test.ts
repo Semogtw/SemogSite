@@ -10,6 +10,7 @@ describe("agent authorization barrel", () => {
       computeEffectiveAgentAuthorization: expect.any(Function),
       validateAgentGrantRequest: expect.any(Function),
       planAgentGrantCreation: expect.any(Function),
+      planAgentGrantAvailabilityTransition: expect.any(Function),
       planAgentGrantRevocation: expect.any(Function),
       planAgentClientRevocation: expect.any(Function),
       planAgentTrustSessionCreation: expect.any(Function),
