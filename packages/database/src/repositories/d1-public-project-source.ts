@@ -1,14 +1,14 @@
 import type { PublishableProjectSource } from "@semogtw/contracts";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
-import type { SqliteDatabase } from "../adapters/sqlite";
+import type { SemogtwD1Database } from "../adapters/d1";
 import { projects } from "../schema/projects";
 import { toPublishableProjectSource } from "./public-project-mapping";
 
-export class SqlitePublicProjectSource {
-  constructor(private readonly database: SqliteDatabase) {}
+export class D1PublicProjectSource {
+  constructor(private readonly database: SemogtwD1Database) {}
 
   async listListed(): Promise<readonly PublishableProjectSource[]> {
-    const rows = this.database
+    const rows = await this.database
       .select()
       .from(projects)
       .where(
@@ -22,7 +22,7 @@ export class SqlitePublicProjectSource {
   async findPublishableBySlug(
     slug: string,
   ): Promise<PublishableProjectSource | null> {
-    const row = this.database
+    const row = await this.database
       .select()
       .from(projects)
       .where(

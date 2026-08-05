@@ -1,3 +1,10 @@
+export { createD1Database } from "./adapters/d1";
+export type {
+  D1DatabaseBinding,
+  D1PreparedStatementBinding,
+  D1QueryResult,
+  SemogtwD1Database,
+} from "./adapters/d1";
 export { createSqliteDatabase, migrate } from "./adapters/sqlite";
 export type { SqliteDatabase } from "./adapters/sqlite";
 export {
@@ -48,6 +55,7 @@ export type {
   EditorialRevisionView,
 } from "./repositories/editorial-read-model";
 export { SqliteEditorialWriteRepository } from "./repositories/editorial-write-repository";
+export { D1PublicProjectSource } from "./repositories/d1-public-project-source";
 export { SqlitePublishedEditorialReadModel } from "./repositories/published-editorial-read-model";
 export type {
   PublishedEditorialProjection,
