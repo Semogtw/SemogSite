@@ -41,6 +41,7 @@ function createFixture(overrides = {}) {
         exports: {
           "./d1": "./src/adapters/d1.ts",
           "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+          "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
           "./d1-public-projects":
             "./src/repositories/d1-public-project-source.ts",
         },
@@ -51,6 +52,8 @@ function createFixture(overrides = {}) {
     "packages/database/src/adapters/d1.ts": "export const createD1Database = () => null;\n",
     "packages/database/src/repositories/d1-auth-session-store.ts":
       "export class D1AuthSessionStore {}\n",
+    "packages/database/src/repositories/d1-overview-data-source.ts":
+      "export class D1OverviewDataSource {}\n",
     "packages/database/src/repositories/d1-public-project-source.ts":
       "export class D1PublicProjectSource {}\n",
     "packages/database/migrations/0001_foundation.sql":

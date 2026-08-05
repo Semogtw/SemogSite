@@ -113,6 +113,7 @@ function validateDatabaseExports(root, violations) {
   const requiredExports = {
     "./d1": "./src/adapters/d1.ts",
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+    "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
     "./d1-public-projects": "./src/repositories/d1-public-project-source.ts",
   };
   for (const [subpath, target] of Object.entries(requiredExports)) {
