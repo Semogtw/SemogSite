@@ -1,11 +1,11 @@
 import type { CommandActor } from "../core";
 import { normalizeBoundedUniqueIds } from "./id-list";
-import { cloneResourceSelectorMap } from "./resource-selector-copy";
 import {
   validateAgentGrantRequest,
   type AgentGrantRequest,
 } from "./grant-request";
 import { evaluateAgentGrantState } from "./grant-lifecycle";
+import { sanitizeResourceSelectorMapBoundary } from "./resource-selector-boundary";
 import type { AgentGrantDefinition } from "./types";
 
 export type AgentGrantRevisionPlan = {
@@ -65,6 +65,9 @@ export function planAgentGrantRevision(input: {
   }
 
   const nextVersion = input.grant.version + 1;
+  const resourceSelectors = sanitizeResourceSelectorMapBoundary(
+    request.resourceSelectors,
+  );
   return {
     grantId: input.grant.id,
     ownerId: input.grant.ownerId,
@@ -81,7 +84,7 @@ export function planAgentGrantRevision(input: {
       capabilities: [...request.capabilities].sort((left, right) =>
         left.localeCompare(right, "en"),
       ),
-      resourceSelectors: cloneResourceSelectorMap(request.resourceSelectors),
+      resourceSelectors,
       riskCeiling: request.riskCeiling,
       expiresAt: request.expiresAt,
       version: nextVersion,
