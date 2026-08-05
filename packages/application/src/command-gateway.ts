@@ -1,10 +1,12 @@
 import { canonicalJson, canonicalSha256 } from "./canonical-json";
-import type {
-  CommandActor,
-  CommandContext,
-  CommandTarget,
-  JsonValue,
-  PolicyDecision,
+import {
+  confirmationOutcomes,
+  riskTiers,
+  type CommandActor,
+  type CommandContext,
+  type CommandTarget,
+  type JsonValue,
+  type PolicyDecision,
 } from "./core";
 import {
   CommandRegistry,
@@ -189,6 +191,37 @@ function expectedValid(
   );
 }
 
+function canonicalCopy<Value>(value: Value): Value {
+  return JSON.parse(canonicalJson(value)) as Value;
+}
+
+function policyDecisionCopy(value: unknown): PolicyDecision | null {
+  if (
+    !dataObject(value) ||
+    !keysValid(value, ["outcome", "risk", "reasonCode", "approvalId"]) ||
+    typeof value.outcome !== "string" ||
+    !confirmationOutcomes.includes(
+      value.outcome as (typeof confirmationOutcomes)[number],
+    ) ||
+    typeof value.risk !== "string" ||
+    !riskTiers.includes(value.risk as (typeof riskTiers)[number]) ||
+    typeof value.reasonCode !== "string" ||
+    !bounded(value.reasonCode, 200) ||
+    (value.approvalId !== null &&
+      (typeof value.approvalId !== "string" ||
+        !bounded(value.approvalId, 200)))
+  ) {
+    return null;
+  }
+
+  return {
+    outcome: value.outcome as PolicyDecision["outcome"],
+    risk: value.risk as PolicyDecision["risk"],
+    reasonCode: value.reasonCode,
+    approvalId: value.approvalId,
+  };
+}
+
 function manifestFrom(
   definition: ReturnType<CommandRegistry["resolve"]>,
 ): CommandManifest {
@@ -275,36 +308,62 @@ export class CommandGateway {
       throw new Error("COMMAND_EXPECTED_INVALID");
     }
 
+    const context = canonicalCopy(input.context);
+    const requestedTarget = canonicalCopy(input.target);
+    const expected = canonicalCopy(input.expected);
+    const rawPayload = canonicalCopy(input.payload);
+
     const definition = this.registry.resolve(
       input.commandId,
       input.commandVersion,
     );
-    const payload = definition.schema.parse(input.payload);
-    const target = definition.bindResource(payload);
-    if (!targetValid(target) || target.resourceType !== definition.resourceType) {
+    const parsedPayload = definition.schema.parse(rawPayload);
+    if (!canonicalValueValid(parsedPayload, 64_000)) {
+      throw new Error("COMMAND_PAYLOAD_INVALID");
+    }
+    const payload = canonicalCopy(parsedPayload);
+    const boundTarget = definition.bindResource(canonicalCopy(payload));
+    if (
+      !targetValid(boundTarget) ||
+      boundTarget.resourceType !== definition.resourceType
+    ) {
       throw new Error("COMMAND_RESOURCE_INVALID");
     }
+    const target: CommandTarget = {
+      resourceType: boundTarget.resourceType,
+      resourceId: boundTarget.resourceId,
+    };
     if (
-      input.target.resourceType !== target.resourceType ||
-      input.target.resourceId !== target.resourceId
+      requestedTarget.resourceType !== target.resourceType ||
+      requestedTarget.resourceId !== target.resourceId
     ) {
       throw new Error("COMMAND_TARGET_MISMATCH");
     }
 
     const manifest = manifestFrom(definition);
+    const rawDecision = this.policy.evaluate(
+      { ...manifest },
+      canonicalCopy(context),
+      { ...target },
+    );
+    const decision = policyDecisionCopy(rawDecision);
+    if (decision === null) {
+      throw new Error("COMMAND_POLICY_DECISION_INVALID");
+    }
+
     const [payloadHash, expectedHash, requestHash] = await Promise.all([
       canonicalSha256(payload),
-      canonicalSha256(input.expected),
+      canonicalSha256(expected),
       canonicalSha256({
         commandId: definition.commandId,
         commandVersion: definition.commandVersion,
         capability: definition.capability,
-        ownerId: input.context.ownerId,
-        actor: actorSignature(input.context),
+        ownerId: context.ownerId,
+        actor: actorSignature(context),
         target,
         payload,
-        expected: input.expected,
-        reason: input.context.reason,
+        expected,
+        reason: context.reason,
       }),
     ]);
 
@@ -314,10 +373,10 @@ export class CommandGateway {
       capability: definition.capability,
       target,
       payload,
-      expected: input.expected,
-      context: input.context,
+      expected,
+      context,
       manifest,
-      decision: this.policy.evaluate(manifest, input.context, target),
+      decision,
       payloadHash,
       expectedHash,
       requestHash,
