@@ -10,6 +10,10 @@ function repository(): AgentAuthorizationMutationRepository {
       status: "applied",
       affectedRows: 1,
     })),
+    transitionGrantAvailability: vi.fn(async () => ({
+      status: "applied",
+      affectedRows: 1,
+    })),
     createTrustSession: vi.fn(async () => ({
       status: "applied",
       affectedRows: 1,
