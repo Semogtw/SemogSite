@@ -1,5 +1,6 @@
 import type { CommandActor } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { cloneResourceSelectorMap } from "./resource-selector-copy";
 import { validateTrustSessionRequest } from "./trust-session";
 import type {
   AgentCapability,
@@ -89,7 +90,7 @@ export function planAgentTrustSessionCreation(input: {
       left.localeCompare(right, "en"),
     ),
     capabilities: [...input.requestedCapabilities],
-    resourceSelectors: input.requestedResources,
+    resourceSelectors: cloneResourceSelectorMap(input.requestedResources),
     riskCeiling: input.riskCeiling,
     startsAt: input.now,
     expiresAt,
