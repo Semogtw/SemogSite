@@ -43,6 +43,12 @@ export {
   computeEffectiveAgentAuthorization,
 } from "./effective-grant";
 export {
+  planAgentGrantAvailabilityTransition,
+} from "./grant-availability";
+export type {
+  AgentGrantAvailabilityTransitionPlan,
+} from "./grant-availability";
+export {
   planAgentGrantCreation,
 } from "./grant-creation";
 export type {
