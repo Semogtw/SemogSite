@@ -43,9 +43,6 @@ export function planAgentTrustSessionCreation(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("TRUST_SESSION_OWNER_REQUIRED");
   }
-  if (input.actor.actorId !== input.baseAuthorization.ownerId) {
-    throw new Error("TRUST_SESSION_OWNER_MISMATCH");
-  }
   if (
     !bounded(input.trustSessionId, 200) ||
     !bounded(input.baseAuthorization.ownerId, 200) ||
@@ -55,6 +52,9 @@ export function planAgentTrustSessionCreation(input: {
     !bounded(input.reason, 500)
   ) {
     throw new Error("TRUST_SESSION_REQUEST_INVALID");
+  }
+  if (input.actor.actorId !== input.baseAuthorization.ownerId) {
+    throw new Error("TRUST_SESSION_OWNER_MISMATCH");
   }
 
   validateTrustSessionRequest({
