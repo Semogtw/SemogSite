@@ -21,6 +21,12 @@ export type {
   AgentAuthorizationCommandEntry,
 } from "./catalog-coverage";
 export {
+  planAgentClientRevocation,
+} from "./client-revocation";
+export type {
+  AgentClientRevocationPlan,
+} from "./client-revocation";
+export {
   confirmationChallengeResponseBytes,
   confirmationChallengeTtlMinutes,
   createConfirmationChallengeService,
@@ -67,6 +73,9 @@ export type {
   TrustCoveredCommandRisk,
   TrustSessionState,
 } from "./trust-session";
+export {
+  planAgentTrustSessionCreation,
+} from "./trust-session-request";
 export type {
   AgentCapability,
   AgentGrantDefinition,
