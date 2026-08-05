@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { planAgentTrustSessionCreation } from "./trust-session-request";
 import type {
+  AgentCapability,
   EffectiveAgentAuthorization,
   ResourceSelectorMap,
 } from "./types";
@@ -50,6 +51,17 @@ const base = {
   now,
   reason: "Permitir uma sessão supervisionada por duas horas.",
 };
+
+function accessorArray<T>(getter: () => T): T[] {
+  const value: T[] = [];
+  Object.defineProperty(value, "0", {
+    configurable: true,
+    enumerable: true,
+    get: getter,
+  });
+  value.length = 1;
+  return value;
+}
 
 describe("owner-only trust session creation", () => {
   it("derives client and base grants from effective authorization", () => {
@@ -144,5 +156,45 @@ describe("owner-only trust session creation", () => {
         durationMinutes: 480,
       }),
     ).toThrow("TRUST_SESSION_REQUEST_INVALID");
+  });
+
+  it("rejects hostile base authorization arrays without invoking them", () => {
+    const getter = vi.fn(() => "attention.write" as AgentCapability);
+
+    expect(() =>
+      planAgentTrustSessionCreation({
+        ...base,
+        baseAuthorization: {
+          ...authorization,
+          capabilities: accessorArray(getter),
+        },
+      }),
+    ).toThrow("TRUST_SESSION_REQUEST_INVALID");
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("copies requested selectors without invoking caller iterators", () => {
+    const iteratorGetter = vi.fn(() => {
+      throw new Error("caller iterator must not run");
+    });
+    const ids = ["attention_2", "attention_1"];
+    Object.defineProperty(ids, Symbol.iterator, {
+      configurable: true,
+      get: iteratorGetter,
+    });
+
+    const planned = planAgentTrustSessionCreation({
+      ...base,
+      requestedResources: {
+        attention_item: [{ kind: "exact_ids", ids }],
+      },
+    });
+
+    expect(planned.resourceSelectors).toEqual({
+      attention_item: [
+        { kind: "exact_ids", ids: ["attention_1", "attention_2"] },
+      ],
+    });
+    expect(iteratorGetter).not.toHaveBeenCalled();
   });
 });
