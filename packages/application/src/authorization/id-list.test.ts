@@ -51,5 +51,26 @@ describe("bounded unique authorization ID lists", () => {
         maximumLength: 5,
       }),
     ).toBeNull();
+    expect(
+      normalizeBoundedUniqueIds([], {
+        minimumItems: 1,
+      }),
+    ).toBeNull();
+    expect(
+      normalizeBoundedUniqueIds(["id_1"], {
+        minimumItems: 1,
+      }),
+    ).toEqual(["id_1"]);
+  });
+
+  it("rejects invalid bound combinations", () => {
+    for (const bounds of [
+      { minimumItems: -1 },
+      { minimumItems: 2, maximumItems: 1 },
+      { maximumItems: 1.5 },
+      { maximumLength: 0 },
+    ]) {
+      expect(normalizeBoundedUniqueIds([], bounds)).toBeNull();
+    }
   });
 });
