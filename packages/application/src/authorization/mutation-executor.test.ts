@@ -10,6 +10,10 @@ function repository(): AgentAuthorizationMutationRepository {
       status: "applied",
       affectedRows: 1,
     })),
+    createTrustSession: vi.fn(async () => ({
+      status: "applied",
+      affectedRows: 1,
+    })),
     consumeTrustSessionOperation: vi.fn(async () => ({
       status: "applied",
       affectedRows: 1,
@@ -50,6 +54,25 @@ const grantCreation = {
   },
   createdAt: "2026-08-05T08:00:00.000Z",
   reason: "Authorize supervised attention maintenance.",
+} as const;
+
+const trustCreation = {
+  id: "trust_1",
+  ownerId: "owner_1",
+  clientId: "client_1",
+  baseGrantIds: ["grant_1"],
+  capabilities: ["attention.write"],
+  resourceSelectors: {
+    attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
+  },
+  riskCeiling: "medium",
+  startsAt: "2026-08-05T08:00:00.000Z",
+  expiresAt: "2026-08-05T09:00:00.000Z",
+  maxOperations: 10,
+  operationsUsed: 0,
+  revokedAt: null,
+  reason: "Supervised attention maintenance.",
+  version: 1,
 } as const;
 
 const trustConsumption = {
@@ -107,6 +130,9 @@ describe("agent authorization mutation executor", () => {
       execute({ kind: "grant.create", plan: grantCreation }),
     ).resolves.toEqual({ status: "applied", affectedRows: 1 });
     await expect(
+      execute({ kind: "trust.create", plan: trustCreation }),
+    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    await expect(
       execute({ kind: "trust.consume", plan: trustConsumption }),
     ).resolves.toEqual({ status: "applied", affectedRows: 1 });
     await expect(
@@ -120,6 +146,7 @@ describe("agent authorization mutation executor", () => {
     ).resolves.toEqual({ status: "applied", affectedRows: 6 });
 
     expect(store.createGrant).toHaveBeenCalledWith(grantCreation);
+    expect(store.createTrustSession).toHaveBeenCalledWith(trustCreation);
     expect(store.consumeTrustSessionOperation).toHaveBeenCalledWith(
       trustConsumption,
     );
