@@ -8,7 +8,6 @@ import { isBuiltin } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const sourceExtension = /\.(?:c|m)?(?:j|t)sx?$/u;
 const importSpecifierPattern =
   /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)["']([^"']+)["']/gu;
 const forbiddenWorkerSpecifiers = new Set([
@@ -25,19 +24,6 @@ function importedSpecifiers(content) {
   return [...content.matchAll(importSpecifierPattern)].map(
     (match) => match[1],
   );
-}
-
-function collectSourceFiles(directory) {
-  if (!existsSync(directory)) return [];
-
-  const files = [];
-  for (const entry of readdirSync(directory)) {
-    const absolute = join(directory, entry);
-    const stats = statSync(absolute);
-    if (stats.isDirectory()) files.push(...collectSourceFiles(absolute));
-    else if (stats.isFile() && sourceExtension.test(entry)) files.push(absolute);
-  }
-  return files;
 }
 
 function addViolation(violations, code, path, message, detail = null) {
@@ -126,6 +112,7 @@ function validateDatabaseExports(root, violations) {
 
   const requiredExports = {
     "./d1": "./src/adapters/d1.ts",
+    "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
     "./d1-public-projects": "./src/repositories/d1-public-project-source.ts",
   };
   for (const [subpath, target] of Object.entries(requiredExports)) {

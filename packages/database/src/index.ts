@@ -55,6 +55,7 @@ export type {
   EditorialRevisionView,
 } from "./repositories/editorial-read-model";
 export { SqliteEditorialWriteRepository } from "./repositories/editorial-write-repository";
+export { D1AuthSessionStore } from "./repositories/d1-auth-session-store";
 export { D1PublicProjectSource } from "./repositories/d1-public-project-source";
 export { SqlitePublishedEditorialReadModel } from "./repositories/published-editorial-read-model";
 export type {
