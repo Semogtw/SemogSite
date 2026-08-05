@@ -9,7 +9,7 @@ function request(): AgentGrantRequest {
     profileId: "profile_1",
     capabilities: ["roadmap.write", "attention.write"],
     resourceSelectors: {
-      roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+      stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
       attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
     },
     riskCeiling: "medium",
@@ -41,7 +41,7 @@ describe("agent grant creation planning", () => {
         capabilities: ["attention.write", "roadmap.write"],
         resourceSelectors: {
           attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-          roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+          stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
         },
         riskCeiling: "medium",
         expiresAt: "2026-08-06T08:30:00.000Z",
