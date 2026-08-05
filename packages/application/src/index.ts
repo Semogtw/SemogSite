@@ -37,6 +37,8 @@ export type {
   ConfirmationChallengeStore,
 } from "./authorization/confirmation-challenge";
 export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
+export { planAgentGrantAvailabilityTransition } from "./authorization/grant-availability";
+export type { AgentGrantAvailabilityTransitionPlan } from "./authorization/grant-availability";
 export { planAgentGrantCreation } from "./authorization/grant-creation";
 export type { AgentGrantCreationPlan } from "./authorization/grant-creation";
 export { validateAgentGrantRequest } from "./authorization/grant-request";
