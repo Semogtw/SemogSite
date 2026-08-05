@@ -76,6 +76,12 @@ export type {
 export {
   planAgentTrustSessionCreation,
 } from "./trust-session-request";
+export {
+  planAgentTrustSessionRevocation,
+} from "./trust-session-revocation";
+export type {
+  AgentTrustSessionRevocationPlan,
+} from "./trust-session-revocation";
 export type {
   AgentCapability,
   AgentGrantDefinition,
