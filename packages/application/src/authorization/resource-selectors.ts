@@ -79,6 +79,29 @@ function exactKeys(value: Record<string, unknown>, expected: readonly string[]):
   );
 }
 
+function ownDataArrayValues(
+  value: unknown,
+  maximumItems: number,
+): readonly unknown[] | null {
+  if (!Array.isArray(value) || value.length > maximumItems) return null;
+
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const values: unknown[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (
+      descriptor === undefined ||
+      !("value" in descriptor) ||
+      descriptor.get !== undefined ||
+      descriptor.set !== undefined
+    ) {
+      return null;
+    }
+    values.push(descriptor.value);
+  }
+  return values;
+}
+
 function boundedCanonicalId(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -143,13 +166,13 @@ function parentRefValid(parentRef: unknown): parentRef is CommandResourceParentR
 
 function commandResourceValid(resource: unknown): resource is CommandResource {
   if (!plainRecord(resource)) return false;
+  const parentRefs = ownDataArrayValues(resource.parentRefs, 50);
   return (
     exactKeys(resource, ["id", "kind", "lifecycleState", "parentRefs"]) &&
     resourceKindKnown(resource.kind) &&
     boundedCanonicalId(resource.id) &&
-    Array.isArray(resource.parentRefs) &&
-    resource.parentRefs.length <= 50 &&
-    resource.parentRefs.every(parentRefValid) &&
+    parentRefs !== null &&
+    parentRefs.every(parentRefValid) &&
     (resource.lifecycleState === null ||
       (typeof resource.lifecycleState === "string" &&
         resource.lifecycleState.length >= 1 &&
