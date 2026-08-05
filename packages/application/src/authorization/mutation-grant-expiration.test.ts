@@ -13,7 +13,7 @@ function repository(): AgentAuthorizationMutationRepository {
     createGrant: vi.fn(applied),
     transitionGrantAvailability: vi.fn(applied),
     expireGrant: vi.fn(async (plan) => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
     reviseGrant: vi.fn(applied),
@@ -48,14 +48,14 @@ describe("grant expiration mutation persistence", () => {
         kind: "grant.expire",
         plan: expiration,
       }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 3 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 3 });
     expect(store.expireGrant).toHaveBeenCalledWith(expiration);
   });
 
   it("rejects partial cascade success", async () => {
     const store = repository();
     vi.mocked(store.expireGrant).mockResolvedValue({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 2,
     });
 
