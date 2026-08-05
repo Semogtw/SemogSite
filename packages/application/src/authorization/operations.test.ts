@@ -6,6 +6,7 @@ describe("agent authorization operation plans", () => {
     expect(operations).toMatchObject({
       evaluateAgentGrantState: expect.any(Function),
       planAgentGrantStatusTransition: expect.any(Function),
+      planAgentGrantRevocation: expect.any(Function),
       planTrustSessionOperationConsumption: expect.any(Function),
       planAgentTrustSessionRevocation: expect.any(Function),
     });
