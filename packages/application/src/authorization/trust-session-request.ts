@@ -1,5 +1,6 @@
 import type { CommandActor } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { normalizeBoundedUniqueIds } from "./id-list";
 import { cloneResourceSelectorMap } from "./resource-selector-copy";
 import { validateTrustSessionRequest } from "./trust-session";
 import type {
@@ -19,16 +20,6 @@ function bounded(value: unknown, maximum: number): value is string {
   );
 }
 
-function boundedUniqueIds(value: unknown): value is readonly string[] {
-  return (
-    Array.isArray(value) &&
-    value.length >= 1 &&
-    value.length <= 10_000 &&
-    value.every((item) => bounded(item, 200)) &&
-    new Set(value).size === value.length
-  );
-}
-
 export function planAgentTrustSessionCreation(input: {
   actor: CommandActor;
   trustSessionId: string;
@@ -44,11 +35,15 @@ export function planAgentTrustSessionCreation(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("TRUST_SESSION_OWNER_REQUIRED");
   }
+  const baseGrantIds = normalizeBoundedUniqueIds(
+    input.baseAuthorization.grantIds,
+    { minimumItems: 1 },
+  );
   if (
     !bounded(input.trustSessionId, 200) ||
     !bounded(input.baseAuthorization.ownerId, 200) ||
     !bounded(input.baseAuthorization.clientId, 200) ||
-    !boundedUniqueIds(input.baseAuthorization.grantIds) ||
+    baseGrantIds === null ||
     !isCanonicalUtcTimestamp(input.now) ||
     !bounded(input.reason, 500)
   ) {
@@ -86,9 +81,7 @@ export function planAgentTrustSessionCreation(input: {
     id: input.trustSessionId,
     ownerId: input.baseAuthorization.ownerId,
     clientId: input.baseAuthorization.clientId,
-    baseGrantIds: [...input.baseAuthorization.grantIds].sort((left, right) =>
-      left.localeCompare(right, "en"),
-    ),
+    baseGrantIds,
     capabilities: [...input.requestedCapabilities],
     resourceSelectors: cloneResourceSelectorMap(input.requestedResources),
     riskCeiling: input.riskCeiling,
