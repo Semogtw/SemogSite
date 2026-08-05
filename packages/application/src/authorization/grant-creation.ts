@@ -3,7 +3,7 @@ import {
   validateAgentGrantRequest,
   type AgentGrantRequest,
 } from "./grant-request";
-import { cloneResourceSelectorMap } from "./resource-selector-copy";
+import { sanitizeResourceSelectorMapBoundary } from "./resource-selector-boundary";
 import type { AgentGrantDefinition } from "./types";
 
 export type AgentGrantCreationPlan = {
@@ -41,6 +41,9 @@ export function planAgentGrantCreation(input: {
     explicitAllResourceKinds: input.explicitAllResourceKinds,
     now: input.now,
   });
+  const resourceSelectors = sanitizeResourceSelectorMapBoundary(
+    request.resourceSelectors,
+  );
 
   return {
     grant: {
@@ -52,7 +55,7 @@ export function planAgentGrantCreation(input: {
       capabilities: [...request.capabilities].sort((left, right) =>
         left.localeCompare(right, "en"),
       ),
-      resourceSelectors: cloneResourceSelectorMap(request.resourceSelectors),
+      resourceSelectors,
       riskCeiling: request.riskCeiling,
       expiresAt: request.expiresAt,
       version: 1,
