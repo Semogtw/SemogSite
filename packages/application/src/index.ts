@@ -65,6 +65,8 @@ export type {
   TrustSessionState,
 } from "./authorization/trust-session";
 export { planAgentTrustSessionCreation } from "./authorization/trust-session-request";
+export { planAgentTrustSessionRevocation } from "./authorization/trust-session-revocation";
+export type { AgentTrustSessionRevocationPlan } from "./authorization/trust-session-revocation";
 export { writesAllowed } from "./authorization/write-switches";
 export type { AgentWriteSwitchState } from "./authorization/write-switches";
 export type {
