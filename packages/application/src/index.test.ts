@@ -26,6 +26,7 @@ describe("@semogtw/application public contracts", () => {
       validateAgentGrantRequest: expect.any(Function),
       planAgentGrantCreation: expect.any(Function),
       planAgentGrantAvailabilityTransition: expect.any(Function),
+      planAgentGrantExpiration: expect.any(Function),
       planAgentGrantRevocation: expect.any(Function),
       planAgentClientRevocation: expect.any(Function),
       planAgentTrustSessionCreation: expect.any(Function),
