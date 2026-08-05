@@ -1,0 +1,72 @@
+name: One-shot sync application workspace lock
+
+on:
+  push:
+    branches:
+      - develop/agent-write-authorization-implementation
+    paths:
+      - .github/workflows/one-shot-sync-application-lock.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-sync-application-lock
+  cancel-in-progress: false
+
+jobs:
+  sync-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out authorization branch
+        uses: actions/checkout@v4
+        with:
+          ref: develop/agent-write-authorization-implementation
+          fetch-depth: 0
+
+      - name: Synchronize database workspace importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("pnpm-lock.yaml")
+          content = path.read_text()
+          dependency = """      '@semogtw/application':
+                  specifier: workspace:*
+                  version: link:../application
+          """
+          anchor = """  packages/database:
+              dependencies:
+                '@semogtw/auth':
+          """
+          replacement = """  packages/database:
+              dependencies:
+                '@semogtw/application':
+                  specifier: workspace:*
+                  version: link:../application
+                '@semogtw/auth':
+          """
+
+          if dependency in content:
+              raise SystemExit(0)
+          if content.count(anchor) != 1:
+              raise SystemExit("database importer anchor is not unique")
+          path.write_text(content.replace(anchor, replacement, 1))
+          PY
+          git diff --check
+          git diff -- pnpm-lock.yaml
+
+      - name: Commit synchronized lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore: sync application workspace lock"
+          git push origin HEAD:develop/agent-write-authorization-implementation
