@@ -200,7 +200,7 @@ function validateDefinition<Payload extends JsonValue, Result extends JsonValue>
     throw new Error("COMMAND_RISK_INVALID");
   }
   if (!includes(confirmationOutcomes, definition.confirmation)) {
-    throw new Error("COMMAND_CONFIRMIRMATION_INVALID");
+    throw new Error("COMMAND_CONFIRMATION_INVALID");
   }
   if (!includes(conflictStrategies, definition.conflictStrategy)) {
     throw new Error("COMMAND_CONFLICT_STRATEGY_INVALID");
