@@ -88,7 +88,7 @@ function requestShapeValid(value: unknown): value is AgentGrantRequest {
     bounded(value.reason, 500) &&
     Array.isArray(value.capabilities) &&
     plainRecord(value.resourceSelectors) &&
-    riskValid(value.riskCeiling) &&
+    typeof value.riskCeiling === "string" &&
     (value.expiresAt === null || typeof value.expiresAt === "string")
   );
 }
