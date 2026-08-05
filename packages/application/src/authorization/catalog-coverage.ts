@@ -2,6 +2,7 @@ import {
   capabilityForCommand,
   resourceKindsForCapability,
 } from "./capabilities";
+import { readOwnDataArray } from "./data-array";
 import type { AgentCapability } from "./types";
 
 export type AgentAuthorizationCommandEntry = {
@@ -67,11 +68,16 @@ function parseEntry(value: unknown): AgentAuthorizationCommandEntry {
 export function validateAgentAuthorizationCatalog(
   values: readonly unknown[],
 ): readonly AgentAuthorizationCommandEntry[] {
-  if (!Array.isArray(values) || values.length < 1 || values.length > 500) {
+  const safeValues = readOwnDataArray(values, {
+    minimumItems: 1,
+    maximumItems: 500,
+  });
+  if (safeValues === null) {
     throw new Error("AGENT_AUTHORIZATION_CATALOG_INVALID");
   }
 
-  const entries = values.map(parseEntry);
+  const entries: AgentAuthorizationCommandEntry[] = [];
+  for (const value of safeValues) entries.push(parseEntry(value));
   const keys = new Set<string>();
   for (const entry of entries) {
     const key = `${entry.commandId}@${entry.commandVersion}`;
