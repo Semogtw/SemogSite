@@ -1,4 +1,5 @@
 export type AuthorizationIdListBounds = {
+  minimumItems?: number;
   maximumItems?: number;
   maximumLength?: number;
 };
@@ -16,14 +17,18 @@ export function normalizeBoundedUniqueIds(
   value: unknown,
   bounds: AuthorizationIdListBounds = {},
 ): readonly string[] | null {
+  const minimumItems = bounds.minimumItems ?? 0;
   const maximumItems = bounds.maximumItems ?? 10_000;
   const maximumLength = bounds.maximumLength ?? 200;
   if (
+    !Number.isSafeInteger(minimumItems) ||
+    minimumItems < 0 ||
     !Number.isSafeInteger(maximumItems) ||
-    maximumItems < 0 ||
+    maximumItems < minimumItems ||
     !Number.isSafeInteger(maximumLength) ||
     maximumLength < 1 ||
     !Array.isArray(value) ||
+    value.length < minimumItems ||
     value.length > maximumItems
   ) {
     return null;
