@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planTrustSessionOperationConsumption } from "./trust-session";
+import { planTrustSessionOperationConsumption } from "./trust-session-consumption";
 import type {
   AgentTrustSession,
   EffectiveAgentAuthorization,
@@ -74,6 +74,8 @@ describe("trust operation consumption planning", () => {
       }),
     ).toEqual({
       trustSessionId: "trust_1",
+      ownerId: "owner_1",
+      clientId: "client_1",
       expectedVersion: 3,
       nextVersion: 4,
       expectedOperationsUsed: 0,
