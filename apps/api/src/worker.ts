@@ -4,12 +4,13 @@ import {
 } from "./composition/d1";
 
 const worker = {
-  fetch(
+  async fetch(
     request: Request,
     bindings: D1ApiBindings,
     _executionContext?: unknown,
   ): Promise<Response> {
-    return Promise.resolve(createD1ApiApp(bindings).fetch(request, bindings));
+    const app = await createD1ApiApp(bindings);
+    return app.fetch(request, bindings);
   },
 };
 

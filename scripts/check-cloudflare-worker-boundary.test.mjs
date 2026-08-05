@@ -17,6 +17,8 @@ function createFixture(overrides = {}) {
       'import { createD1ApiApp } from "./composition/d1";\nexport default { fetch: (request, env) => createD1ApiApp(env).fetch(request, env) };\n',
     "apps/api/src/composition/d1.ts": [
       'import { createD1Database } from "@semogtw/database/d1";',
+      'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
+      'import { D1OverviewDataSource } from "@semogtw/database/d1-overview";',
       'import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";',
       "export const createD1ApiApp = () => ({ fetch: () => new Response() });",
     ].join("\n"),

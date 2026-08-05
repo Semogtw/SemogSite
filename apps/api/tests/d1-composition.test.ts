@@ -74,7 +74,7 @@ class PublicProjectBinding implements D1DatabaseBinding {
 
 describe("D1 API composition", () => {
   it("serves public projects from D1 and keeps private routes closed", async () => {
-    const app = createD1ApiApp({ DB: new PublicProjectBinding() });
+    const app = await createD1ApiApp({ DB: new PublicProjectBinding() });
 
     const publicResponse = await app.request("/api/v1/public/projects");
     expect(publicResponse.status).toBe(200);

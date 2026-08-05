@@ -68,6 +68,8 @@ function validateWorkerImports(root, violations) {
     const content = readFileSync(compositionPath, "utf8");
     for (const required of [
       "@semogtw/database/d1",
+      "@semogtw/database/d1-auth-sessions",
+      "@semogtw/database/d1-overview",
       "@semogtw/database/d1-public-projects",
     ]) {
       if (!importedSpecifiers(content).includes(required)) {
