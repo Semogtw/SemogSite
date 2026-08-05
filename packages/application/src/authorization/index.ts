@@ -55,6 +55,12 @@ export type {
   AgentGrantCreationPlan,
 } from "./grant-creation";
 export {
+  planAgentGrantExpiration,
+} from "./grant-expiration";
+export type {
+  AgentGrantExpirationPlan,
+} from "./grant-expiration";
+export {
   validateAgentGrantRequest,
 } from "./grant-request";
 export type { AgentGrantRequest } from "./grant-request";
