@@ -139,6 +139,7 @@ function sanitizeClauses(input: {
         "riskCeiling",
       ]) ||
       !bounded(clause.grantId, 200) ||
+      typeof clause.capability !== "string" ||
       !isAgentCapability(clause.capability) ||
       !input.capabilities.has(clause.capability) ||
       !input.grantIds.has(clause.grantId) ||
