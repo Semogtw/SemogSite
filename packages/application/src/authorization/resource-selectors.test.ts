@@ -43,6 +43,25 @@ describe("agent resource selectors", () => {
     ).toBe(false);
   });
 
+  it("does not execute an overridden exact-ID includes method", () => {
+    const getter = vi.fn(() => {
+      throw new Error("caller method must not run");
+    });
+    const ids = ["project_semogsite"];
+    Object.defineProperty(ids, "includes", {
+      configurable: true,
+      get: getter,
+    });
+
+    expect(
+      selectorMatchesResource({
+        selector: { kind: "exact_ids", ids },
+        resource: project,
+      }),
+    ).toBe(true);
+    expect(getter).not.toHaveBeenCalled();
+  });
+
   it("does not use parent references as an implicit exact-ID match", () => {
     expect(
       selectorMatchesResource({
@@ -199,6 +218,30 @@ describe("agent resource selectors", () => {
     expect(getter).not.toHaveBeenCalled();
   });
 
+  it("does not execute an overridden canonical-prefix some method", () => {
+    const getter = vi.fn(() => {
+      throw new Error("caller method must not run");
+    });
+    const prefixes = ["packages/application"];
+    Object.defineProperty(prefixes, "some", {
+      configurable: true,
+      get: getter,
+    });
+
+    expect(
+      selectorMatchesResource({
+        selector: { kind: "canonical_prefixes", prefixes },
+        resource: {
+          kind: "repository_path",
+          id: "packages/application/src/index.ts",
+          parentRefs: [],
+          lifecycleState: null,
+        },
+      }),
+    ).toBe(true);
+    expect(getter).not.toHaveBeenCalled();
+  });
+
   it("matches a repository prefix at a path boundary", () => {
     const selector: ResourceSelector = {
       kind: "canonical_prefixes",
@@ -281,6 +324,30 @@ describe("agent resource selectors", () => {
         },
       }),
     ).toThrow("INVALID_LIFECYCLE_STATE");
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("does not execute an overridden lifecycle-state includes method", () => {
+    const getter = vi.fn(() => {
+      throw new Error("caller method must not run");
+    });
+    const states = ["monitoring"];
+    Object.defineProperty(states, "includes", {
+      configurable: true,
+      get: getter,
+    });
+
+    expect(
+      selectorMatchesResource({
+        selector: { kind: "lifecycle_states", states },
+        resource: {
+          kind: "attention_item",
+          id: "attention_1",
+          parentRefs: [],
+          lifecycleState: "monitoring",
+        },
+      }),
+    ).toBe(true);
     expect(getter).not.toHaveBeenCalled();
   });
 
