@@ -45,6 +45,8 @@ export { planAgentGrantExpiration } from "./authorization/grant-expiration";
 export type { AgentGrantExpirationPlan } from "./authorization/grant-expiration";
 export { validateAgentGrantRequest } from "./authorization/grant-request";
 export type { AgentGrantRequest } from "./authorization/grant-request";
+export { planAgentGrantRevision } from "./authorization/grant-revision";
+export type { AgentGrantRevisionPlan } from "./authorization/grant-revision";
 export { planAgentGrantRevocation } from "./authorization/grant-revocation";
 export type { AgentGrantRevocationPlan } from "./authorization/grant-revocation";
 export { createAgentAuthorizationMutationExecutor } from "./authorization/mutation-executor";
