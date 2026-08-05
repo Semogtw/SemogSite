@@ -18,6 +18,10 @@ function repository(): AgentAuthorizationMutationRepository {
       status: "applied",
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
+    reviseGrant: vi.fn(async (plan) => ({
+      status: "applied",
+      affectedRows: 1 + plan.revokeTrustSessionIds.length,
+    })),
     createTrustSession: vi.fn(async () => ({
       status: "applied",
       affectedRows: 1,
