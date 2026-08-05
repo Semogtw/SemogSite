@@ -7,39 +7,39 @@ import {
 function repository(): AgentAuthorizationMutationRepository {
   return {
     createGrant: vi.fn(async () => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1,
     })),
     transitionGrantAvailability: vi.fn(async () => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1,
     })),
     expireGrant: vi.fn(async (plan) => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
     reviseGrant: vi.fn(async (plan) => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
     createTrustSession: vi.fn(async () => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1,
     })),
     consumeTrustSessionOperation: vi.fn(async () => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1,
     })),
     revokeTrustSession: vi.fn(async () => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1,
     })),
     revokeGrant: vi.fn(async (plan) => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
     revokeClient: vi.fn(async (plan) => ({
-      status: "applied",
+      status: "applied" as const,
       affectedRows:
         1 +
         plan.revokeGrantIds.length +
@@ -140,22 +140,22 @@ describe("agent authorization mutation executor", () => {
 
     await expect(
       execute({ kind: "grant.create", plan: grantCreation }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 1 });
     await expect(
       execute({ kind: "trust.create", plan: trustCreation }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 1 });
     await expect(
       execute({ kind: "trust.consume", plan: trustConsumption }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 1 });
     await expect(
       execute({ kind: "trust.revoke", plan: trustRevocation }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 1 });
     await expect(
       execute({ kind: "grant.revoke", plan: grantRevocation }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 3 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 3 });
     await expect(
       execute({ kind: "client.revoke", plan: clientRevocation }),
-    ).resolves.toEqual({ status: "applied", affectedRows: 6 });
+    ).resolves.toEqual({ status: "applied" as const, affectedRows: 6 });
 
     expect(store.createGrant).toHaveBeenCalledWith(grantCreation);
     expect(store.createTrustSession).toHaveBeenCalledWith(trustCreation);
@@ -188,7 +188,7 @@ describe("agent authorization mutation executor", () => {
   it("rejects partial or over-broad writes reported by an adapter", async () => {
     const store = repository();
     vi.mocked(store.revokeGrant).mockResolvedValue({
-      status: "applied",
+      status: "applied" as const,
       affectedRows: 2,
     });
 
