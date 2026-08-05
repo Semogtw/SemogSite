@@ -21,6 +21,8 @@ export {
 export type { AgentAuthorizationDomain } from "./authorization/capabilities";
 export { validateAgentAuthorizationCatalog } from "./authorization/catalog-coverage";
 export type { AgentAuthorizationCommandEntry } from "./authorization/catalog-coverage";
+export { planAgentClientRevocation } from "./authorization/client-revocation";
+export type { AgentClientRevocationPlan } from "./authorization/client-revocation";
 export {
   confirmationChallengeResponseBytes,
   confirmationChallengeTtlMinutes,
@@ -35,6 +37,8 @@ export type {
   ConfirmationChallengeStore,
 } from "./authorization/confirmation-challenge";
 export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
+export { validateAgentGrantRequest } from "./authorization/grant-request";
+export type { AgentGrantRequest } from "./authorization/grant-request";
 export { decideAgentCommandDisposition } from "./authorization/policy-engine";
 export type {
   AgentCommandPolicyDecision,
@@ -60,6 +64,7 @@ export type {
   TrustCoveredCommandRisk,
   TrustSessionState,
 } from "./authorization/trust-session";
+export { planAgentTrustSessionCreation } from "./authorization/trust-session-request";
 export { writesAllowed } from "./authorization/write-switches";
 export type { AgentWriteSwitchState } from "./authorization/write-switches";
 export type {
