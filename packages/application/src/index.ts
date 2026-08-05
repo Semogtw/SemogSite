@@ -41,6 +41,13 @@ export { validateAgentGrantRequest } from "./authorization/grant-request";
 export type { AgentGrantRequest } from "./authorization/grant-request";
 export { planAgentGrantRevocation } from "./authorization/grant-revocation";
 export type { AgentGrantRevocationPlan } from "./authorization/grant-revocation";
+export { createAgentAuthorizationMutationExecutor } from "./authorization/mutation-executor";
+export type {
+  AgentAuthorizationMutation,
+  AgentAuthorizationMutationRepository,
+  AgentAuthorizationMutationResult,
+  AgentAuthorizationMutationStatus,
+} from "./authorization/mutation-executor";
 export { decideAgentCommandDisposition } from "./authorization/policy-engine";
 export type {
   AgentCommandPolicyDecision,
