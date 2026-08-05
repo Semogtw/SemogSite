@@ -6,6 +6,10 @@ import {
 
 function repository(): AgentAuthorizationMutationRepository {
   return {
+    createGrant: vi.fn(async () => ({
+      status: "applied",
+      affectedRows: 1,
+    })),
     consumeTrustSessionOperation: vi.fn(async () => ({
       status: "applied",
       affectedRows: 1,
@@ -28,6 +32,25 @@ function repository(): AgentAuthorizationMutationRepository {
     })),
   };
 }
+
+const grantCreation = {
+  grant: {
+    id: "grant_1",
+    ownerId: "owner_1",
+    clientId: "client_1",
+    profileId: null,
+    status: "active",
+    capabilities: ["attention.write"],
+    resourceSelectors: {
+      attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
+    },
+    riskCeiling: "medium",
+    expiresAt: null,
+    version: 1,
+  },
+  createdAt: "2026-08-05T08:00:00.000Z",
+  reason: "Authorize supervised attention maintenance.",
+} as const;
 
 const trustConsumption = {
   trustSessionId: "trust_1",
@@ -81,6 +104,9 @@ describe("agent authorization mutation executor", () => {
     const execute = createAgentAuthorizationMutationExecutor(store);
 
     await expect(
+      execute({ kind: "grant.create", plan: grantCreation }),
+    ).resolves.toEqual({ status: "applied", affectedRows: 1 });
+    await expect(
       execute({ kind: "trust.consume", plan: trustConsumption }),
     ).resolves.toEqual({ status: "applied", affectedRows: 1 });
     await expect(
@@ -93,6 +119,7 @@ describe("agent authorization mutation executor", () => {
       execute({ kind: "client.revoke", plan: clientRevocation }),
     ).resolves.toEqual({ status: "applied", affectedRows: 6 });
 
+    expect(store.createGrant).toHaveBeenCalledWith(grantCreation);
     expect(store.consumeTrustSessionOperation).toHaveBeenCalledWith(
       trustConsumption,
     );
