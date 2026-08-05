@@ -30,9 +30,6 @@ export function planAgentTrustSessionRevocation(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("TRUST_SESSION_REVOCATION_OWNER_REQUIRED");
   }
-  if (input.actor.actorId !== input.session.ownerId) {
-    throw new Error("TRUST_SESSION_REVOCATION_OWNER_MISMATCH");
-  }
   if (
     !bounded(input.session.id, 200) ||
     !bounded(input.session.ownerId, 200) ||
@@ -46,6 +43,9 @@ export function planAgentTrustSessionRevocation(input: {
       !isCanonicalUtcTimestamp(input.session.revokedAt))
   ) {
     throw new Error("TRUST_SESSION_REVOCATION_INVALID");
+  }
+  if (input.actor.actorId !== input.session.ownerId) {
+    throw new Error("TRUST_SESSION_REVOCATION_OWNER_MISMATCH");
   }
 
   if (input.session.revokedAt !== null) return null;
