@@ -47,6 +47,12 @@ export {
 } from "./grant-request";
 export type { AgentGrantRequest } from "./grant-request";
 export {
+  planAgentGrantRevocation,
+} from "./grant-revocation";
+export type {
+  AgentGrantRevocationPlan,
+} from "./grant-revocation";
+export {
   decideAgentCommandDisposition,
 } from "./policy-engine";
 export type {
