@@ -3,6 +3,10 @@ import type {
   PolicyDecision,
 } from "../core";
 import { isAgentCapability } from "./capabilities";
+import {
+  sanitizePolicyAuthorizationBoundary,
+  type PolicyAuthorizationBoundary,
+} from "./policy-authorization-boundary";
 import { selectorMatchesResource } from "./resource-selectors";
 import type {
   AgentCapability,
@@ -140,7 +144,7 @@ function clauseCoversResource(input: {
 }
 
 function matchingAuthorizationClauses(input: {
-  authorization: EffectiveAgentAuthorization;
+  authorization: PolicyAuthorizationBoundary;
   capability: AgentCapability;
   resource: CommandResource;
 }): readonly EffectiveAgentAuthorizationClause[] {
@@ -179,6 +183,13 @@ export function decideAgentCommandDisposition(input: {
     return deny(safeRisk, "NO_EFFECTIVE_GRANT");
   }
 
+  const authorization = sanitizePolicyAuthorizationBoundary(
+    input.authorization,
+  );
+  if (authorization === null) {
+    return deny(safeRisk, "NO_EFFECTIVE_GRANT");
+  }
+
   if (!writesAllowed(input.writeSwitches)) {
     return deny(safeRisk, "REMOTE_WRITES_DISABLED");
   }
@@ -186,8 +197,7 @@ export function decideAgentCommandDisposition(input: {
   const runtimeCapability = input.command?.capability as string;
   if (
     !isAgentCapability(runtimeCapability) ||
-    !Array.isArray(input.authorization.capabilities) ||
-    !input.authorization.capabilities.includes(runtimeCapability)
+    !new Set(authorization.capabilities).has(runtimeCapability)
   ) {
     return deny(safeRisk, "CAPABILITY_DENIED");
   }
@@ -205,7 +215,7 @@ export function decideAgentCommandDisposition(input: {
   }
 
   const matchingClauses = matchingAuthorizationClauses({
-    authorization: input.authorization,
+    authorization,
     capability: runtimeCapability,
     resource: input.command.resource,
   });
