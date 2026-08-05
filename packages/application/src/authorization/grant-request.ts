@@ -5,6 +5,7 @@ import {
   isAgentCapability,
   resourceKindsForCapability,
 } from "./capabilities";
+import { normalizeBoundedUniqueIds } from "./id-list";
 import { validateResourceSelectorForKind } from "./resource-selectors";
 import type {
   AgentCapability,
@@ -108,15 +109,23 @@ export function validateAgentGrantRequest(input: {
     throw new Error("AGENT_GRANT_OWNER_MISMATCH");
   }
 
-  const capabilities = input.request.capabilities;
+  const normalizedCapabilities = normalizeBoundedUniqueIds(
+    input.request.capabilities,
+    {
+      minimumItems: 1,
+      maximumItems: agentCapabilities.length,
+      maximumLength: 120,
+    },
+  );
   if (
-    capabilities.length < 1 ||
-    capabilities.length > agentCapabilities.length ||
-    new Set(capabilities).size !== capabilities.length ||
-    capabilities.some((capability) => !isAgentCapability(capability))
+    normalizedCapabilities === null ||
+    normalizedCapabilities.some(
+      (capability) => !isAgentCapability(capability),
+    )
   ) {
     throw new Error("AGENT_GRANT_CAPABILITY_INVALID");
   }
+  const capabilities = normalizedCapabilities as readonly AgentCapability[];
   if (!riskValid(input.request.riskCeiling)) {
     throw new Error("AGENT_GRANT_RISK_INVALID");
   }
@@ -129,15 +138,16 @@ export function validateAgentGrantRequest(input: {
     throw new Error("AGENT_GRANT_EXPIRY_INVALID");
   }
 
-  if (
-    !Array.isArray(input.explicitAllResourceKinds) ||
-    new Set(input.explicitAllResourceKinds).size !==
-      input.explicitAllResourceKinds.length ||
-    input.explicitAllResourceKinds.some((kind) => !bounded(kind, 120))
-  ) {
+  const explicitAllResourceKinds = normalizeBoundedUniqueIds(
+    input.explicitAllResourceKinds,
+    {
+      maximumLength: 120,
+    },
+  );
+  if (explicitAllResourceKinds === null) {
     throw new Error("AGENT_GRANT_REQUEST_INVALID");
   }
-  const explicitAll = new Set(input.explicitAllResourceKinds);
+  const explicitAll = new Set(explicitAllResourceKinds);
   const allowedKinds = new Set(
     capabilities.flatMap((capability) =>
       resourceKindsForCapability(capability),
