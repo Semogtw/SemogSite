@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   selectorMatchesResource,
   validateResourceSelectorForKind,
@@ -11,6 +11,17 @@ const project: CommandResource = {
   parentRefs: [],
   lifecycleState: "active",
 };
+
+function accessorArray<T>(getter: () => T): T[] {
+  const value: T[] = [];
+  Object.defineProperty(value, "0", {
+    configurable: true,
+    enumerable: true,
+    get: getter,
+  });
+  value.length = 1;
+  return value;
+}
 
 describe("agent resource selectors", () => {
   it("matches exact canonical IDs only", () => {
@@ -76,6 +87,33 @@ describe("agent resource selectors", () => {
     },
   );
 
+  it("rejects sparse exact-ID arrays", () => {
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "project",
+        selector: {
+          kind: "exact_ids",
+          ids: new Array(1) as string[],
+        },
+      }),
+    ).toThrow("INVALID_EXACT_IDS");
+  });
+
+  it("rejects exact-ID accessors without invoking them", () => {
+    const getter = vi.fn(() => "project_semogsite");
+
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "project",
+        selector: {
+          kind: "exact_ids",
+          ids: accessorArray(getter),
+        },
+      }),
+    ).toThrow("INVALID_EXACT_IDS");
+    expect(getter).not.toHaveBeenCalled();
+  });
+
   it.each([
     "../secrets",
     "packages/*",
@@ -92,6 +130,33 @@ describe("agent resource selectors", () => {
         selector: { kind: "canonical_prefixes", prefixes: [prefix] },
       }),
     ).toThrow("INVALID_CANONICAL_PREFIX");
+  });
+
+  it("rejects sparse canonical-prefix arrays", () => {
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "repository_path",
+        selector: {
+          kind: "canonical_prefixes",
+          prefixes: new Array(1) as string[],
+        },
+      }),
+    ).toThrow("INVALID_CANONICAL_PREFIX");
+  });
+
+  it("rejects canonical-prefix accessors without invoking them", () => {
+    const getter = vi.fn(() => "packages/application");
+
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "repository_path",
+        selector: {
+          kind: "canonical_prefixes",
+          prefixes: accessorArray(getter),
+        },
+      }),
+    ).toThrow("INVALID_CANONICAL_PREFIX");
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it("matches a repository prefix at a path boundary", () => {
@@ -150,6 +215,33 @@ describe("agent resource selectors", () => {
         },
       }),
     ).toBe(true);
+  });
+
+  it("rejects sparse lifecycle-state arrays", () => {
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "attention_item",
+        selector: {
+          kind: "lifecycle_states",
+          states: new Array(1) as string[],
+        },
+      }),
+    ).toThrow("INVALID_LIFECYCLE_STATE");
+  });
+
+  it("rejects lifecycle-state accessors without invoking them", () => {
+    const getter = vi.fn(() => "open");
+
+    expect(() =>
+      validateResourceSelectorForKind({
+        resourceKind: "attention_item",
+        selector: {
+          kind: "lifecycle_states",
+          states: accessorArray(getter),
+        },
+      }),
+    ).toThrow("INVALID_LIFECYCLE_STATE");
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it("fails closed for unknown kinds, unsupported selectors and states", () => {
