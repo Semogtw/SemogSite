@@ -1,13 +1,13 @@
 import { canonicalJson } from "../canonical-json";
 import type { JsonValue } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { sanitizeAgentGrantDefinitionBoundary } from "./agent-grant-boundary";
+import { sanitizeAgentTrustSessionBoundary } from "./agent-trust-session-boundary";
 import {
-  agentCapabilities,
-  isAgentCapability,
   oauthScopeForCapability,
   resourceKindsForCapability,
 } from "./capabilities";
-import { validateResourceSelectorForKind } from "./resource-selectors";
+import { readOwnDataArray } from "./data-array";
 import { trustSessionFitsAuthorization } from "./trust-session";
 import type {
   AgentCapability,
@@ -48,10 +48,6 @@ function bounded(value: string, maximum: number): boolean {
   );
 }
 
-function riskKnown(value: string): value is AgentRiskCeiling {
-  return value === "low" || value === "medium" || value === "high";
-}
-
 function laterRisk(
   left: AgentRiskCeiling,
   right: AgentRiskCeiling,
@@ -67,37 +63,6 @@ function cloneSelector(selector: ResourceSelector): ResourceSelector {
   return JSON.parse(selectorKey(selector)) as ResourceSelector;
 }
 
-function validateSelectorMap(
-  selectors: ResourceSelectorMap,
-  allowedKinds: ReadonlySet<string>,
-): boolean {
-  const entries = Object.entries(selectors);
-  if (entries.length === 0) return false;
-
-  for (const [resourceKind, values] of entries) {
-    if (
-      !allowedKinds.has(resourceKind) ||
-      !Array.isArray(values) ||
-      values.length === 0
-    ) {
-      return false;
-    }
-    for (const selector of values) {
-      try {
-        validateResourceSelectorForKind({
-          resourceKind,
-          selector,
-          explicitOwnerSelection: selector.kind === "all",
-        });
-        selectorKey(selector);
-      } catch {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 function grantActive(input: {
   grant: AgentGrantDefinition;
   ownerId: string;
@@ -105,36 +70,12 @@ function grantActive(input: {
   now: string;
 }): boolean {
   const { grant } = input;
-  if (
-    !bounded(grant.id, 200) ||
-    grant.ownerId !== input.ownerId ||
-    grant.clientId !== input.clientId ||
-    (grant.profileId !== null && !bounded(grant.profileId, 200)) ||
-    grant.status !== "active" ||
-    !Number.isInteger(grant.version) ||
-    grant.version < 1 ||
-    !riskKnown(grant.riskCeiling) ||
-    !Array.isArray(grant.capabilities) ||
-    grant.capabilities.length < 1 ||
-    grant.capabilities.length > agentCapabilities.length ||
-    grant.capabilities.some((capability) => !isAgentCapability(capability))
-  ) {
-    return false;
-  }
-
-  if (
-    grant.expiresAt !== null &&
-    (!isCanonicalUtcTimestamp(grant.expiresAt) || grant.expiresAt <= input.now)
-  ) {
-    return false;
-  }
-
-  const allowedKinds = new Set(
-    grant.capabilities.flatMap((capability) =>
-      resourceKindsForCapability(capability),
-    ),
+  return (
+    grant.ownerId === input.ownerId &&
+    grant.clientId === input.clientId &&
+    grant.status === "active" &&
+    (grant.expiresAt === null || grant.expiresAt > input.now)
   );
-  return validateSelectorMap(grant.resourceSelectors, allowedKinds);
 }
 
 function uniqueRecordsById<Value extends { id: string }>(
@@ -234,10 +175,29 @@ export function computeEffectiveAgentAuthorization(input: {
     return null;
   }
 
-  const scopes = new Set(
-    input.oauthScopes.filter((scope) => knownOAuthScopes.has(scope)),
-  );
-  const grants = uniqueRecordsById(input.grants).filter((grant) =>
+  const oauthScopes = readOwnDataArray(input.oauthScopes, {
+    maximumItems: knownOAuthScopes.size,
+  });
+  const rawGrants = readOwnDataArray(input.grants, {
+    maximumItems: 10_000,
+  });
+  if (oauthScopes === null || rawGrants === null) return null;
+
+  const scopes = new Set<OAuthScope>();
+  for (const scope of oauthScopes) {
+    if (typeof scope === "string" && knownOAuthScopes.has(scope as OAuthScope)) {
+      scopes.add(scope as OAuthScope);
+    }
+  }
+
+  const sanitizedGrants: AgentGrantDefinition[] = [];
+  for (const candidate of rawGrants) {
+    const grant = sanitizeAgentGrantDefinitionBoundary(
+      candidate as AgentGrantDefinition,
+    );
+    if (grant !== null) sanitizedGrants.push(grant);
+  }
+  const grants = uniqueRecordsById(sanitizedGrants).filter((grant) =>
     grantActive({ ...input, grant }),
   );
 
@@ -322,7 +282,20 @@ export function computeEffectiveAgentAuthorization(input: {
     trustSessionIds: [],
   };
 
-  const trustSessionIds = uniqueRecordsById(input.trustSessions)
+  const rawTrustSessions = readOwnDataArray(input.trustSessions, {
+    maximumItems: 10_000,
+  });
+  const sanitizedTrustSessions: AgentTrustSession[] = [];
+  if (rawTrustSessions !== null) {
+    for (const candidate of rawTrustSessions) {
+      const session = sanitizeAgentTrustSessionBoundary(
+        candidate as AgentTrustSession,
+      );
+      if (session !== null) sanitizedTrustSessions.push(session);
+    }
+  }
+
+  const trustSessionIds = uniqueRecordsById(sanitizedTrustSessions)
     .filter((session) =>
       trustSessionFitsAuthorization({
         session,
