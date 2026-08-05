@@ -87,9 +87,30 @@ function expectedAffectedRows(mutation: AgentAuthorizationMutation): number {
   }
 }
 
+function statusAllowed(
+  kind: AgentAuthorizationMutation["kind"],
+  status: AgentAuthorizationMutationStatus,
+): boolean {
+  switch (kind) {
+    case "grant.create":
+    case "trust.create":
+      return status === "applied" || status === "conflict";
+    case "trust.consume":
+      return (
+        status === "applied" ||
+        status === "conflict" ||
+        status === "not_found"
+      );
+    case "trust.revoke":
+    case "grant.revoke":
+    case "client.revoke":
+      return true;
+  }
+}
+
 function resultValid(
   result: AgentAuthorizationMutationResult,
-  expectedRows: number,
+  mutation: AgentAuthorizationMutation,
 ): boolean {
   if (
     typeof result !== "object" ||
@@ -107,8 +128,10 @@ function resultValid(
   ) {
     return false;
   }
+  if (!statusAllowed(mutation.kind, result.status)) return false;
+
   return result.status === "applied"
-    ? result.affectedRows === expectedRows
+    ? result.affectedRows === expectedAffectedRows(mutation)
     : result.affectedRows === 0;
 }
 
@@ -142,7 +165,7 @@ export function createAgentAuthorizationMutationExecutor(
         throw new Error("AGENT_AUTHORIZATION_MUTATION_UNSUPPORTED");
     }
 
-    if (!resultValid(result, expectedAffectedRows(mutation))) {
+    if (!resultValid(result, mutation)) {
       throw new Error("AGENT_AUTHORIZATION_MUTATION_RESULT_INVALID");
     }
     return result;
