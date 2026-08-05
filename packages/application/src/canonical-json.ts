@@ -13,6 +13,9 @@ function encodeNumber(value: number): string {
 }
 
 function encodeArray(value: readonly unknown[], active: WeakSet<object>): string {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Array.prototype && prototype !== null) invalid();
+
   const ownKeys = Reflect.ownKeys(value);
   if (
     ownKeys.some((key) => typeof key !== "string") ||
@@ -20,15 +23,39 @@ function encodeArray(value: readonly unknown[], active: WeakSet<object>): string
   ) {
     invalid();
   }
-  for (let index = 0; index < value.length; index += 1) {
-    if (!Object.prototype.hasOwnProperty.call(value, index)) invalid();
+
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+  if (
+    lengthDescriptor === undefined ||
+    !("value" in lengthDescriptor) ||
+    lengthDescriptor.value !== value.length ||
+    lengthDescriptor.get !== undefined ||
+    lengthDescriptor.set !== undefined
+  ) {
+    invalid();
   }
+
+  const encoded: string[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (
+      descriptor === undefined ||
+      !descriptor.enumerable ||
+      !("value" in descriptor) ||
+      descriptor.get !== undefined ||
+      descriptor.set !== undefined
+    ) {
+      invalid();
+    }
+    encoded.push(encode(descriptor.value, active));
+  }
+
   const allowed = new Set([
     ...Array.from({ length: value.length }, (_item, index) => String(index)),
     "length",
   ]);
   if (ownKeys.some((key) => !allowed.has(key as string))) invalid();
-  return `[${value.map((item) => encode(item, active)).join(",")}]`;
+  return `[${encoded.join(",")}]`;
 }
 
 function encodeObject(
