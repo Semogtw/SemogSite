@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./d1": "./src/adapters/d1.ts",
+    "./d1-public-projects": "./src/repositories/d1-public-project-source.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

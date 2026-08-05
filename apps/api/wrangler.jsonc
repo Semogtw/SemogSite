@@ -1,0 +1,17 @@
+{
+  "name": "semogtw-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-05",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "semogsite-development",
+      "database_id": "d40eebf8-8f66-4856-bcee-6d300916fd9b",
+      "migrations_dir": "../../packages/database/migrations"
+    }
+  ]
+}

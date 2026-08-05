@@ -1,8 +1,8 @@
 import {
   createD1Database,
-  D1PublicProjectSource,
   type D1DatabaseBinding,
-} from "@semogtw/database";
+} from "@semogtw/database/d1";
+import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { createApiApp } from "../app";
 
 export type D1ApiBindings = {
