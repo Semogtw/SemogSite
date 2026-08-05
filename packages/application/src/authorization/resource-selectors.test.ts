@@ -3,7 +3,11 @@ import {
   selectorMatchesResource,
   validateResourceSelectorForKind,
 } from "./resource-selectors";
-import type { CommandResource, ResourceSelector } from "./types";
+import type {
+  CommandResource,
+  CommandResourceParentRef,
+  ResourceSelector,
+} from "./types";
 
 const project: CommandResource = {
   kind: "project",
@@ -51,6 +55,42 @@ describe("agent resource selectors", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it("rejects sparse resource parent-reference arrays", () => {
+    expect(
+      selectorMatchesResource({
+        selector: { kind: "exact_ids", ids: ["stage_foundation"] },
+        resource: {
+          kind: "stage",
+          id: "stage_foundation",
+          parentRefs: new Array(1) as CommandResourceParentRef[],
+          lifecycleState: "active",
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects parent-reference accessors without invoking them", () => {
+    const getter = vi.fn(
+      (): CommandResourceParentRef => ({
+        kind: "project",
+        id: "project_semogsite",
+      }),
+    );
+
+    expect(
+      selectorMatchesResource({
+        selector: { kind: "exact_ids", ids: ["stage_foundation"] },
+        resource: {
+          kind: "stage",
+          id: "stage_foundation",
+          parentRefs: accessorArray(getter),
+          lifecycleState: "active",
+        },
+      }),
+    ).toBe(false);
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it("requires explicit owner selection for an all selector", () => {
