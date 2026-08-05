@@ -32,7 +32,7 @@ function request(
     profileId: "profile_2",
     capabilities: ["roadmap.write", "attention.write"],
     resourceSelectors: {
-      roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+      stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
       attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
     },
     riskCeiling: "high",
@@ -72,7 +72,7 @@ describe("agent grant revision planning", () => {
         capabilities: ["attention.write", "roadmap.write"],
         resourceSelectors: {
           attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-          roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+          stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
         },
         riskCeiling: "high",
         expiresAt: "2026-08-06T12:00:00.000Z",
