@@ -149,6 +149,50 @@ function validateDefinition<Payload extends JsonValue, Result extends JsonValue>
   }
 }
 
+function normalizeCommandTarget(
+  value: unknown,
+  expectedResourceType: string,
+): CommandTarget | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== 2 ||
+    !keys.every((key) => key === "resourceType" || key === "resourceId")
+  ) {
+    return null;
+  }
+  const resourceTypeDescriptor = descriptors.resourceType;
+  const resourceIdDescriptor = descriptors.resourceId;
+  if (
+    resourceTypeDescriptor === undefined ||
+    resourceIdDescriptor === undefined ||
+    !("value" in resourceTypeDescriptor) ||
+    !("value" in resourceIdDescriptor) ||
+    !resourceTypeDescriptor.enumerable ||
+    !resourceIdDescriptor.enumerable ||
+    resourceTypeDescriptor.get !== undefined ||
+    resourceTypeDescriptor.set !== undefined ||
+    resourceIdDescriptor.get !== undefined ||
+    resourceIdDescriptor.set !== undefined ||
+    resourceTypeDescriptor.value !== expectedResourceType ||
+    typeof resourceIdDescriptor.value !== "string" ||
+    resourceIdDescriptor.value.trim() !== resourceIdDescriptor.value ||
+    resourceIdDescriptor.value.length < 1 ||
+    resourceIdDescriptor.value.length > 500
+  ) {
+    return null;
+  }
+  return {
+    resourceType: expectedResourceType,
+    resourceId: resourceIdDescriptor.value,
+  };
+}
+
 function erase<Payload extends JsonValue, Result extends JsonValue>(
   definition: CommandDefinition<Payload, Result>,
 ): ErasedDefinition {
@@ -192,13 +236,11 @@ export class CommandRegistry {
   ): CommandTarget {
     const definition = this.resolve(commandId, commandVersion);
     const payload = definition.schema.parse(rawPayload);
-    const target = definition.bindResource(payload);
-    if (
-      target.resourceType !== definition.resourceType ||
-      target.resourceId.trim() !== target.resourceId ||
-      target.resourceId.length < 1 ||
-      target.resourceId.length > 500
-    ) {
+    const target = normalizeCommandTarget(
+      definition.bindResource(payload),
+      definition.resourceType,
+    );
+    if (target === null) {
       throw new Error("COMMAND_RESOURCE_INVALID");
     }
     return target;
