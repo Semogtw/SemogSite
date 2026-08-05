@@ -1,7 +1,7 @@
 import type { CommandActor } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
-import { normalizeBoundedUniqueIds } from "./id-list";
-import { cloneResourceSelectorMap } from "./resource-selector-copy";
+import { sanitizeEffectiveAgentAuthorizationBoundary } from "./effective-authorization-boundary";
+import { sanitizeTrustSessionRequestBoundary } from "./trust-session-request-boundary";
 import { validateTrustSessionRequest } from "./trust-session";
 import type {
   AgentCapability,
@@ -35,21 +35,28 @@ export function planAgentTrustSessionCreation(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("TRUST_SESSION_OWNER_REQUIRED");
   }
-  const baseGrantIds = normalizeBoundedUniqueIds(
-    input.baseAuthorization.grantIds,
-    { minimumItems: 1 },
-  );
   if (
     !bounded(input.trustSessionId, 200) ||
-    !bounded(input.baseAuthorization.ownerId, 200) ||
-    !bounded(input.baseAuthorization.clientId, 200) ||
-    baseGrantIds === null ||
     !isCanonicalUtcTimestamp(input.now) ||
     !bounded(input.reason, 500)
   ) {
     throw new Error("TRUST_SESSION_REQUEST_INVALID");
   }
-  if (input.actor.actorId !== input.baseAuthorization.ownerId) {
+
+  let baseAuthorization: EffectiveAgentAuthorization;
+  try {
+    baseAuthorization = sanitizeEffectiveAgentAuthorizationBoundary(
+      input.baseAuthorization,
+    );
+  } catch {
+    throw new Error("TRUST_SESSION_REQUEST_INVALID");
+  }
+  const requested = sanitizeTrustSessionRequestBoundary({
+    requestedCapabilities: input.requestedCapabilities,
+    requestedResources: input.requestedResources,
+  });
+
+  if (input.actor.actorId !== baseAuthorization.ownerId) {
     throw new Error("TRUST_SESSION_OWNER_MISMATCH");
   }
 
@@ -57,9 +64,9 @@ export function planAgentTrustSessionCreation(input: {
     durationMinutes: input.durationMinutes,
     maxOperations: input.maxOperations,
     riskCeiling: input.riskCeiling,
-    requestedCapabilities: input.requestedCapabilities,
-    requestedResources: input.requestedResources,
-    baseAuthorization: input.baseAuthorization,
+    requestedCapabilities: requested.requestedCapabilities,
+    requestedResources: requested.requestedResources,
+    baseAuthorization,
   });
 
   let expiresAt: string;
@@ -79,11 +86,11 @@ export function planAgentTrustSessionCreation(input: {
 
   return {
     id: input.trustSessionId,
-    ownerId: input.baseAuthorization.ownerId,
-    clientId: input.baseAuthorization.clientId,
-    baseGrantIds,
-    capabilities: [...input.requestedCapabilities],
-    resourceSelectors: cloneResourceSelectorMap(input.requestedResources),
+    ownerId: baseAuthorization.ownerId,
+    clientId: baseAuthorization.clientId,
+    baseGrantIds: baseAuthorization.grantIds,
+    capabilities: requested.requestedCapabilities,
+    resourceSelectors: requested.requestedResources,
     riskCeiling: input.riskCeiling,
     startsAt: input.now,
     expiresAt,
