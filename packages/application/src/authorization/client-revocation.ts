@@ -1,5 +1,6 @@
 import type { CommandActor } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { normalizeBoundedUniqueIds } from "./id-list";
 
 export type AgentClientRevocationPlan = {
   ownerId: string;
@@ -22,18 +23,6 @@ function bounded(value: unknown, maximum: number): value is string {
   );
 }
 
-function normalizeIds(values: readonly string[]): readonly string[] | null {
-  if (
-    !Array.isArray(values) ||
-    values.length > 10_000 ||
-    values.some((value) => !bounded(value, 200)) ||
-    new Set(values).size !== values.length
-  ) {
-    return null;
-  }
-  return [...values].sort((left, right) => left.localeCompare(right, "en"));
-}
-
 export function planAgentClientRevocation(input: {
   actor: CommandActor;
   ownerId: string;
@@ -49,9 +38,13 @@ export function planAgentClientRevocation(input: {
     throw new Error("AGENT_CLIENT_REVOCATION_OWNER_REQUIRED");
   }
 
-  const revokeGrantIds = normalizeIds(input.activeGrantIds);
-  const revokeTrustSessionIds = normalizeIds(input.activeTrustSessionIds);
-  const cancelChallengeIds = normalizeIds(input.pendingChallengeIds);
+  const revokeGrantIds = normalizeBoundedUniqueIds(input.activeGrantIds);
+  const revokeTrustSessionIds = normalizeBoundedUniqueIds(
+    input.activeTrustSessionIds,
+  );
+  const cancelChallengeIds = normalizeBoundedUniqueIds(
+    input.pendingChallengeIds,
+  );
   if (
     !bounded(input.ownerId, 200) ||
     !bounded(input.clientId, 200) ||
