@@ -1,4 +1,5 @@
 import type { CommandActor } from "../core";
+import { normalizeBoundedUniqueIds } from "./id-list";
 import { planAgentGrantStatusTransition } from "./grant-lifecycle";
 import type { AgentGrantDefinition } from "./types";
 
@@ -15,27 +16,6 @@ export type AgentGrantRevocationPlan = {
   reason: string;
 };
 
-function bounded(value: unknown, maximum: number): value is string {
-  return (
-    typeof value === "string" &&
-    value.length >= 1 &&
-    value.length <= maximum &&
-    value.trim() === value
-  );
-}
-
-function normalizeIds(values: readonly string[]): readonly string[] | null {
-  if (
-    !Array.isArray(values) ||
-    values.length > 10_000 ||
-    values.some((value) => !bounded(value, 200)) ||
-    new Set(values).size !== values.length
-  ) {
-    return null;
-  }
-  return [...values].sort((left, right) => left.localeCompare(right, "en"));
-}
-
 export function planAgentGrantRevocation(input: {
   actor: CommandActor;
   grant: AgentGrantDefinition;
@@ -50,7 +30,9 @@ export function planAgentGrantRevocation(input: {
     now: input.now,
     reason: input.reason,
   });
-  const revokeTrustSessionIds = normalizeIds(input.activeTrustSessionIds);
+  const revokeTrustSessionIds = normalizeBoundedUniqueIds(
+    input.activeTrustSessionIds,
+  );
   if (revokeTrustSessionIds === null) {
     throw new Error("AGENT_GRANT_REVOCATION_INVALID");
   }
