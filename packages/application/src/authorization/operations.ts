@@ -1,4 +1,10 @@
 export {
+  planAgentGrantCreation,
+} from "./grant-creation";
+export type {
+  AgentGrantCreationPlan,
+} from "./grant-creation";
+export {
   evaluateAgentGrantState,
   planAgentGrantStatusTransition,
 } from "./grant-lifecycle";
