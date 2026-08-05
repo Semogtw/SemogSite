@@ -283,19 +283,41 @@ export function selectorMatchesResource(input: {
   switch (input.selector.kind) {
     case "all":
       return true;
-    case "exact_ids":
-      return input.selector.ids.includes(input.resource.id);
-    case "canonical_prefixes":
-      return input.selector.prefixes.some(
-        (prefix) =>
-          input.resource.id === prefix ||
-          input.resource.id.startsWith(`${prefix}/`),
-      );
-    case "lifecycle_states":
+    case "exact_ids": {
+      const ids = normalizeBoundedUniqueIds(input.selector.ids, {
+        minimumItems: 1,
+        maximumItems: 200,
+        maximumLength: 200,
+      });
+      return ids !== null && ids.some((id) => id === input.resource.id);
+    }
+    case "canonical_prefixes": {
+      const prefixes = normalizeBoundedUniqueIds(input.selector.prefixes, {
+        minimumItems: 1,
+        maximumItems: 50,
+        maximumLength: 200,
+      });
       return (
-        input.resource.lifecycleState !== null &&
-        input.selector.states.includes(input.resource.lifecycleState)
+        prefixes !== null &&
+        prefixes.some(
+          (prefix) =>
+            input.resource.id === prefix ||
+            input.resource.id.startsWith(`${prefix}/`),
+        )
       );
+    }
+    case "lifecycle_states": {
+      const states = normalizeBoundedUniqueIds(input.selector.states, {
+        minimumItems: 1,
+        maximumItems: 50,
+        maximumLength: 80,
+      });
+      return (
+        states !== null &&
+        input.resource.lifecycleState !== null &&
+        states.some((state) => state === input.resource.lifecycleState)
+      );
+    }
     default:
       return false;
   }
