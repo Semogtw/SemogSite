@@ -39,6 +39,8 @@ export type {
 export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
 export { validateAgentGrantRequest } from "./authorization/grant-request";
 export type { AgentGrantRequest } from "./authorization/grant-request";
+export { planAgentGrantRevocation } from "./authorization/grant-revocation";
+export type { AgentGrantRevocationPlan } from "./authorization/grant-revocation";
 export { decideAgentCommandDisposition } from "./authorization/policy-engine";
 export type {
   AgentCommandPolicyDecision,
