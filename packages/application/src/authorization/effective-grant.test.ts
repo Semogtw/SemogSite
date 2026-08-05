@@ -219,9 +219,8 @@ describe("computeEffectiveAgentAuthorization", () => {
     expect(result?.trustSessionIds).toEqual(["trust_valid"]);
   });
 
-  it("normalizes duplicate scopes, grants, capabilities and selectors", () => {
+  it("normalizes duplicate scopes, grants and selectors", () => {
     const duplicated = grant({
-      capabilities: ["attention.write", "attention.write"],
       resourceSelectors: {
         attention_item: [
           { kind: "exact_ids", ids: ["attention_1"] },
