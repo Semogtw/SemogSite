@@ -5,11 +5,14 @@ import {
   isAgentCapability,
   resourceKindsForCapability,
 } from "./capabilities";
+import { readOwnDataArray } from "./data-array";
 import { normalizeBoundedUniqueIds } from "./id-list";
+import { sanitizeResourceSelectorMapBoundary } from "./resource-selector-boundary";
 import { validateResourceSelectorForKind } from "./resource-selectors";
 import type {
   AgentCapability,
   AgentRiskCeiling,
+  ResourceSelector,
   ResourceSelectorMap,
 } from "./types";
 
@@ -160,22 +163,42 @@ export function validateAgentGrantRequest(input: {
     }
   }
 
+  const validatedResourceKinds = new Set<string>();
   for (const capability of capabilities) {
     for (const resourceKind of resourceKindsForCapability(capability)) {
-      const selectors = input.request.resourceSelectors[resourceKind];
-      if (!Array.isArray(selectors) || selectors.length === 0) {
+      if (validatedResourceKinds.has(resourceKind)) continue;
+      const selectors = readOwnDataArray(
+        input.request.resourceSelectors[resourceKind],
+        { minimumItems: 1, maximumItems: 200 },
+      );
+      if (selectors === null) {
         throw new Error("AGENT_GRANT_RESOURCE_SELECTOR_MISSING");
       }
       for (const selector of selectors) {
+        const explicitOwnerSelection =
+          plainRecord(selector) &&
+          selector.kind === "all" &&
+          explicitAll.has(resourceKind);
         validateResourceSelectorForKind({
           resourceKind,
-          selector,
-          explicitOwnerSelection:
-            selector.kind === "all" && explicitAll.has(resourceKind),
+          selector: selector as ResourceSelector,
+          explicitOwnerSelection,
         });
       }
+      validatedResourceKinds.add(resourceKind);
     }
   }
 
-  return input.request;
+  return {
+    ownerId: input.request.ownerId,
+    clientId: input.request.clientId,
+    profileId: input.request.profileId,
+    capabilities,
+    resourceSelectors: sanitizeResourceSelectorMapBoundary(
+      input.request.resourceSelectors,
+    ),
+    riskCeiling: input.request.riskCeiling,
+    expiresAt: input.request.expiresAt,
+    reason: input.request.reason,
+  };
 }
