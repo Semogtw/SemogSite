@@ -60,11 +60,11 @@ const now = "2026-08-04T20:00:00.000Z";
 
 describe("trust clause runtime integrity", () => {
   it.each([
-    [" grant_1"],
-    ["grant_1 "],
-    [""],
-    [1 as never],
-    ["x".repeat(201)],
+    [[" grant_1"]],
+    [["grant_1 "]],
+    [[""]],
+    [[1 as never]],
+    [["x".repeat(201)]],
   ])("rejects malformed base grant IDs %#", (baseGrantIds) => {
     expect(
       evaluateTrustSessionState(session({ baseGrantIds }), now),
