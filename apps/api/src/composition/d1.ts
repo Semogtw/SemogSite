@@ -2,6 +2,7 @@ import {
   isEncodedPasswordHash,
   LocalAuthProvider,
   type AuthProvider,
+  type RuntimeNodeEnv,
 } from "@semogtw/auth";
 import { parseRuntimeConfig } from "@semogtw/config";
 import {
@@ -28,6 +29,12 @@ export type D1ApiRuntime = {
   readonly authProvider: AuthProvider | undefined;
 };
 
+type ComposedAuth = {
+  readonly provider: AuthProvider;
+  readonly sessionSecret: string;
+  readonly nodeEnv: RuntimeNodeEnv;
+};
+
 const runtimeCache = new WeakMap<
   D1DatabaseBinding,
   Map<string, Promise<D1ApiRuntime>>
@@ -41,9 +48,9 @@ function configFingerprint(bindings: D1ApiBindings): string {
   ].join("\u0000");
 }
 
-async function composeAuthProvider(
+async function composeAuth(
   bindings: D1ApiBindings,
-): Promise<AuthProvider | undefined> {
+): Promise<ComposedAuth | undefined> {
   try {
     const config = parseRuntimeConfig({
       NODE_ENV: bindings.NODE_ENV,
@@ -59,12 +66,16 @@ async function composeAuthProvider(
       passwordHash: config.ownerPasswordHash,
       now: new Date(),
     });
-    return new LocalAuthProvider({
-      ownerId: "semogtw-owner",
-      encodedPasswordHash: config.ownerPasswordHash,
-      sessions,
-      sessionLifetimeMs,
-    });
+    return {
+      provider: new LocalAuthProvider({
+        ownerId: "semogtw-owner",
+        encodedPasswordHash: config.ownerPasswordHash,
+        sessions,
+        sessionLifetimeMs,
+      }),
+      sessionSecret: config.sessionSecret,
+      nodeEnv: config.nodeEnv,
+    };
   } catch {
     return undefined;
   }
@@ -78,18 +89,18 @@ async function composeD1ApiRuntime(
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
-  const authProvider = await composeAuthProvider(bindings);
+  const auth = await composeAuth(bindings);
 
   return {
     app: createApiApp({
-      ...(authProvider === undefined ? {} : { authProvider }),
+      ...(auth === undefined ? {} : { auth }),
       publicProjects: {
         list: () => publicProjects.listListed(),
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
       privateOverview,
     }),
-    authProvider,
+    authProvider: auth?.provider,
   };
 }
 

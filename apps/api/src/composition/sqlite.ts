@@ -2,6 +2,7 @@ import {
   isEncodedPasswordHash,
   LocalAuthProvider,
   type AuthProvider,
+  type RuntimeNodeEnv,
 } from "@semogtw/auth";
 import {
   parseDatabaseConfig,
@@ -34,10 +35,16 @@ function resolveDatabasePath(databaseUrl: string): string {
   return absolutePath;
 }
 
-function composeAuthProvider(
+type ComposedAuth = {
+  provider: AuthProvider;
+  sessionSecret: string;
+  nodeEnv: RuntimeNodeEnv;
+};
+
+function composeAuth(
   env: Record<string, string | undefined>,
   database: ReturnType<typeof createSqliteDatabase>,
-): AuthProvider | undefined {
+): ComposedAuth | undefined {
   try {
     const config = parseRuntimeConfig(env);
     if (!isEncodedPasswordHash(config.ownerPasswordHash)) return undefined;
@@ -49,12 +56,16 @@ function composeAuthProvider(
       passwordHash: config.ownerPasswordHash,
       now: new Date(),
     });
-    return new LocalAuthProvider({
-      ownerId: "semogtw-owner",
-      encodedPasswordHash: config.ownerPasswordHash,
-      sessions,
-      sessionLifetimeMs,
-    });
+    return {
+      provider: new LocalAuthProvider({
+        ownerId: "semogtw-owner",
+        encodedPasswordHash: config.ownerPasswordHash,
+        sessions,
+        sessionLifetimeMs,
+      }),
+      sessionSecret: config.sessionSecret,
+      nodeEnv: config.nodeEnv,
+    };
   } catch {
     return undefined;
   }
@@ -73,9 +84,9 @@ export function createSqliteApiRuntime(
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
-  const authProvider = composeAuthProvider(env, database);
+  const auth = composeAuth(env, database);
   const app = createApiApp({
-    ...(authProvider === undefined ? {} : { authProvider }),
+    ...(auth === undefined ? {} : { auth }),
     publicProjects: {
       list: () => publicSource.listListed(),
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
@@ -85,7 +96,7 @@ export function createSqliteApiRuntime(
 
   return {
     app,
-    authProvider,
+    authProvider: auth?.provider,
     close: () => database.$client.close(),
   };
 }

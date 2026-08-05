@@ -1,5 +1,6 @@
 import {
   CSRF_COOKIE_NAME,
+  csrfCookieOptions,
   issueCsrfToken,
   sessionCookieOptions,
   SESSION_COOKIE_NAME,
@@ -69,13 +70,7 @@ export const loginOwnerFn = createServerFn({ method: "POST" })
       result.rawToken,
       sessionCookieOptions(runtimeEnv),
     );
-    setCookie(CSRF_COOKIE_NAME, csrf, {
-      httpOnly: false,
-      sameSite: "lax",
-      secure: runtimeEnv === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 14,
-    });
+    setCookie(CSRF_COOKIE_NAME, csrf, csrfCookieOptions(runtimeEnv));
 
     return {
       ok: true as const,
@@ -129,10 +124,7 @@ export const logoutOwnerFn = createServerFn({ method: "POST" })
         maxAge: 0,
       });
       setCookie(CSRF_COOKIE_NAME, "", {
-        httpOnly: false,
-        sameSite: "lax",
-        secure: runtimeEnv === "production",
-        path: "/",
+        ...csrfCookieOptions(runtimeEnv),
         maxAge: 0,
       });
     }

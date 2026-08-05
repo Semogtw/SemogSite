@@ -2,13 +2,25 @@ const encoder = new TextEncoder();
 
 export type RuntimeNodeEnv = "development" | "test" | "production";
 
+const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
+
 export function sessionCookieOptions(nodeEnv: RuntimeNodeEnv) {
   return {
     httpOnly: true as const,
     sameSite: "lax" as const,
     secure: nodeEnv === "production",
     path: "/" as const,
-    maxAge: 60 * 60 * 24 * 14,
+    maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+  };
+}
+
+export function csrfCookieOptions(nodeEnv: RuntimeNodeEnv) {
+  return {
+    httpOnly: false as const,
+    sameSite: "lax" as const,
+    secure: nodeEnv === "production",
+    path: "/" as const,
+    maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
   };
 }
 

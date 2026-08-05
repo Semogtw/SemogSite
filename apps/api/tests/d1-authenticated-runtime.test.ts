@@ -241,20 +241,27 @@ describe("authenticated D1 API runtime", () => {
     expect(binding.batchCount).toBe(1);
     expect(runtime.authProvider).not.toBeUndefined();
 
-    const authenticated = await runtime.authProvider?.authenticate({
-      password: "correct horse battery staple",
+    const login = await runtime.app.request("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.20",
+      },
+      body: JSON.stringify({
+        password: "correct horse battery staple",
+      }),
     });
-    expect(authenticated?.ok).toBe(true);
-    if (authenticated === undefined || !authenticated.ok) {
-      throw new Error("expected authenticated D1 runtime");
-    }
+    expect(login.status).toBe(200);
+    const cookieHeader = login.headers
+      .getSetCookie()
+      .map((cookie) => cookie.split(";", 1)[0])
+      .join("; ");
+    expect(cookieHeader).toContain(`${SESSION_COOKIE_NAME}=`);
 
     const response = await runtime.app.request(
       "/api/v1/private/overview",
       {
-        headers: {
-          cookie: `${SESSION_COOKIE_NAME}=${authenticated.rawToken}`,
-        },
+        headers: { cookie: cookieHeader },
       },
     );
     expect(response.status).toBe(200);

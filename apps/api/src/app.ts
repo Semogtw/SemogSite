@@ -7,6 +7,10 @@ import {
   type ApiEnvironment,
 } from "./middleware/request-context";
 import {
+  createAuthSessionRoutes,
+  type ApiAuthDependencies,
+} from "./routes/auth/session";
+import {
   createPrivateOverviewRoutes,
   type PrivateOverviewQueries,
 } from "./routes/private/overview";
@@ -16,6 +20,7 @@ import {
 } from "./routes/public/projects";
 
 export type ApiDependencies = {
+  auth?: ApiAuthDependencies;
   authProvider?: AuthProvider;
   publicProjects?: PublicProjectQueries;
   privateOverview?: PrivateOverviewQueries;
@@ -36,9 +41,12 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     "/api/v1/public/projects",
     createPublicProjectRoutes(dependencies.publicProjects),
   );
+  api.route("/api/v1/auth", createAuthSessionRoutes(dependencies.auth));
   api.use(
     "/api/v1/private/*",
-    createPrivateAuthMiddleware(dependencies.authProvider),
+    createPrivateAuthMiddleware(
+      dependencies.auth?.provider ?? dependencies.authProvider,
+    ),
   );
   api.route(
     "/api/v1/private/overview",
