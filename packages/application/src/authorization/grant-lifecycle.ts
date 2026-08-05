@@ -126,9 +126,6 @@ export function planAgentGrantStatusTransition(input: {
   if (input.actor.kind !== "owner_ui") {
     throw new Error("AGENT_GRANT_OWNER_REQUIRED");
   }
-  if (input.actor.actorId !== input.grant.ownerId) {
-    throw new Error("AGENT_GRANT_OWNER_MISMATCH");
-  }
   if (
     !isCanonicalUtcTimestamp(input.now) ||
     !bounded(input.reason, 500) ||
@@ -140,6 +137,12 @@ export function planAgentGrantStatusTransition(input: {
   }
 
   const state = evaluateAgentGrantState(input.grant, input.now);
+  if (state === "invalid") {
+    throw new Error("AGENT_GRANT_TRANSITION_INVALID");
+  }
+  if (input.actor.actorId !== input.grant.ownerId) {
+    throw new Error("AGENT_GRANT_OWNER_MISMATCH");
+  }
   if (state === "revoked" || state === "expired") {
     throw new Error("AGENT_GRANT_TERMINAL");
   }
