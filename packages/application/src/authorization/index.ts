@@ -43,6 +43,12 @@ export {
   computeEffectiveAgentAuthorization,
 } from "./effective-grant";
 export {
+  planAgentGrantCreation,
+} from "./grant-creation";
+export type {
+  AgentGrantCreationPlan,
+} from "./grant-creation";
+export {
   validateAgentGrantRequest,
 } from "./grant-request";
 export type { AgentGrantRequest } from "./grant-request";
