@@ -16,6 +16,7 @@ function repository(): AgentAuthorizationMutationRepository {
       status: "applied",
       affectedRows: 1 + plan.revokeTrustSessionIds.length,
     })),
+    reviseGrant: vi.fn(applied),
     createTrustSession: vi.fn(applied),
     consumeTrustSessionOperation: vi.fn(applied),
     revokeTrustSession: vi.fn(applied),
