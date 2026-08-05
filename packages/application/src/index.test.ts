@@ -24,6 +24,7 @@ describe("@semogtw/application public contracts", () => {
   it("exports owner authorization request planners", () => {
     expect(application).toMatchObject({
       validateAgentGrantRequest: expect.any(Function),
+      planAgentGrantRevocation: expect.any(Function),
       planAgentClientRevocation: expect.any(Function),
       planAgentTrustSessionCreation: expect.any(Function),
       planAgentTrustSessionRevocation: expect.any(Function),
