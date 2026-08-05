@@ -1,5 +1,6 @@
 import type { CommandActor } from "../core";
 import { isCanonicalUtcTimestamp } from "../iso-timestamp";
+import { normalizeBoundedUniqueIds } from "./id-list";
 import { evaluateAgentGrantState } from "./grant-lifecycle";
 import type { AgentGrantDefinition } from "./types";
 
@@ -26,18 +27,6 @@ function bounded(value: unknown, maximum: number): value is string {
   );
 }
 
-function normalizeIds(values: readonly string[]): readonly string[] | null {
-  if (
-    !Array.isArray(values) ||
-    values.length > 10_000 ||
-    values.some((value) => !bounded(value, 200)) ||
-    new Set(values).size !== values.length
-  ) {
-    return null;
-  }
-  return [...values].sort((left, right) => left.localeCompare(right, "en"));
-}
-
 export function planAgentGrantExpiration(input: {
   actor: CommandActor;
   grant: AgentGrantDefinition;
@@ -49,7 +38,9 @@ export function planAgentGrantExpiration(input: {
     throw new Error("AGENT_GRANT_EXPIRATION_SYSTEM_REQUIRED");
   }
 
-  const revokeTrustSessionIds = normalizeIds(input.activeTrustSessionIds);
+  const revokeTrustSessionIds = normalizeBoundedUniqueIds(
+    input.activeTrustSessionIds,
+  );
   if (
     !bounded(input.actor.actorId, 200) ||
     !isCanonicalUtcTimestamp(input.now) ||
