@@ -65,6 +65,12 @@ export {
 } from "./grant-request";
 export type { AgentGrantRequest } from "./grant-request";
 export {
+  planAgentGrantRevision,
+} from "./grant-revision";
+export type {
+  AgentGrantRevisionPlan,
+} from "./grant-revision";
+export {
   planAgentGrantRevocation,
 } from "./grant-revocation";
 export type {
