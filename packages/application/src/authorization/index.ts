@@ -53,6 +53,15 @@ export type {
   AgentGrantRevocationPlan,
 } from "./grant-revocation";
 export {
+  createAgentAuthorizationMutationExecutor,
+} from "./mutation-executor";
+export type {
+  AgentAuthorizationMutation,
+  AgentAuthorizationMutationRepository,
+  AgentAuthorizationMutationResult,
+  AgentAuthorizationMutationStatus,
+} from "./mutation-executor";
+export {
   decideAgentCommandDisposition,
 } from "./policy-engine";
 export type {
