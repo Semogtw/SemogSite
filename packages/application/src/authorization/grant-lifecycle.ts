@@ -97,6 +97,7 @@ function grantValid(grant: AgentGrantDefinition, now: string): boolean {
     (grant.expiresAt === null || isCanonicalUtcTimestamp(grant.expiresAt)) &&
     Number.isInteger(grant.version) &&
     grant.version >= 1 &&
+    grant.version < Number.MAX_SAFE_INTEGER &&
     Array.isArray(grant.capabilities) &&
     grant.capabilities.length >= 1 &&
     new Set(grant.capabilities).size === grant.capabilities.length &&
