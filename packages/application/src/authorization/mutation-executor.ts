@@ -1,4 +1,5 @@
 import type { AgentClientRevocationPlan } from "./client-revocation";
+import type { AgentGrantAvailabilityTransitionPlan } from "./grant-availability";
 import type { AgentGrantCreationPlan } from "./grant-creation";
 import type { AgentGrantRevocationPlan } from "./grant-revocation";
 import type { TrustSessionOperationConsumptionPlan } from "./trust-session-consumption";
@@ -20,6 +21,10 @@ export type AgentAuthorizationMutation =
   | {
       kind: "grant.create";
       plan: AgentGrantCreationPlan;
+    }
+  | {
+      kind: "grant.transition";
+      plan: AgentGrantAvailabilityTransitionPlan;
     }
   | {
       kind: "trust.create";
@@ -51,6 +56,9 @@ export interface AgentAuthorizationMutationRepository {
   createGrant(
     plan: AgentGrantCreationPlan,
   ): Promise<AgentAuthorizationMutationResult>;
+  transitionGrantAvailability(
+    plan: AgentGrantAvailabilityTransitionPlan,
+  ): Promise<AgentAuthorizationMutationResult>;
   createTrustSession(
     plan: AgentTrustSession,
   ): Promise<AgentAuthorizationMutationResult>;
@@ -71,6 +79,7 @@ export interface AgentAuthorizationMutationRepository {
 function expectedAffectedRows(mutation: AgentAuthorizationMutation): number {
   switch (mutation.kind) {
     case "grant.create":
+    case "grant.transition":
     case "trust.create":
     case "trust.consume":
     case "trust.revoke":
@@ -95,6 +104,7 @@ function statusAllowed(
     case "grant.create":
     case "trust.create":
       return status === "applied" || status === "conflict";
+    case "grant.transition":
     case "trust.consume":
       return (
         status === "applied" ||
@@ -145,6 +155,9 @@ export function createAgentAuthorizationMutationExecutor(
     switch (mutation.kind) {
       case "grant.create":
         result = await repository.createGrant(mutation.plan);
+        break;
+      case "grant.transition":
+        result = await repository.transitionGrantAvailability(mutation.plan);
         break;
       case "trust.create":
         result = await repository.createTrustSession(mutation.plan);
