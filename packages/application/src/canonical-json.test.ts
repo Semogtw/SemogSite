@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { canonicalJson, canonicalSha256 } from "./canonical-json";
 
 describe("canonicalJson", () => {
@@ -47,5 +47,37 @@ describe("canonicalJson", () => {
 
     expect(() => canonicalJson(cyclic)).toThrow("CANONICAL_JSON_CYCLE");
     expect(() => canonicalJson(sparse)).toThrow("CANONICAL_JSON_INVALID");
+  });
+
+  it("rejects array accessors without invoking them", () => {
+    const getter = vi.fn(() => 1);
+    const value: unknown[] = [];
+    Object.defineProperty(value, "0", {
+      configurable: true,
+      enumerable: true,
+      get: getter,
+    });
+    value.length = 1;
+
+    expect(() => canonicalJson(value)).toThrow("CANONICAL_JSON_INVALID");
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("does not execute methods from a custom array prototype", () => {
+    const map = vi.fn(() => {
+      throw new Error("custom map must not run");
+    });
+    const value = [1];
+    Object.setPrototypeOf(value, { map });
+
+    expect(() => canonicalJson(value)).toThrow("CANONICAL_JSON_INVALID");
+    expect(map).not.toHaveBeenCalled();
+  });
+
+  it("serializes null-prototype arrays without inherited methods", () => {
+    const value = [1, { b: 2, a: 1 }];
+    Object.setPrototypeOf(value, null);
+
+    expect(canonicalJson(value)).toBe('[1,{"a":1,"b":2}]');
   });
 });
