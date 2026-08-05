@@ -1,3 +1,4 @@
+import { normalizeBoundedUniqueIds } from "./id-list";
 import type {
   CommandResource,
   CommandResourceParentRef,
@@ -78,10 +79,6 @@ function exactKeys(value: Record<string, unknown>, expected: readonly string[]):
   );
 }
 
-function stringArray(value: unknown): value is readonly string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
 function boundedCanonicalId(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -91,19 +88,6 @@ function boundedCanonicalId(value: unknown): value is string {
     canonicalIdPattern.test(value) &&
     !value.includes("//") &&
     !value.split("/").some((segment) => segment === "." || segment === "..")
-  );
-}
-
-function uniqueBoundedValues(
-  values: unknown,
-  minimum: number,
-  maximum: number,
-): values is readonly string[] {
-  return (
-    stringArray(values) &&
-    values.length >= minimum &&
-    values.length <= maximum &&
-    new Set(values).size === values.length
   );
 }
 
@@ -196,32 +180,38 @@ export function validateResourceSelectorForKind(input: {
       }
       return;
 
-    case "exact_ids":
+    case "exact_ids": {
       if (!exactKeys(input.selector, ["ids", "kind"])) {
         throw new Error("RESOURCE_SELECTOR_INVALID");
       }
-      if (
-        !uniqueBoundedValues(input.selector.ids, 1, 200) ||
-        !input.selector.ids.every(boundedCanonicalId)
-      ) {
+      const ids = normalizeBoundedUniqueIds(input.selector.ids, {
+        minimumItems: 1,
+        maximumItems: 200,
+        maximumLength: 200,
+      });
+      if (ids === null || !ids.every(boundedCanonicalId)) {
         throw new Error("INVALID_EXACT_IDS");
       }
       return;
+    }
 
-    case "canonical_prefixes":
+    case "canonical_prefixes": {
       if (!exactKeys(input.selector, ["kind", "prefixes"])) {
         throw new Error("RESOURCE_SELECTOR_INVALID");
       }
       if (input.resourceKind !== "repository_path") {
         throw new Error("RESOURCE_SELECTOR_KIND_UNSUPPORTED");
       }
-      if (
-        !uniqueBoundedValues(input.selector.prefixes, 1, 50) ||
-        !input.selector.prefixes.every(canonicalPrefixValid)
-      ) {
+      const prefixes = normalizeBoundedUniqueIds(input.selector.prefixes, {
+        minimumItems: 1,
+        maximumItems: 50,
+        maximumLength: 200,
+      });
+      if (prefixes === null || !prefixes.every(canonicalPrefixValid)) {
         throw new Error("INVALID_CANONICAL_PREFIX");
       }
       return;
+    }
 
     case "lifecycle_states": {
       if (!exactKeys(input.selector, ["kind", "states"])) {
@@ -231,9 +221,14 @@ export function validateResourceSelectorForKind(input: {
       if (allowedStates === undefined) {
         throw new Error("RESOURCE_SELECTOR_KIND_UNSUPPORTED");
       }
+      const states = normalizeBoundedUniqueIds(input.selector.states, {
+        minimumItems: 1,
+        maximumItems: 50,
+        maximumLength: 80,
+      });
       if (
-        !uniqueBoundedValues(input.selector.states, 1, 50) ||
-        !input.selector.states.every((state) => allowedStates.includes(state))
+        states === null ||
+        !states.every((state) => allowedStates.includes(state))
       ) {
         throw new Error("INVALID_LIFECYCLE_STATE");
       }
