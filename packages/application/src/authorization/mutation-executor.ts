@@ -1,6 +1,7 @@
 import type { AgentClientRevocationPlan } from "./client-revocation";
 import type { AgentGrantAvailabilityTransitionPlan } from "./grant-availability";
 import type { AgentGrantCreationPlan } from "./grant-creation";
+import type { AgentGrantExpirationPlan } from "./grant-expiration";
 import type { AgentGrantRevocationPlan } from "./grant-revocation";
 import type { TrustSessionOperationConsumptionPlan } from "./trust-session-consumption";
 import type { AgentTrustSessionRevocationPlan } from "./trust-session-revocation";
@@ -25,6 +26,10 @@ export type AgentAuthorizationMutation =
   | {
       kind: "grant.transition";
       plan: AgentGrantAvailabilityTransitionPlan;
+    }
+  | {
+      kind: "grant.expire";
+      plan: AgentGrantExpirationPlan;
     }
   | {
       kind: "trust.create";
@@ -59,6 +64,9 @@ export interface AgentAuthorizationMutationRepository {
   transitionGrantAvailability(
     plan: AgentGrantAvailabilityTransitionPlan,
   ): Promise<AgentAuthorizationMutationResult>;
+  expireGrant(
+    plan: AgentGrantExpirationPlan,
+  ): Promise<AgentAuthorizationMutationResult>;
   createTrustSession(
     plan: AgentTrustSession,
   ): Promise<AgentAuthorizationMutationResult>;
@@ -84,6 +92,7 @@ function expectedAffectedRows(mutation: AgentAuthorizationMutation): number {
     case "trust.consume":
     case "trust.revoke":
       return 1;
+    case "grant.expire":
     case "grant.revoke":
       return 1 + mutation.plan.revokeTrustSessionIds.length;
     case "client.revoke":
@@ -111,6 +120,7 @@ function statusAllowed(
         status === "conflict" ||
         status === "not_found"
       );
+    case "grant.expire":
     case "trust.revoke":
     case "grant.revoke":
     case "client.revoke":
@@ -158,6 +168,9 @@ export function createAgentAuthorizationMutationExecutor(
         break;
       case "grant.transition":
         result = await repository.transitionGrantAvailability(mutation.plan);
+        break;
+      case "grant.expire":
+        result = await repository.expireGrant(mutation.plan);
         break;
       case "trust.create":
         result = await repository.createTrustSession(mutation.plan);
