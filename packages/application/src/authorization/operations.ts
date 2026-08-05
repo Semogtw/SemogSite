@@ -7,6 +7,12 @@ export type {
   AgentGrantStatusTransitionPlan,
 } from "./grant-lifecycle";
 export {
+  planAgentGrantRevocation,
+} from "./grant-revocation";
+export type {
+  AgentGrantRevocationPlan,
+} from "./grant-revocation";
+export {
   planTrustSessionOperationConsumption,
 } from "./trust-session-consumption";
 export type {
