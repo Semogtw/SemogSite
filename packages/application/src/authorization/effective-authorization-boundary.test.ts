@@ -13,14 +13,14 @@ function authorization(): EffectiveAgentAuthorization {
     capabilities: ["roadmap.write", "attention.write"],
     resourceSelectors: {
       attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
-      roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+      stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
     },
     capabilityResourceSelectors: {
       "attention.write": {
         attention_item: [{ kind: "exact_ids", ids: ["attention_1"] }],
       },
       "roadmap.write": {
-        roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+        stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
       },
     },
     riskCeiling: "high",
@@ -33,7 +33,7 @@ function authorization(): EffectiveAgentAuthorization {
         grantId: "grant_2",
         capability: "roadmap.write",
         resourceSelectors: {
-          roadmap_stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
+          stage: [{ kind: "exact_ids", ids: ["stage_1"] }],
         },
         riskCeiling: "high",
       },
@@ -110,7 +110,8 @@ describe("effective authorization boundary", () => {
     expect(() =>
       sanitizeEffectiveAgentAuthorizationBoundary({
         ...authorization(),
-        authorizationClauses: new Array(1) as EffectiveAgentAuthorizationClause[],
+        authorizationClauses:
+          new Array(1) as EffectiveAgentAuthorizationClause[],
       }),
     ).toThrow("EFFECTIVE_AUTHORIZATION_INVALID");
   });
@@ -163,7 +164,7 @@ describe("effective authorization boundary", () => {
     });
     const source = authorization();
     const clause = source.authorizationClauses[0]!;
-    const selectors = clause.resourceSelectors.roadmap_stage as Array<{
+    const selectors = clause.resourceSelectors.stage as Array<{
       kind: "exact_ids";
       ids: string[];
     }>;
@@ -174,7 +175,7 @@ describe("effective authorization boundary", () => {
 
     expect(
       sanitizeEffectiveAgentAuthorizationBoundary(source)
-        .authorizationClauses[0]!.resourceSelectors.roadmap_stage,
+        .authorizationClauses[0]!.resourceSelectors.stage,
     ).toEqual([{ kind: "exact_ids", ids: ["stage_1"] }]);
     expect(iteratorGetter).not.toHaveBeenCalled();
   });
