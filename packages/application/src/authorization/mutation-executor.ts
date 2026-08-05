@@ -3,6 +3,7 @@ import type { AgentGrantCreationPlan } from "./grant-creation";
 import type { AgentGrantRevocationPlan } from "./grant-revocation";
 import type { TrustSessionOperationConsumptionPlan } from "./trust-session-consumption";
 import type { AgentTrustSessionRevocationPlan } from "./trust-session-revocation";
+import type { AgentTrustSession } from "./types";
 
 export type AgentAuthorizationMutationStatus =
   | "applied"
@@ -19,6 +20,10 @@ export type AgentAuthorizationMutation =
   | {
       kind: "grant.create";
       plan: AgentGrantCreationPlan;
+    }
+  | {
+      kind: "trust.create";
+      plan: AgentTrustSession;
     }
   | {
       kind: "trust.consume";
@@ -46,6 +51,9 @@ export interface AgentAuthorizationMutationRepository {
   createGrant(
     plan: AgentGrantCreationPlan,
   ): Promise<AgentAuthorizationMutationResult>;
+  createTrustSession(
+    plan: AgentTrustSession,
+  ): Promise<AgentAuthorizationMutationResult>;
   consumeTrustSessionOperation(
     plan: TrustSessionOperationConsumptionPlan,
   ): Promise<AgentAuthorizationMutationResult>;
@@ -63,6 +71,7 @@ export interface AgentAuthorizationMutationRepository {
 function expectedAffectedRows(mutation: AgentAuthorizationMutation): number {
   switch (mutation.kind) {
     case "grant.create":
+    case "trust.create":
     case "trust.consume":
     case "trust.revoke":
       return 1;
@@ -113,6 +122,9 @@ export function createAgentAuthorizationMutationExecutor(
     switch (mutation.kind) {
       case "grant.create":
         result = await repository.createGrant(mutation.plan);
+        break;
+      case "trust.create":
+        result = await repository.createTrustSession(mutation.plan);
         break;
       case "trust.consume":
         result = await repository.consumeTrustSessionOperation(mutation.plan);
