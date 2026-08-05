@@ -8,6 +8,7 @@ describe("agent authorization operation plans", () => {
       planAgentGrantCreation: expect.any(Function),
       planAgentGrantAvailabilityTransition: expect.any(Function),
       planAgentGrantExpiration: expect.any(Function),
+      planAgentGrantRevision: expect.any(Function),
       planAgentGrantStatusTransition: expect.any(Function),
       planAgentGrantRevocation: expect.any(Function),
       planTrustSessionOperationConsumption: expect.any(Function),
