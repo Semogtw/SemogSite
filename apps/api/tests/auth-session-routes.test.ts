@@ -228,4 +228,81 @@ describe("API authentication session routes", () => {
     });
     expect(setCookies(staleLogout)).toHaveLength(2);
   });
+
+  it("fails closed before password verification when the shared rate limiter is unavailable", async () => {
+    const authProvider = provider();
+    const loginLimiter = {
+      consume: vi.fn(async () => {
+        throw new Error("D1_UNAVAILABLE");
+      }),
+      reset: vi.fn(async () => undefined),
+    };
+    const app = createApiApp({
+      auth: {
+        provider: authProvider,
+        sessionSecret,
+        nodeEnv: "production",
+        loginLimiter,
+      },
+    });
+
+    const response = await app.request("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.60",
+      },
+      body: JSON.stringify({ password: "correct horse battery staple" }),
+    });
+
+    expect(response.status).toBe(503);
+    expect(authProvider.authenticate).not.toHaveBeenCalled();
+    expect(setCookies(response)).toHaveLength(0);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "AUTH_UNAVAILABLE",
+        message: "Não foi possível autenticar.",
+      },
+    });
+  });
+
+  it("revokes a newly created session and fails closed when rate-limit reset is unavailable", async () => {
+    const authProvider = provider();
+    const loginLimiter = {
+      consume: vi.fn(async () => ({ allowed: true, retryAfterMs: 0 })),
+      reset: vi.fn(async () => {
+        throw new Error("D1_UNAVAILABLE");
+      }),
+    };
+    const app = createApiApp({
+      auth: {
+        provider: authProvider,
+        sessionSecret,
+        nodeEnv: "production",
+        loginLimiter,
+      },
+    });
+
+    const response = await app.request("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.61",
+      },
+      body: JSON.stringify({ password: "correct horse battery staple" }),
+    });
+
+    expect(response.status).toBe(503);
+    expect(authProvider.authenticate).toHaveBeenCalledTimes(1);
+    expect(authProvider.revokeSession).toHaveBeenCalledWith("session-1");
+    expect(setCookies(response)).toHaveLength(0);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "AUTH_UNAVAILABLE",
+        message: "Não foi possível autenticar.",
+      },
+    });
+  });
 });

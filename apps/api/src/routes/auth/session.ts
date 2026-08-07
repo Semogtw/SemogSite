@@ -137,7 +137,21 @@ export function createAuthSessionRoutes(
       }
 
       const rateKey = clientRateKey(context.req);
-      const rateLimit = await loginLimiter.consume(rateKey);
+      let rateLimit: LoginRateLimitDecision;
+      try {
+        rateLimit = await loginLimiter.consume(rateKey);
+      } catch {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "AUTH_UNAVAILABLE",
+              message: "Não foi possível autenticar.",
+            },
+          },
+          503,
+        );
+      }
       if (!rateLimit.allowed) {
         context.header(
           "retry-after",
@@ -171,7 +185,23 @@ export function createAuthSessionRoutes(
         );
       }
 
-      await loginLimiter.reset(rateKey);
+      try {
+        await loginLimiter.reset(rateKey);
+      } catch {
+        await dependencies.provider
+          .revokeSession(result.session.id)
+          .catch(() => undefined);
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "AUTH_UNAVAILABLE",
+              message: "Não foi possível autenticar.",
+            },
+          },
+          503,
+        );
+      }
       const csrfToken = await issueCsrfToken(
         dependencies.sessionSecret,
         result.session.id,
