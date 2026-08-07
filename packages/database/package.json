@@ -13,6 +13,7 @@
     "./d1-projects": "./src/repositories/d1-project-data-source.ts",
     "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
     "./d1-today": "./src/repositories/d1-today-data-source.ts",
+    "./d1-workflows": "./src/repositories/d1-workflow-orchestration-read-model.ts",
     "./d1-overview": "./src/repositories/d1-overview-data-source.ts"
   },
   "scripts": {

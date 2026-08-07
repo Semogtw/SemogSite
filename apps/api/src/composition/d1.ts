@@ -15,6 +15,7 @@ import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
+import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
@@ -103,6 +104,7 @@ async function composeD1ApiRuntime(
   const privateToday = new TodayService(new D1TodayDataSource(database));
   const roadmap = new RoadmapService(new D1RoadmapDataSource(database));
   const projects = new ProjectService(new D1ProjectDataSource(database));
+  const privateWorkflows = new D1WorkflowOrchestrationReadModel(database);
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -130,6 +132,7 @@ async function composeD1ApiRuntime(
       privateToday,
       privateRoadmap,
       privateProjects,
+      privateWorkflows,
     }),
     authProvider: auth?.provider,
   };

@@ -18,6 +18,7 @@ import {
   SqlitePublicProjectSource,
   SqliteRoadmapDataSource,
   SqliteTodayDataSource,
+  SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
 import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
@@ -92,6 +93,7 @@ export function createSqliteApiRuntime(
   const today = new TodayService(new SqliteTodayDataSource(database));
   const roadmap = new RoadmapService(new SqliteRoadmapDataSource(database));
   const projects = new ProjectService(new SqliteProjectDataSource(database));
+  const privateWorkflows = new SqliteWorkflowOrchestrationReadModel(database);
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -117,6 +119,7 @@ export function createSqliteApiRuntime(
     privateToday: today,
     privateRoadmap,
     privateProjects,
+    privateWorkflows,
   });
 
   return {
