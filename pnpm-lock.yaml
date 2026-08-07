@@ -154,6 +154,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@semogtw/application':
+        specifier: workspace:*
+        version: link:../application
       '@semogtw/auth':
         specifier: workspace:*
         version: link:../auth

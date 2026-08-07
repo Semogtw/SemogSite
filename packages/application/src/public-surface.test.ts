@@ -22,4 +22,37 @@ describe("@semogtw/application public surface", () => {
       listOwnerEntityActions: expect.any(Function),
     });
   });
+
+  it("exports provider-neutral agent authorization contracts", () => {
+    expect(application).toMatchObject({
+      agentCapabilities: expect.arrayContaining([
+        "attention.write",
+        "roadmap.write",
+        "development.request",
+      ]),
+      capabilityForCommand: expect.any(Function),
+      domainForCapability: expect.any(Function),
+      oauthScopeForCapability: expect.any(Function),
+      resourceKindsForCapability: expect.any(Function),
+      validateAgentAuthorizationCatalog: expect.any(Function),
+      validateResourceSelectorForKind: expect.any(Function),
+      selectorMatchesResource: expect.any(Function),
+      computeEffectiveAgentAuthorization: expect.any(Function),
+      validateTrustSessionRequest: expect.any(Function),
+      evaluateTrustSessionState: expect.any(Function),
+      trustSessionFitsAuthorization: expect.any(Function),
+      trustSessionCoversCommand: expect.any(Function),
+      writesAllowed: expect.any(Function),
+      createConfirmationChallengeService: expect.any(Function),
+      decideAgentCommandDisposition: expect.any(Function),
+      createAgentCommandPolicy: expect.any(Function),
+      minimumTrustDurationMinutes: 5,
+      defaultTrustDurationMinutes: 120,
+      maximumTrustDurationMinutes: 480,
+      defaultTrustMaximumOperations: 25,
+      maximumTrustOperations: 100,
+      confirmationChallengeTtlMinutes: 10,
+      confirmationChallengeResponseBytes: 32,
+    });
+  });
 });

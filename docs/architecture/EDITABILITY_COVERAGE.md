@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The private DevOS must expose meaningful product state through guided owner interfaces and policy-controlled automation without creating a second mutation path. This document records the implemented coverage mechanism; the canonical product and security requirements remain in the approved unified-editability specification and implementation plan.
+The private DevOS must expose meaningful product state through guided owner interfaces and policy-controlled automation without creating a second mutation path. This document records the implemented coverage mechanism; the canonical product and security requirements remain in the approved unified-editability specification and implementation plans.
 
 ## Implemented command path
 
@@ -111,9 +111,10 @@ excluded_noncanonical
 
 `excluded_noncanonical` accepts only closed reasons such as authentication infrastructure, bounded evaluation or read preparation. An arbitrary bypass reason is rejected.
 
-Application tests validate the catalog against the actual registry. `scripts/check-editability-coverage.mjs` validates the same catalog without executing TypeScript, verifies command/route/adapter files, recursively scans `apps/web/src/server`, and rejects:
+Application tests validate the catalog against the actual registry. `scripts/check-editability-coverage.mjs` validates the same catalog without executing application code, verifies command/route/adapter files, parses server files with the TypeScript AST and rejects:
 
-- any new `createServerFn({ method: "POST" })` file absent from the catalog;
+- any new static POST server function absent from the catalog;
+- dynamic server-function method configuration;
 - stale catalog entries that no longer contain a POST;
 - Gateway surfaces without a manifest-backed adapter;
 - legacy entries without coverage references;
@@ -137,7 +138,38 @@ reversibility
 availability
 ```
 
-No input/output schema, capability grant, handler, payload, principal metadata or hidden-resource detail is returned. DevOS renders this as an “Ações disponíveis” disclosure, not a raw command table.
+No command ID, input/output schema, capability grant, handler, payload, principal metadata or hidden-resource detail is returned. DevOS renders this as an “Ações disponíveis” disclosure, not a raw command table.
+
+## Agent authorization implementation boundary
+
+Authorization infrastructure is being added only as a deny-by-default layer above registered commands. It does not make a legacy mutation or registered command remotely writable by itself.
+
+The effective remote permission is planned as the intersection of:
+
+```text
+authenticated and active OAuth client
+AND required OAuth write scope
+AND active owner-issued grant
+AND known command capability
+AND reviewed selector matching the canonical resource
+AND risk ceiling
+AND active global/client/domain write switches
+AND command confirmation or DevOS approval disposition
+AND concrete domain rollout coverage
+```
+
+An absent or negative layer denies. Grants from multiple rows may combine only within explicit capability/resource rules; no profile, trust session or client input can infer an administrative capability, broaden an unknown resource kind or raise a command above its static risk floor.
+
+The exact base used for authorization work has no `0014_mcp_oauth.sql` migration and no `@semogtw/mcp-auth` package. Consequently:
+
+- provider-neutral capability, selector, intersection and trust validation may proceed in `@semogtw/application`;
+- migration `0018_agent_authorization.sql` remains reserved but blocked until the OAuth client schema exists;
+- no fake OAuth table or weakened foreign key may be introduced;
+- remote discovery and write scopes remain unavailable;
+- the global remote-write state remains disabled by design;
+- real-client acceptance remains a later hard gate.
+
+The detailed evidence and gate classification are recorded in `docs/testing/2026-08-03-agent-write-authorization-test-matrix.md`.
 
 ## Guardrails
 
@@ -158,12 +190,13 @@ Package surfaces are explicit:
 @semogtw/database/commands
 ```
 
-The focused Playwright scenario captures the real Attention server-function request, replays the same request, changes only the reason while retaining the same idempotency key, and inspects the known E2E SQLite database to require one state transition, one audit event and one succeeded receipt. This scenario is implemented but has not been executed on the current head.
+The focused Playwright scenario captures the real Attention server-function request, replays the same request, changes only the reason while retaining the same idempotency key, and inspects the known E2E SQLite database to require one state transition, one audit event and one succeeded receipt.
 
 ## Deliberately unavailable capabilities
 
 - remote MCP writes;
 - generic mutation, SQL, shell, filesystem, Git or HTTP tools;
+- OAuth-bound grants before the OAuth client schema exists;
 - high/critical execution without real DevOS approvals;
 - client-selected principal, capability, handler or risk;
 - arbitrary direct progress setters;
@@ -171,6 +204,6 @@ The focused Playwright scenario captures the real Attention server-function requ
 
 ## Verification status
 
-All tests and guardrails added by this branch remain unexecuted in the connected session. The environment has no project checkout with Node 22/pnpm and no workflow-dispatch capability. Static review is not a substitute for the exact-head test, typecheck, build, backup and Playwright gates.
+The Command Gateway base SHA `5539ed2de905983e2c178ce7dbe8c2753ad760cb` records successful frozen installation, repository checks, build, E2E preparation and focused Command Gateway Playwright execution. Its lockfile is already reconciled.
 
-`pnpm-lock.yaml` also requires regeneration with `pnpm install --lockfile-only` because this branch adds the `packages/application` workspace importer and `@semogtw/database -> @semogtw/application` dependency. Frozen installation must be expected to fail until that lockfile update is produced and reviewed.
+The new authorization branch was created from that exact SHA. The connected session can read and write through the GitHub connector but has no local repository checkout or DNS access to GitHub, so newly added authorization tests cannot be executed here. Every unexecuted focused/typecheck/repository gate remains explicitly pending in the authorization test matrix; static review is not represented as a passing test.

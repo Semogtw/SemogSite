@@ -71,6 +71,22 @@ const forbiddenGenericFragments = [
   "raw_filesystem",
 ] as const;
 
+const definitionKeys = [
+  "auditStrategy",
+  "bindResource",
+  "capability",
+  "commandId",
+  "commandVersion",
+  "confirmation",
+  "conflictStrategy",
+  "execution",
+  "idempotencyStrategy",
+  "resourceType",
+  "riskFloor",
+  "schema",
+  "undoStrategy",
+] as const;
+
 function definitionKey(commandId: string, commandVersion: number): string {
   return `${commandId}@${commandVersion}`;
 }
@@ -82,10 +98,65 @@ function includes<Value extends string>(
   return values.includes(value as Value);
 }
 
+function dataObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  return Reflect.ownKeys(value).every((key) => {
+    if (typeof key !== "string") return false;
+    const descriptor = descriptors[key];
+    return (
+      descriptor !== undefined &&
+      descriptor.enumerable &&
+      "value" in descriptor &&
+      descriptor.get === undefined &&
+      descriptor.set === undefined
+    );
+  });
+}
+
+function definitionShapeValid(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value);
+  const allowed = new Set<string>([...definitionKeys, "resultType"]);
+  return (
+    definitionKeys.every((key) => Object.hasOwn(value, key)) &&
+    keys.every((key) => allowed.has(key))
+  );
+}
+
+function ownDataArrayValues(
+  value: unknown,
+  maximumItems: number,
+): readonly unknown[] | null {
+  if (!Array.isArray(value) || value.length > maximumItems) return null;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Array.prototype && prototype !== null) return null;
+
+  const values: unknown[] = [];
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (
+      descriptor === undefined ||
+      !("value" in descriptor) ||
+      descriptor.get !== undefined ||
+      descriptor.set !== undefined
+    ) {
+      return null;
+    }
+    values.push(descriptor.value);
+  }
+  return values;
+}
+
 function validateDefinition<Payload extends JsonValue, Result extends JsonValue>(
   definition: CommandDefinition<Payload, Result>,
 ): void {
   if (
+    typeof definition.commandId !== "string" ||
     !commandIdPattern.test(definition.commandId) ||
     definition.commandId.length > 160
   ) {
@@ -106,12 +177,14 @@ function validateDefinition<Payload extends JsonValue, Result extends JsonValue>
     throw new Error("COMMAND_VERSION_INVALID");
   }
   if (
+    typeof definition.capability !== "string" ||
     !capabilityPattern.test(definition.capability) ||
     definition.capability.length > 160
   ) {
     throw new Error("COMMAND_CAPABILITY_INVALID");
   }
   if (
+    typeof definition.resourceType !== "string" ||
     !resourceTypePattern.test(definition.resourceType) ||
     definition.resourceType.length > 120
   ) {
@@ -149,30 +222,106 @@ function validateDefinition<Payload extends JsonValue, Result extends JsonValue>
   }
 }
 
-function erase<Payload extends JsonValue, Result extends JsonValue>(
-  definition: CommandDefinition<Payload, Result>,
-): ErasedDefinition {
-  return definition as unknown as ErasedDefinition;
+function snapshotDefinition(value: unknown): ErasedDefinition {
+  if (!dataObject(value) || !definitionShapeValid(value)) {
+    throw new Error("COMMAND_DEFINITION_INVALID");
+  }
+  if (!dataObject(value.schema)) {
+    throw new Error("COMMAND_DEFINITION_INVALID");
+  }
+  const schemaKeys = Object.keys(value.schema);
+  if (
+    schemaKeys.length !== 1 ||
+    schemaKeys[0] !== "parse" ||
+    typeof value.schema.parse !== "function" ||
+    typeof value.bindResource !== "function"
+  ) {
+    throw new Error("COMMAND_DEFINITION_INVALID");
+  }
+
+  const snapshot = {
+    commandId: value.commandId,
+    commandVersion: value.commandVersion,
+    schema: Object.freeze({ parse: value.schema.parse }),
+    capability: value.capability,
+    resourceType: value.resourceType,
+    bindResource: value.bindResource,
+    riskFloor: value.riskFloor,
+    confirmation: value.confirmation,
+    conflictStrategy: value.conflictStrategy,
+    idempotencyStrategy: value.idempotencyStrategy,
+    undoStrategy: value.undoStrategy,
+    auditStrategy: value.auditStrategy,
+    execution: value.execution,
+  } as unknown as ErasedDefinition;
+  validateDefinition(snapshot);
+  return Object.freeze(snapshot);
+}
+
+function normalizeCommandTarget(
+  value: unknown,
+  expectedResourceType: string,
+): CommandTarget | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== 2 ||
+    !keys.every((key) => key === "resourceType" || key === "resourceId")
+  ) {
+    return null;
+  }
+  const resourceTypeDescriptor = descriptors.resourceType;
+  const resourceIdDescriptor = descriptors.resourceId;
+  if (
+    resourceTypeDescriptor === undefined ||
+    resourceIdDescriptor === undefined ||
+    !("value" in resourceTypeDescriptor) ||
+    !("value" in resourceIdDescriptor) ||
+    !resourceTypeDescriptor.enumerable ||
+    !resourceIdDescriptor.enumerable ||
+    resourceTypeDescriptor.get !== undefined ||
+    resourceTypeDescriptor.set !== undefined ||
+    resourceIdDescriptor.get !== undefined ||
+    resourceIdDescriptor.set !== undefined ||
+    resourceTypeDescriptor.value !== expectedResourceType ||
+    typeof resourceIdDescriptor.value !== "string" ||
+    resourceIdDescriptor.value.trim() !== resourceIdDescriptor.value ||
+    resourceIdDescriptor.value.length < 1 ||
+    resourceIdDescriptor.value.length > 500
+  ) {
+    return null;
+  }
+  return {
+    resourceType: expectedResourceType,
+    resourceId: resourceIdDescriptor.value,
+  };
 }
 
 export class CommandRegistry {
   private readonly definitions = new Map<string, ErasedDefinition>();
 
   constructor(definitions: readonly unknown[] = []) {
-    for (const definition of definitions) {
-      this.registerUnknown(definition);
+    const values = ownDataArrayValues(definitions, 500);
+    if (values === null) {
+      throw new Error("COMMAND_DEFINITION_INVALID");
     }
+    for (const definition of values) this.registerUnknown(definition);
   }
 
   register<Payload extends JsonValue, Result extends JsonValue>(
     definition: CommandDefinition<Payload, Result>,
   ): void {
-    validateDefinition(definition);
-    const key = definitionKey(definition.commandId, definition.commandVersion);
+    const snapshot = snapshotDefinition(definition);
+    const key = definitionKey(snapshot.commandId, snapshot.commandVersion);
     if (this.definitions.has(key)) {
       throw new Error("COMMAND_DEFINITION_DUPLICATE");
     }
-    this.definitions.set(key, erase(definition));
+    this.definitions.set(key, snapshot);
   }
 
   resolve(commandId: string, commandVersion: number): ErasedDefinition {
@@ -192,13 +341,11 @@ export class CommandRegistry {
   ): CommandTarget {
     const definition = this.resolve(commandId, commandVersion);
     const payload = definition.schema.parse(rawPayload);
-    const target = definition.bindResource(payload);
-    if (
-      target.resourceType !== definition.resourceType ||
-      target.resourceId.trim() !== target.resourceId ||
-      target.resourceId.length < 1 ||
-      target.resourceId.length > 500
-    ) {
+    const target = normalizeCommandTarget(
+      definition.bindResource(payload),
+      definition.resourceType,
+    );
+    if (target === null) {
       throw new Error("COMMAND_RESOURCE_INVALID");
     }
     return target;
@@ -230,9 +377,11 @@ export class CommandRegistry {
   }
 
   private registerUnknown(value: unknown): void {
-    if (typeof value !== "object" || value === null) {
-      throw new Error("COMMAND_DEFINITION_INVALID");
+    const snapshot = snapshotDefinition(value);
+    const key = definitionKey(snapshot.commandId, snapshot.commandVersion);
+    if (this.definitions.has(key)) {
+      throw new Error("COMMAND_DEFINITION_DUPLICATE");
     }
-    this.register(value as ErasedDefinition);
+    this.definitions.set(key, snapshot);
   }
 }

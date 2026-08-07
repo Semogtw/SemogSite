@@ -5,6 +5,103 @@ export type {
   TransitionAttentionPayload,
   TransitionAttentionResult,
 } from "./attention/transition-attention-command";
+export { createAgentCommandPolicy } from "./authorization/agent-command-policy";
+export type {
+  AgentCommandPolicyDependencies,
+  AgentCommandPolicyMaterial,
+} from "./authorization/agent-command-policy";
+export {
+  agentCapabilities,
+  capabilityForCommand,
+  domainForCapability,
+  isAgentCapability,
+  oauthScopeForCapability,
+  resourceKindsForCapability,
+} from "./authorization/capabilities";
+export type { AgentAuthorizationDomain } from "./authorization/capabilities";
+export { validateAgentAuthorizationCatalog } from "./authorization/catalog-coverage";
+export type { AgentAuthorizationCommandEntry } from "./authorization/catalog-coverage";
+export { planAgentClientRevocation } from "./authorization/client-revocation";
+export type { AgentClientRevocationPlan } from "./authorization/client-revocation";
+export {
+  confirmationChallengeResponseBytes,
+  confirmationChallengeTtlMinutes,
+  createConfirmationChallengeService,
+} from "./authorization/confirmation-challenge";
+export type {
+  ConfirmationChallengePublic,
+  ConfirmationChallengeRecord,
+  ConfirmationChallengeRisk,
+  ConfirmationChallengeService,
+  ConfirmationChallengeStatus,
+  ConfirmationChallengeStore,
+} from "./authorization/confirmation-challenge";
+export { computeEffectiveAgentAuthorization } from "./authorization/effective-grant";
+export { planAgentGrantAvailabilityTransition } from "./authorization/grant-availability";
+export type { AgentGrantAvailabilityTransitionPlan } from "./authorization/grant-availability";
+export { planAgentGrantCreation } from "./authorization/grant-creation";
+export type { AgentGrantCreationPlan } from "./authorization/grant-creation";
+export { planAgentGrantExpiration } from "./authorization/grant-expiration";
+export type { AgentGrantExpirationPlan } from "./authorization/grant-expiration";
+export { validateAgentGrantRequest } from "./authorization/grant-request";
+export type { AgentGrantRequest } from "./authorization/grant-request";
+export { planAgentGrantRevision } from "./authorization/grant-revision";
+export type { AgentGrantRevisionPlan } from "./authorization/grant-revision";
+export { planAgentGrantRevocation } from "./authorization/grant-revocation";
+export type { AgentGrantRevocationPlan } from "./authorization/grant-revocation";
+export { createAgentAuthorizationMutationExecutor } from "./authorization/mutation-executor";
+export type {
+  AgentAuthorizationMutation,
+  AgentAuthorizationMutationRepository,
+  AgentAuthorizationMutationResult,
+  AgentAuthorizationMutationStatus,
+} from "./authorization/mutation-executor";
+export { decideAgentCommandDisposition } from "./authorization/policy-engine";
+export type {
+  AgentCommandPolicyDecision,
+  AgentCommandRisk,
+} from "./authorization/policy-engine";
+export {
+  reviewedResourceKinds,
+  selectorMatchesResource,
+  validateResourceSelectorForKind,
+} from "./authorization/resource-selectors";
+export {
+  defaultTrustDurationMinutes,
+  defaultTrustMaximumOperations,
+  evaluateTrustSessionState,
+  maximumTrustDurationMinutes,
+  maximumTrustOperations,
+  minimumTrustDurationMinutes,
+  trustSessionCoversCommand,
+  trustSessionFitsAuthorization,
+  validateTrustSessionRequest,
+} from "./authorization/trust-session";
+export type {
+  TrustCoveredCommandRisk,
+  TrustSessionState,
+} from "./authorization/trust-session";
+export { planAgentTrustSessionCreation } from "./authorization/trust-session-request";
+export { planAgentTrustSessionRevocation } from "./authorization/trust-session-revocation";
+export type { AgentTrustSessionRevocationPlan } from "./authorization/trust-session-revocation";
+export { writesAllowed } from "./authorization/write-switches";
+export type { AgentWriteSwitchState } from "./authorization/write-switches";
+export type {
+  AgentCapability,
+  AgentGrantDefinition,
+  AgentGrantStatus,
+  AgentRiskCeiling,
+  AgentTrustSession,
+  CommandResource,
+  CommandResourceParentRef,
+  EffectiveAgentAuthorization,
+  EffectiveAgentAuthorizationClause,
+  OAuthScope,
+  OAuthWriteScope,
+  ResourceSelector,
+  ResourceSelectorMap,
+  TrustRiskCeiling,
+} from "./authorization/types";
 export { canonicalJson, canonicalSha256 } from "./canonical-json";
 export { CommandGateway } from "./command-gateway";
 export type {
