@@ -84,11 +84,19 @@ class FakeD1Binding implements D1DatabaseBinding {
   }
 
   run(sql: string, params: readonly unknown[]): void {
-    if (!sql.includes("DELETE FROM login_rate_limits")) {
-      throw new Error(`UNEXPECTED_SQL: ${sql}`);
+    if (sql.includes("DELETE FROM login_rate_limits WHERE updated_at <= ?")) {
+      const [cutoff] = params as [string];
+      for (const [keyDigest, row] of this.rows) {
+        if (row.updatedAt <= cutoff) this.rows.delete(keyDigest);
+      }
+      return;
     }
-    const [keyDigest] = params as [string];
-    this.rows.delete(keyDigest);
+    if (sql.includes("DELETE FROM login_rate_limits WHERE key_digest = ?")) {
+      const [keyDigest] = params as [string];
+      this.rows.delete(keyDigest);
+      return;
+    }
+    throw new Error(`UNEXPECTED_SQL: ${sql}`);
   }
 }
 
@@ -137,5 +145,34 @@ describe("D1LoginRateLimiter", () => {
     expect(binding.rows).toHaveLength(1);
     await limiter.reset(key);
     expect(binding.rows).toHaveLength(0);
+  });
+
+  it("prunes expired client rows while consuming a current attempt", async () => {
+    const binding = new FakeD1Binding();
+    binding.rows.set("stale-digest", {
+      keyDigest: "stale-digest",
+      windowStartedAt: "2026-08-07T20:00:00.000Z",
+      attemptCount: 4,
+      updatedAt: "2026-08-07T20:00:30.000Z",
+    });
+    binding.rows.set("recent-digest", {
+      keyDigest: "recent-digest",
+      windowStartedAt: "2026-08-07T20:59:30.000Z",
+      attemptCount: 1,
+      updatedAt: "2026-08-07T20:59:45.000Z",
+    });
+    const limiter = new D1LoginRateLimiter(binding, {
+      maxAttempts: 5,
+      windowMs: 60_000,
+    });
+
+    await limiter.consume(
+      "cf:203.0.113.70",
+      new Date("2026-08-07T21:00:00.000Z"),
+    );
+
+    expect(binding.rows.has("stale-digest")).toBe(false);
+    expect(binding.rows.has("recent-digest")).toBe(true);
+    expect(binding.rows).toHaveLength(2);
   });
 });

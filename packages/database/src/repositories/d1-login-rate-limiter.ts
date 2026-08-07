@@ -46,6 +46,14 @@ export class D1LoginRateLimiter {
     const nowIso = now.toISOString();
     const cutoffIso = new Date(timestamp - this.#options.windowMs).toISOString();
 
+    const pruneResult = await this.#database
+      .prepare(`DELETE FROM login_rate_limits WHERE updated_at <= ?`)
+      .bind(cutoffIso)
+      .run();
+    if (pruneResult.success === false) {
+      throw new Error("D1_LOGIN_RATE_LIMIT_PRUNE_FAILED");
+    }
+
     const row = await this.#database
       .prepare(
         `INSERT INTO login_rate_limits (
