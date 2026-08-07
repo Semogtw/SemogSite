@@ -192,6 +192,26 @@ class RuntimeBinding implements D1DatabaseBinding {
     sql: string,
     params: readonly unknown[],
   ): readonly (readonly unknown[])[] {
+    if (
+      sql.includes('from "projects"') &&
+      sql.includes('order by "projects"."name" asc')
+    ) {
+      return [[
+        "project-a",
+        "project-a",
+        "Projeto A",
+        "active",
+        "healthy",
+        "high",
+        80,
+        "Foco D1",
+        "Continuar integração",
+        "main",
+        "high",
+        "2026-08-05T12:00:00.000Z",
+        "2026-08-05T12:30:00.000Z",
+      ]];
+    }
     if (sql.includes('from "projects"') && sql.includes('"status" = ?')) {
       return [[
         "project-a",
@@ -238,6 +258,9 @@ class RuntimeBinding implements D1DatabaseBinding {
         "2026-08-05T12:30:00.000Z",
       ]];
     }
+    if (sql.includes('from "repositories"')) {
+      return [];
+    }
     if (
       sql.includes('from "stages"') &&
       sql.includes('order by "projects"."name" asc')
@@ -255,6 +278,33 @@ class RuntimeBinding implements D1DatabaseBinding {
         "Expor board",
         null,
         "2026-08-07T22:10:00.000Z",
+      ]];
+    }
+    if (
+      sql.includes('from "stages"') &&
+      params[0] === "project-a" &&
+      params.includes("next") &&
+      params.includes("blocked")
+    ) {
+      return [[
+        "stage-hub",
+        "project-a",
+        null,
+        1,
+        "Project Hub D1",
+        "integration",
+        "in_progress",
+        70,
+        "Hub privado no Worker",
+        "Portar Projects",
+        "Validar integração",
+        null,
+        "Testes verdes",
+        0,
+        0,
+        "manual",
+        "2026-08-07T20:00:00.000Z",
+        "2026-08-07T22:00:00.000Z",
       ]];
     }
     if (sql.includes('from "stages"') && sql.includes('"current_position"')) {
@@ -288,6 +338,12 @@ class RuntimeBinding implements D1DatabaseBinding {
     if (sql.includes('from "development_sessions"')) {
       return [];
     }
+    if (
+      sql.includes('from "attention_items"') &&
+      params[0] === "project-a"
+    ) {
+      return [];
+    }
     if (sql.includes('from "attention_items"')) {
       return [[
         "attention-a",
@@ -297,6 +353,9 @@ class RuntimeBinding implements D1DatabaseBinding {
         "owner",
         "Validar backup antes",
       ]];
+    }
+    if (sql.includes('from "workstreams"')) {
+      return [["Validar preview Cloudflare"]];
     }
     if (sql.includes('from "sync_runs"') && sql.includes('"scope"')) {
       return [];
@@ -418,6 +477,30 @@ describe("authenticated D1 API runtime", () => {
           },
         ],
         board: { in_progress: [{ id: "stage-roadmap" }] },
+      },
+    });
+
+    const portfolioResponse = await runtime.app.request(
+      "/api/v1/private/projects",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(portfolioResponse.status).toBe(200);
+    await expect(portfolioResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: { activeProjects: [{ id: "project-a", priority: "high" }] },
+    });
+
+    const projectResponse = await runtime.app.request(
+      "/api/v1/private/projects/project-a",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(projectResponse.status).toBe(200);
+    await expect(projectResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        project: { id: "project-a", slug: "project-a" },
+        currentStages: [{ id: "stage-hub", state: "in_progress" }],
+        nextGate: "Validar preview Cloudflare",
       },
     });
   });
