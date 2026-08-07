@@ -12,6 +12,7 @@ import {
   createSqliteDatabase,
   migrate,
   SqliteAuthSessionStore,
+  SqliteAuditDataSource,
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
   SqlitePublicProjectSource,
@@ -84,6 +85,7 @@ export function createSqliteApiRuntime(
   migrate(database);
 
   const publicSource = new SqlitePublicProjectSource(database);
+  const privateAudit = new SqliteAuditDataSource(database);
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -110,6 +112,7 @@ export function createSqliteApiRuntime(
       list: () => publicSource.listListed(),
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
     },
+    privateAudit,
     privateOverview: overview,
     privateToday: today,
     privateRoadmap,

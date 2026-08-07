@@ -11,6 +11,10 @@ import {
   type ApiAuthDependencies,
 } from "./routes/auth/session";
 import {
+  createPrivateAuditRoutes,
+  type PrivateAuditQueries,
+} from "./routes/private/audit";
+import {
   createPrivateOverviewRoutes,
   type PrivateOverviewQueries,
 } from "./routes/private/overview";
@@ -39,6 +43,7 @@ export type ApiDependencies = {
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
   privateProjects?: PrivateProjectQueries;
+  privateAudit?: PrivateAuditQueries;
 };
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
@@ -62,6 +67,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     createPrivateAuthMiddleware(
       dependencies.auth?.provider ?? dependencies.authProvider,
     ),
+  );
+  api.route(
+    "/api/v1/private/audit",
+    createPrivateAuditRoutes(dependencies.privateAudit),
   );
   api.route(
     "/api/v1/private/overview",

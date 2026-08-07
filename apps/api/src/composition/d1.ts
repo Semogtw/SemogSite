@@ -10,6 +10,7 @@ import {
   type D1DatabaseBinding,
 } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
+import { D1AuditDataSource } from "@semogtw/database/d1-audit";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
@@ -95,6 +96,7 @@ async function composeD1ApiRuntime(
 ): Promise<D1ApiRuntime> {
   const database = createD1Database(bindings.DB);
   const publicProjects = new D1PublicProjectSource(database);
+  const privateAudit = new D1AuditDataSource(database);
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -123,6 +125,7 @@ async function composeD1ApiRuntime(
         list: () => publicProjects.listListed(),
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
+      privateAudit,
       privateOverview,
       privateToday,
       privateRoadmap,
