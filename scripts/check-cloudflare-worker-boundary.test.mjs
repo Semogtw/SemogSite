@@ -18,6 +18,7 @@ function createFixture(overrides = {}) {
     "apps/api/src/composition/d1.ts": [
       'import { createD1Database } from "@semogtw/database/d1";',
       'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
+      'import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";',
       'import { D1OverviewDataSource } from "@semogtw/database/d1-overview";',
       'import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";',
       "export const createD1ApiApp = () => ({ fetch: () => new Response() });",
@@ -43,6 +44,8 @@ function createFixture(overrides = {}) {
         exports: {
           "./d1": "./src/adapters/d1.ts",
           "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+          "./d1-login-rate-limiter":
+            "./src/repositories/d1-login-rate-limiter.ts",
           "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
           "./d1-public-projects":
             "./src/repositories/d1-public-project-source.ts",
@@ -54,6 +57,8 @@ function createFixture(overrides = {}) {
     "packages/database/src/adapters/d1.ts": "export const createD1Database = () => null;\n",
     "packages/database/src/repositories/d1-auth-session-store.ts":
       "export class D1AuthSessionStore {}\n",
+    "packages/database/src/repositories/d1-login-rate-limiter.ts":
+      "export class D1LoginRateLimiter {}\n",
     "packages/database/src/repositories/d1-overview-data-source.ts":
       "export class D1OverviewDataSource {}\n",
     "packages/database/src/repositories/d1-public-project-source.ts":
@@ -99,6 +104,25 @@ assert.equal(
     (violation) =>
       violation.code === "CLOUDFLARE_WORKER_FORBIDDEN_IMPORT" &&
       violation.detail === "node:fs",
+  ),
+  true,
+);
+
+assert.equal(
+  scan({
+    "packages/database/package.json": JSON.stringify({
+      exports: {
+        "./d1": "./src/adapters/d1.ts",
+        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
+        "./d1-public-projects":
+          "./src/repositories/d1-public-project-source.ts",
+      },
+    }),
+  }).some(
+    (violation) =>
+      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
+      violation.detail?.startsWith("./d1-login-rate-limiter ->"),
   ),
   true,
 );

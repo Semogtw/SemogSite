@@ -193,8 +193,8 @@ describe("API authentication session routes", () => {
       resolveSession: vi.fn(async () => null),
     });
     const loginLimiter = {
-      consume: vi.fn(() => ({ allowed: false, retryAfterMs: 61_000 })),
-      reset: vi.fn(),
+      consume: vi.fn(async () => ({ allowed: false, retryAfterMs: 61_000 })),
+      reset: vi.fn(async () => undefined),
     };
     const app = createApiApp({
       auth: {

@@ -42,6 +42,7 @@ const expectedMigrations = [
   "0011_scope_reservations.sql",
   "0012_verification_obligations.sql",
   "0013_recovery_snapshots.sql",
+  "0014_login_rate_limits.sql",
 ] as const;
 
 function temporaryDirectory(): string {

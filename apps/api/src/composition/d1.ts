@@ -10,6 +10,7 @@ import {
   type D1DatabaseBinding,
 } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
+import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { OverviewService } from "@semogtw/domain";
@@ -33,6 +34,7 @@ type ComposedAuth = {
   readonly provider: AuthProvider;
   readonly sessionSecret: string;
   readonly nodeEnv: RuntimeNodeEnv;
+  readonly loginLimiter: D1LoginRateLimiter;
 };
 
 const runtimeCache = new WeakMap<
@@ -75,6 +77,10 @@ async function composeAuth(
       }),
       sessionSecret: config.sessionSecret,
       nodeEnv: config.nodeEnv,
+      loginLimiter: new D1LoginRateLimiter(bindings.DB, {
+        maxAttempts: 5,
+        windowMs: 15 * 60 * 1000,
+      }),
     };
   } catch {
     return undefined;

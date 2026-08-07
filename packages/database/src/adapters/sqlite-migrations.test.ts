@@ -26,6 +26,7 @@ describe("SQLite migrations", () => {
       { name: "0011_scope_reservations.sql" },
       { name: "0012_verification_obligations.sql" },
       { name: "0013_recovery_snapshots.sql" },
+      { name: "0014_login_rate_limits.sql" },
     ]);
     expect(
       database.$client
@@ -63,6 +64,15 @@ describe("SQLite migrations", () => {
       { name: "cooperative_run_events" },
       { name: "cooperative_runs" },
     ]);
+    expect(
+      database.$client
+        .prepare(
+          `SELECT name FROM sqlite_master
+           WHERE type = 'table' AND name = 'login_rate_limits'`,
+        )
+        .get(),
+    ).toEqual({ name: "login_rate_limits" });
+
     expect(
       database.$client
         .prepare(

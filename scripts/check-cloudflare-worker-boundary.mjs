@@ -69,6 +69,7 @@ function validateWorkerImports(root, violations) {
     for (const required of [
       "@semogtw/database/d1",
       "@semogtw/database/d1-auth-sessions",
+      "@semogtw/database/d1-login-rate-limiter",
       "@semogtw/database/d1-overview",
       "@semogtw/database/d1-public-projects",
     ]) {
@@ -115,6 +116,8 @@ function validateDatabaseExports(root, violations) {
   const requiredExports = {
     "./d1": "./src/adapters/d1.ts",
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+    "./d1-login-rate-limiter":
+      "./src/repositories/d1-login-rate-limiter.ts",
     "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
     "./d1-public-projects": "./src/repositories/d1-public-project-source.ts",
   };

@@ -19,10 +19,18 @@ const LoginInput = z.object({
   password: z.string().min(1).max(1024),
 });
 
-type LoginRateLimiter = Pick<
-  SlidingWindowRateLimiter,
-  "consume" | "reset"
->;
+type LoginRateLimitDecision = {
+  readonly allowed: boolean;
+  readonly retryAfterMs: number;
+};
+
+type LoginRateLimiter = {
+  consume(
+    key: string,
+    now?: Date,
+  ): LoginRateLimitDecision | Promise<LoginRateLimitDecision>;
+  reset(key: string): void | Promise<void>;
+};
 
 export type ApiAuthDependencies = {
   readonly provider: AuthProvider;
@@ -129,7 +137,7 @@ export function createAuthSessionRoutes(
       }
 
       const rateKey = clientRateKey(context.req);
-      const rateLimit = loginLimiter.consume(rateKey);
+      const rateLimit = await loginLimiter.consume(rateKey);
       if (!rateLimit.allowed) {
         context.header(
           "retry-after",
@@ -163,7 +171,7 @@ export function createAuthSessionRoutes(
         );
       }
 
-      loginLimiter.reset(rateKey);
+      await loginLimiter.reset(rateKey);
       const csrfToken = await issueCsrfToken(
         dependencies.sessionSecret,
         result.session.id,

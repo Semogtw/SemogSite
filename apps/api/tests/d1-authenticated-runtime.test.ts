@@ -20,6 +20,13 @@ type OwnerRow = {
   updatedAt: string;
 };
 
+type RateLimitRow = {
+  keyDigest: string;
+  windowStartedAt: string;
+  attemptCount: number;
+  updatedAt: string;
+};
+
 class RuntimeStatement implements D1PreparedStatementBinding {
   constructor(
     private readonly database: RuntimeBinding,
@@ -52,6 +59,7 @@ class RuntimeStatement implements D1PreparedStatementBinding {
 class RuntimeBinding implements D1DatabaseBinding {
   readonly owners = new Map<string, OwnerRow>();
   readonly sessions = new Map<string, AuthSessionRecord>();
+  readonly rateLimits = new Map<string, RateLimitRow>();
   batchCount = 0;
 
   prepare(query: string): D1PreparedStatementBinding {
@@ -122,6 +130,11 @@ class RuntimeBinding implements D1DatabaseBinding {
       });
       return;
     }
+    if (sql.includes("DELETE FROM login_rate_limits")) {
+      const [keyDigest] = params as [string];
+      this.rateLimits.delete(keyDigest);
+      return;
+    }
     if (sql.includes("SET revoked_at = ?") && sql.includes("WHERE id = ?")) {
       const [revokedAt, id] = params as [string, string];
       const session = this.sessions.get(id);
@@ -132,6 +145,29 @@ class RuntimeBinding implements D1DatabaseBinding {
   }
 
   first(sql: string, params: readonly unknown[]): Record<string, unknown> | null {
+    if (sql.includes("INSERT INTO login_rate_limits")) {
+      const [keyDigest, now, updatedAt, cutoff] = params as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
+      const existing = this.rateLimits.get(keyDigest);
+      const shouldReset =
+        existing === undefined || existing.windowStartedAt <= cutoff;
+      const next: RateLimitRow = {
+        keyDigest,
+        windowStartedAt: shouldReset ? now : existing.windowStartedAt,
+        attemptCount: shouldReset ? 1 : existing.attemptCount + 1,
+        updatedAt,
+      };
+      this.rateLimits.set(keyDigest, next);
+      return {
+        windowStartedAt: next.windowStartedAt,
+        attemptCount: next.attemptCount,
+      };
+    }
     if (!sql.includes("FROM auth_sessions")) {
       throw new Error(`UNEXPECTED_SQL: ${sql}`);
     }
@@ -241,6 +277,18 @@ describe("authenticated D1 API runtime", () => {
     expect(binding.batchCount).toBe(1);
     expect(runtime.authProvider).not.toBeUndefined();
 
+    const rejectedLogin = await runtime.app.request("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.20",
+      },
+      body: JSON.stringify({ password: "wrong" }),
+    });
+    expect(rejectedLogin.status).toBe(401);
+    expect(binding.rateLimits).toHaveLength(1);
+    expect([...binding.rateLimits.keys()][0]).toMatch(/^[0-9a-f]{64}$/u);
+
     const login = await runtime.app.request("/api/v1/auth/login", {
       method: "POST",
       headers: {
@@ -252,6 +300,7 @@ describe("authenticated D1 API runtime", () => {
       }),
     });
     expect(login.status).toBe(200);
+    expect(binding.rateLimits).toHaveLength(0);
     const cookieHeader = login.headers
       .getSetCookie()
       .map((cookie) => cookie.split(";", 1)[0])
