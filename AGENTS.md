@@ -76,3 +76,14 @@ Before adding documentation:
 ## Implementation boundary
 
 The current MCP rollout remains read-only until its OAuth, transport, isolation, revocation, backup and real-client acceptance gates pass. Future writes, internal model integration, Development Control Plane execution and the Spark email wake bridge remain separately gated. The executor requires a verified host-enforced sandbox; a plain Node child process is insufficient. Production deployment remains unavailable until the owner selects a host and a provider-specific adapter passes its own reviewed plan. Plans on this branch describe future implementation and do not make those capabilities implemented.
+
+<!-- auto-preference-learner:start -->
+## Learned working preferences
+
+- At the start of multi-session work, resolve the newest real development state from Git/GitHub, including open stacked PRs and their heads. Continue from the most advanced coherent branch instead of returning to `main`, an older planning branch, or a stale handoff.
+- While clear, low-risk work remains within the current approved scope and dependency gates, continue to the next useful task without asking whether to proceed or stopping after a trivial checkpoint.
+- Create and push frequent coherent checkpoints so ephemeral-environment resets do not erase progress. Keep stacked-PR dependency order intact and avoid mixing unrelated scopes merely to produce a checkpoint.
+- Prefer local tests, typechecks, builds, and focused verification as the normal development loop. Install missing tooling when practical; if an exact gate cannot run in the current environment, record the blocker and continue independent resolvable work without claiming the blocked gate passed.
+- Keep canonical documentation, PR handoffs, and observed validation evidence synchronized at meaningful checkpoints so a later agent can resume from repository state rather than conversation memory.
+- Use available plugins and integrations when they materially improve correctness, verification, or development efficiency; do not invoke them merely for ceremony.
+<!-- auto-preference-learner:end -->
