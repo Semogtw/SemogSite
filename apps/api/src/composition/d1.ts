@@ -11,11 +11,12 @@ import {
 } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
+import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
-import { OverviewService, RoadmapService, TodayService } from "@semogtw/domain";
+import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
 import { createApiApp } from "../app";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
@@ -99,6 +100,7 @@ async function composeD1ApiRuntime(
   );
   const privateToday = new TodayService(new D1TodayDataSource(database));
   const roadmap = new RoadmapService(new D1RoadmapDataSource(database));
+  const projects = new ProjectService(new D1ProjectDataSource(database));
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -107,6 +109,10 @@ async function composeD1ApiRuntime(
         areas: [],
         includeCompleted: true,
       }),
+  };
+  const privateProjects = {
+    listPortfolio: () => projects.listOperationalPortfolio(),
+    getProjectHub: (slug: string) => projects.getProjectHub(slug),
   };
   const auth = await composeAuth(bindings);
 
@@ -120,6 +126,7 @@ async function composeD1ApiRuntime(
       privateOverview,
       privateToday,
       privateRoadmap,
+      privateProjects,
     }),
     authProvider: auth?.provider,
   };

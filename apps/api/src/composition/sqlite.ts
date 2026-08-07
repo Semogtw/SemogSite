@@ -13,11 +13,12 @@ import {
   migrate,
   SqliteAuthSessionStore,
   SqliteOverviewDataSource,
+  SqliteProjectDataSource,
   SqlitePublicProjectSource,
   SqliteRoadmapDataSource,
   SqliteTodayDataSource,
 } from "@semogtw/database";
-import { OverviewService, RoadmapService, TodayService } from "@semogtw/domain";
+import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -88,6 +89,7 @@ export function createSqliteApiRuntime(
   );
   const today = new TodayService(new SqliteTodayDataSource(database));
   const roadmap = new RoadmapService(new SqliteRoadmapDataSource(database));
+  const projects = new ProjectService(new SqliteProjectDataSource(database));
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -96,6 +98,10 @@ export function createSqliteApiRuntime(
         areas: [],
         includeCompleted: true,
       }),
+  };
+  const privateProjects = {
+    listPortfolio: () => projects.listOperationalPortfolio(),
+    getProjectHub: (slug: string) => projects.getProjectHub(slug),
   };
   const auth = composeAuth(env, database);
   const app = createApiApp({
@@ -107,6 +113,7 @@ export function createSqliteApiRuntime(
     privateOverview: overview,
     privateToday: today,
     privateRoadmap,
+    privateProjects,
   });
 
   return {

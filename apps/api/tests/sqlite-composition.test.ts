@@ -104,6 +104,34 @@ describe("SQLite API composition", () => {
         board: { in_progress: [{ id: "demo-stage-database" }] },
       },
     });
+
+    const portfolioResponse = await runtime.app.request(
+      "/api/v1/private/projects",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(portfolioResponse.status).toBe(200);
+    await expect(portfolioResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        activeProjects: [{
+          id: "demo-project-platform",
+          slug: "semogtw-platform-demo",
+        }],
+      },
+    });
+
+    const projectResponse = await runtime.app.request(
+      "/api/v1/private/projects/semogtw-platform-demo",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(projectResponse.status).toBe(200);
+    await expect(projectResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        project: { id: "demo-project-platform" },
+        currentStages: [{ id: "demo-stage-database" }],
+      },
+    });
     runtime.close();
   });
 });
