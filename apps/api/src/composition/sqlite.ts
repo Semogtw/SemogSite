@@ -14,8 +14,9 @@ import {
   SqliteAuthSessionStore,
   SqliteOverviewDataSource,
   SqlitePublicProjectSource,
+  SqliteTodayDataSource,
 } from "@semogtw/database";
-import { OverviewService } from "@semogtw/domain";
+import { OverviewService, TodayService } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -84,6 +85,7 @@ export function createSqliteApiRuntime(
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
+  const today = new TodayService(new SqliteTodayDataSource(database));
   const auth = composeAuth(env, database);
   const app = createApiApp({
     ...(auth === undefined ? {} : { auth }),
@@ -92,6 +94,7 @@ export function createSqliteApiRuntime(
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
     },
     privateOverview: overview,
+    privateToday: today,
   });
 
   return {

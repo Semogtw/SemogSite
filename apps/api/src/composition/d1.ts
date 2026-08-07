@@ -11,9 +11,10 @@ import {
 } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
+import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
-import { OverviewService } from "@semogtw/domain";
+import { OverviewService, TodayService } from "@semogtw/domain";
 import { createApiApp } from "../app";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
@@ -95,6 +96,7 @@ async function composeD1ApiRuntime(
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
+  const privateToday = new TodayService(new D1TodayDataSource(database));
   const auth = await composeAuth(bindings);
 
   return {
@@ -105,6 +107,7 @@ async function composeD1ApiRuntime(
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
       privateOverview,
+      privateToday,
     }),
     authProvider: auth?.provider,
   };

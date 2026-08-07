@@ -19,6 +19,7 @@ function createFixture(overrides = {}) {
       'import { createD1Database } from "@semogtw/database/d1";',
       'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
       'import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";',
+      'import { D1TodayDataSource } from "@semogtw/database/d1-today";',
       'import { D1OverviewDataSource } from "@semogtw/database/d1-overview";',
       'import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";',
       "export const createD1ApiApp = () => ({ fetch: () => new Response() });",
@@ -46,6 +47,7 @@ function createFixture(overrides = {}) {
           "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
           "./d1-login-rate-limiter":
             "./src/repositories/d1-login-rate-limiter.ts",
+          "./d1-today": "./src/repositories/d1-today-data-source.ts",
           "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
           "./d1-public-projects":
             "./src/repositories/d1-public-project-source.ts",
@@ -59,6 +61,8 @@ function createFixture(overrides = {}) {
       "export class D1AuthSessionStore {}\n",
     "packages/database/src/repositories/d1-login-rate-limiter.ts":
       "export class D1LoginRateLimiter {}\n",
+    "packages/database/src/repositories/d1-today-data-source.ts":
+      "export class D1TodayDataSource {}\n",
     "packages/database/src/repositories/d1-overview-data-source.ts":
       "export class D1OverviewDataSource {}\n",
     "packages/database/src/repositories/d1-public-project-source.ts":

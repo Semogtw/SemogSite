@@ -15,6 +15,10 @@ import {
   type PrivateOverviewQueries,
 } from "./routes/private/overview";
 import {
+  createPrivateTodayRoutes,
+  type PrivateTodayQueries,
+} from "./routes/private/today";
+import {
   createPublicProjectRoutes,
   type PublicProjectQueries,
 } from "./routes/public/projects";
@@ -24,6 +28,7 @@ export type ApiDependencies = {
   authProvider?: AuthProvider;
   publicProjects?: PublicProjectQueries;
   privateOverview?: PrivateOverviewQueries;
+  privateToday?: PrivateTodayQueries;
 };
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
@@ -51,6 +56,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/overview",
     createPrivateOverviewRoutes(dependencies.privateOverview),
+  );
+  api.route(
+    "/api/v1/private/today",
+    createPrivateTodayRoutes(dependencies.privateToday),
   );
 
   return api;

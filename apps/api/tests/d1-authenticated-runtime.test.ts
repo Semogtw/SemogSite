@@ -130,7 +130,14 @@ class RuntimeBinding implements D1DatabaseBinding {
       });
       return;
     }
-    if (sql.includes("DELETE FROM login_rate_limits")) {
+    if (sql.includes("DELETE FROM login_rate_limits WHERE updated_at <= ?")) {
+      const [cutoff] = params as [string];
+      for (const [keyDigest, row] of this.rateLimits) {
+        if (row.updatedAt <= cutoff) this.rateLimits.delete(keyDigest);
+      }
+      return;
+    }
+    if (sql.includes("DELETE FROM login_rate_limits WHERE key_digest = ?")) {
       const [keyDigest] = params as [string];
       this.rateLimits.delete(keyDigest);
       return;
@@ -231,8 +238,36 @@ class RuntimeBinding implements D1DatabaseBinding {
         "2026-08-05T12:30:00.000Z",
       ]];
     }
+    if (sql.includes('from "stages"') && sql.includes('"current_position"')) {
+      if (params.includes("in_progress")) {
+        return [[
+          "stage-a",
+          "project-a",
+          "project-a",
+          "Projeto A",
+          "high",
+          "Integrar Worker",
+          60,
+          "D1 composto",
+          "Continuar integração",
+          null,
+          1,
+          "2026-08-05T12:00:00.000Z",
+        ]];
+      }
+      return [];
+    }
+    if (sql.includes('from "evidence"')) {
+      return [];
+    }
     if (sql.includes('from "stages"')) {
       return [["stage-a", "project-a", "Integrar Worker", "in_progress", 60, 1]];
+    }
+    if (sql.includes('from "attention_items"') && sql.includes('left join "projects"')) {
+      return [];
+    }
+    if (sql.includes('from "development_sessions"')) {
+      return [];
     }
     if (sql.includes('from "attention_items"')) {
       return [[
@@ -243,6 +278,9 @@ class RuntimeBinding implements D1DatabaseBinding {
         "owner",
         "Validar backup antes",
       ]];
+    }
+    if (sql.includes('from "sync_runs"') && sql.includes('"scope"')) {
+      return [];
     }
     if (sql.includes('from "sync_runs"')) {
       return [["2026-08-05T12:30:00.000Z"]];
@@ -322,6 +360,25 @@ describe("authenticated D1 API runtime", () => {
         inProgressStageCount: 1,
         highImpactAttentionCount: 1,
         lastSyncedAt: "2026-08-05T12:30:00.000Z",
+      },
+    });
+
+    const todayResponse = await runtime.app.request(
+      "/api/v1/private/today",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(todayResponse.status).toBe(200);
+    await expect(todayResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        executeNow: [
+          {
+            stageId: "stage-a",
+            projectId: "project-a",
+            projectSlug: "project-a",
+            projectName: "Projeto A",
+          },
+        ],
       },
     });
   });

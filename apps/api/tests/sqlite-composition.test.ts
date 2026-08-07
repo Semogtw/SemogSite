@@ -66,6 +66,24 @@ describe("SQLite API composition", () => {
         inProgressStageCount: 1,
       },
     });
+
+    const todayResponse = await runtime.app.request(
+      "/api/v1/private/today",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(todayResponse.status).toBe(200);
+    await expect(todayResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        executeNow: [
+          {
+            stageId: "demo-stage-database",
+            projectId: "demo-project-platform",
+            projectSlug: "semogtw-platform-demo",
+          },
+        ],
+      },
+    });
     runtime.close();
   });
 });
