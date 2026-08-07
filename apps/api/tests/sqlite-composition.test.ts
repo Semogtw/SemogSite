@@ -84,6 +84,26 @@ describe("SQLite API composition", () => {
         ],
       },
     });
+
+    const roadmapResponse = await runtime.app.request(
+      "/api/v1/private/roadmap",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(roadmapResponse.status).toBe(200);
+    await expect(roadmapResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        items: [
+          {
+            id: "demo-stage-database",
+            projectId: "demo-project-platform",
+            projectName: "Semogtw Platform — demonstração",
+            state: "in_progress",
+          },
+        ],
+        board: { in_progress: [{ id: "demo-stage-database" }] },
+      },
+    });
     runtime.close();
   });
 });

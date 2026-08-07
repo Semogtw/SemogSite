@@ -70,6 +70,7 @@ function validateWorkerImports(root, violations) {
       "@semogtw/database/d1",
       "@semogtw/database/d1-auth-sessions",
       "@semogtw/database/d1-login-rate-limiter",
+      "@semogtw/database/d1-roadmap",
       "@semogtw/database/d1-today",
       "@semogtw/database/d1-overview",
       "@semogtw/database/d1-public-projects",
@@ -119,6 +120,7 @@ function validateDatabaseExports(root, violations) {
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
     "./d1-login-rate-limiter":
       "./src/repositories/d1-login-rate-limiter.ts",
+    "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
     "./d1-today": "./src/repositories/d1-today-data-source.ts",
     "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
     "./d1-public-projects": "./src/repositories/d1-public-project-source.ts",

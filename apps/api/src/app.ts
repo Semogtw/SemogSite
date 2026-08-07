@@ -15,6 +15,10 @@ import {
   type PrivateOverviewQueries,
 } from "./routes/private/overview";
 import {
+  createPrivateRoadmapRoutes,
+  type PrivateRoadmapQueries,
+} from "./routes/private/roadmap";
+import {
   createPrivateTodayRoutes,
   type PrivateTodayQueries,
 } from "./routes/private/today";
@@ -29,6 +33,7 @@ export type ApiDependencies = {
   publicProjects?: PublicProjectQueries;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
+  privateRoadmap?: PrivateRoadmapQueries;
 };
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
@@ -60,6 +65,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/today",
     createPrivateTodayRoutes(dependencies.privateToday),
+  );
+  api.route(
+    "/api/v1/private/roadmap",
+    createPrivateRoadmapRoutes(dependencies.privateRoadmap),
   );
 
   return api;

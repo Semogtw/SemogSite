@@ -14,9 +14,10 @@ import {
   SqliteAuthSessionStore,
   SqliteOverviewDataSource,
   SqlitePublicProjectSource,
+  SqliteRoadmapDataSource,
   SqliteTodayDataSource,
 } from "@semogtw/database";
-import { OverviewService, TodayService } from "@semogtw/domain";
+import { OverviewService, RoadmapService, TodayService } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -86,6 +87,16 @@ export function createSqliteApiRuntime(
     new SqliteOverviewDataSource(database),
   );
   const today = new TodayService(new SqliteTodayDataSource(database));
+  const roadmap = new RoadmapService(new SqliteRoadmapDataSource(database));
+  const privateRoadmap = {
+    getRoadmap: () =>
+      roadmap.query({
+        projectIds: [],
+        states: [],
+        areas: [],
+        includeCompleted: true,
+      }),
+  };
   const auth = composeAuth(env, database);
   const app = createApiApp({
     ...(auth === undefined ? {} : { auth }),
@@ -95,6 +106,7 @@ export function createSqliteApiRuntime(
     },
     privateOverview: overview,
     privateToday: today,
+    privateRoadmap,
   });
 
   return {

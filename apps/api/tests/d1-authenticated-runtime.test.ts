@@ -238,6 +238,25 @@ class RuntimeBinding implements D1DatabaseBinding {
         "2026-08-05T12:30:00.000Z",
       ]];
     }
+    if (
+      sql.includes('from "stages"') &&
+      sql.includes('order by "projects"."name" asc')
+    ) {
+      return [[
+        "stage-roadmap",
+        "project-a",
+        "Projeto A",
+        "Roadmap D1",
+        "integration",
+        "in_progress",
+        65,
+        2,
+        "Adapter em progresso",
+        "Expor board",
+        null,
+        "2026-08-07T22:10:00.000Z",
+      ]];
+    }
     if (sql.includes('from "stages"') && sql.includes('"current_position"')) {
       if (params.includes("in_progress")) {
         return [[
@@ -379,6 +398,26 @@ describe("authenticated D1 API runtime", () => {
             projectName: "Projeto A",
           },
         ],
+      },
+    });
+
+    const roadmapResponse = await runtime.app.request(
+      "/api/v1/private/roadmap",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(roadmapResponse.status).toBe(200);
+    await expect(roadmapResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        items: [
+          {
+            id: "stage-roadmap",
+            projectId: "project-a",
+            projectName: "Projeto A",
+            state: "in_progress",
+          },
+        ],
+        board: { in_progress: [{ id: "stage-roadmap" }] },
       },
     });
   });

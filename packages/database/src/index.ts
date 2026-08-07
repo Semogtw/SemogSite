@@ -57,6 +57,7 @@ export type {
 export { SqliteEditorialWriteRepository } from "./repositories/editorial-write-repository";
 export { D1AuthSessionStore } from "./repositories/d1-auth-session-store";
 export { D1OverviewDataSource } from "./repositories/d1-overview-data-source";
+export { D1RoadmapDataSource } from "./repositories/d1-roadmap-data-source";
 export { D1TodayDataSource } from "./repositories/d1-today-data-source";
 export { D1PublicProjectSource } from "./repositories/d1-public-project-source";
 export { SqlitePublishedEditorialReadModel } from "./repositories/published-editorial-read-model";
