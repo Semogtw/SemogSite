@@ -16,6 +16,7 @@ import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
+import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
@@ -26,6 +27,7 @@ import {
   OverviewService,
   ProjectService,
   RoadmapService,
+  SessionHandoffService,
   TodayService,
 } from "@semogtw/domain";
 import { createApiApp } from "../app";
@@ -121,6 +123,9 @@ async function composeD1ApiRuntime(
   const privateEvidence = new EvidenceService(
     new D1EvidenceWriteRepository(bindings.DB),
   );
+  const privateSessionHandoffs = new SessionHandoffService(
+    new D1SessionHandoffRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -170,6 +175,7 @@ async function composeD1ApiRuntime(
       },
       privateAttention,
       privateEvidence,
+      privateSessionHandoffs,
       privateAudit,
       privateOverview,
       privateToday,
