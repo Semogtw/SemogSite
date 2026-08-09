@@ -22,6 +22,7 @@ function createFixture(overrides = {}) {
       'import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";',
       'import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";',
       'import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";',
+      'import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";',
       'import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";',
       'import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";',
       'import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";',
@@ -63,6 +64,8 @@ function createFixture(overrides = {}) {
             "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
           "./d1-cooperative-run-registration":
             "./src/repositories/d1-cooperative-run-registration-repository.ts",
+          "./d1-cooperative-run-transition":
+            "./src/repositories/d1-cooperative-run-transition-repository.ts",
           "./d1-evidence-write":
             "./src/repositories/d1-evidence-write-repository.ts",
           "./d1-session-handoff":
@@ -96,6 +99,8 @@ function createFixture(overrides = {}) {
       "export class D1BranchRecommendationAcceptanceRepository {}\n",
     "packages/database/src/repositories/d1-cooperative-run-registration-repository.ts":
       "export class D1CooperativeRunRegistrationRepository {}\n",
+    "packages/database/src/repositories/d1-cooperative-run-transition-repository.ts":
+      "export class D1CooperativeRunTransitionRepository {}\n",
     "packages/database/src/repositories/d1-evidence-write-repository.ts":
       "export class D1EvidenceWriteRepository {}\n",
     "packages/database/src/repositories/d1-session-handoff-repository.ts":
@@ -172,6 +177,8 @@ const requiredExports = {
     "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
   "./d1-cooperative-run-registration":
     "./src/repositories/d1-cooperative-run-registration-repository.ts",
+  "./d1-cooperative-run-transition":
+    "./src/repositories/d1-cooperative-run-transition-repository.ts",
   "./d1-evidence-write":
     "./src/repositories/d1-evidence-write-repository.ts",
   "./d1-session-handoff":
@@ -195,6 +202,7 @@ for (const missing of [
   "./d1-attention-lifecycle",
   "./d1-branch-recommendation-acceptance",
   "./d1-cooperative-run-registration",
+  "./d1-cooperative-run-transition",
   "./d1-evidence-write",
   "./d1-session-handoff",
   "./d1-stage-completion",
