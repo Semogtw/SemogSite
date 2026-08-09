@@ -27,6 +27,26 @@ describe("browser origin mutation guard", () => {
     });
   });
 
+  it("rejects explicit cross-site Fetch Metadata even without Origin", async () => {
+    const response = await createApiApp().request(
+      "https://api.example.test/api/v1/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "sec-fetch-site": "cross-site",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ password: "irrelevant" }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: "ORIGIN_INVALID" },
+    });
+  });
+
   it("allows same-origin browser mutations to reach endpoint auth", async () => {
     const response = await createApiApp().request(
       "https://api.example.test/api/v1/auth/login",
