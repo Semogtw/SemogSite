@@ -7,6 +7,7 @@ import {
   requestContext,
   type ApiEnvironment,
 } from "./middleware/request-context";
+import { securityHeaders } from "./middleware/security-headers";
 import {
   createAuthSessionRoutes,
   type ApiAuthDependencies,
@@ -61,6 +62,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   const api = new Hono<ApiEnvironment>({ strict: false });
 
   api.use("*", requestContext);
+  api.use("*", securityHeaders);
   api.onError(sanitizedErrorHandler);
   api.get("/health", (context) =>
     context.json({
