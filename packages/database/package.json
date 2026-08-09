@@ -10,6 +10,7 @@
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
     "./d1-audit": "./src/repositories/d1-audit-data-source.ts",
     "./d1-attention-capture": "./src/repositories/d1-attention-capture-repository.ts",
+    "./d1-attention-lifecycle": "./src/repositories/d1-attention-lifecycle-repository.ts",
     "./d1-evidence-write": "./src/repositories/d1-evidence-write-repository.ts",
     "./d1-session-handoff": "./src/repositories/d1-session-handoff-repository.ts",
     "./d1-stage-completion": "./src/repositories/d1-stage-completion-repository.ts",
