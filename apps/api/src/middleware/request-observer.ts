@@ -21,6 +21,11 @@ export interface ApiRequestObserver {
   record(observation: ApiRequestObservation): void;
 }
 
+export function isRequestLoggingEnabled(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "enabled";
+}
+
 function scopeFor(pathname: string): ApiRequestScope {
   if (pathname === "/health") return "health";
   if (pathname === "/ready" || pathname.startsWith("/ready/")) return "ready";
