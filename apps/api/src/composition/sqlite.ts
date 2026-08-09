@@ -28,6 +28,7 @@ import {
   SqliteSessionHandoffRepository,
   SqliteStageCompletionRepository,
   SqliteTodayDataSource,
+  SqliteVerificationObligationRepository,
   SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
 import {
@@ -46,6 +47,7 @@ import {
   StageCompletionService,
   TodayService,
 } from "@semogtw/domain";
+import { VerificationObligationService } from "@semogtw/domain/orchestration";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -147,6 +149,9 @@ export function createSqliteApiRuntime(
   const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
     new SqliteCooperativeRunTransitionRepository(database),
   );
+  const privateVerificationObligations = new VerificationObligationService(
+    new SqliteVerificationObligationRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -202,6 +207,7 @@ export function createSqliteApiRuntime(
     privateBranchRecommendations,
     privateCooperativeRuns,
     privateCooperativeRunTransitions,
+    privateVerificationObligations,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
