@@ -136,6 +136,7 @@ Rotas atualmente compostas pela API compartilhada:
 
 ```text
 GET  /health
+GET  /ready
 GET  /api/v1/public/projects
 GET  /api/v1/public/projects/:slug
 GET  /api/v1/auth/session
@@ -149,6 +150,8 @@ GET  /api/v1/private/projects/:slug
 GET  /api/v1/private/audit
 GET  /api/v1/private/workflows
 ```
+
+`/health` é um liveness check sem cache. `/ready` é fail-closed e somente retorna `200` quando o runtime composto está apto a receber tráfego. No Worker/D1, isso requer configuração owner válida e acesso à tabela `login_rate_limits` introduzida por `0014`; ausência de secrets, schema incompatível ou erro de storage retorna `503` sem expor a causa interna.
 
 No Worker/D1, owner auth, sessão/revogação, login rate limiting e esses read models privados já possuem adapters D1. Ausência/invalidade dos secrets de autenticação mantém as rotas privadas fechadas.
 
@@ -188,6 +191,8 @@ pnpm check:cloudflare-worker-boundary
 
 Quando o ambiente atual não consegue executar um gate por falta de toolchain, rede, quota ou runtime, a limitação deve ser documentada e o desenvolvimento deve seguir para tarefas resolvíveis por código. Não reutilize contagens de testes antigas depois de alterar arquivos cobertos pelo gate.
 
+O checkpoint `7660dfbe4d507a12bf6df95bed01c92cc0b7f0b2`, executado em 8/9 de agosto de 2026 no runner público de `Semogtw/Offline-Toolchains`, passou checkout privado descartável, instalação frozen, SQLite nativo, boundaries, confidencialidade, testes e typechecks focados, `pnpm check`, build web de produção, preparação do banco E2E e Playwright de privacidade/navegação. Essa evidência cobre a primeira leva de readiness/origin/security headers, mas não deve ser reutilizada para commits posteriores.
+
 O checkpoint offline observado em 3 de agosto de 2026 passou 157 arquivos / 600 testes, build de produção, validação das 13 migrations então existentes no SSR e 6/6 cenários Playwright do workflow core. Essa evidência é histórica e não cobre `0014` nem os commits Cloudflare/D1 posteriores.
 
 A documentação Cloudflare registra um dry-run e uma aplicação local D1 observados no primeiro slice de 5 de agosto; também são evidências históricas e devem ser reexecutadas para o head exato antes de promoção.
@@ -206,7 +211,11 @@ Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e est
 - autenticação e mutações privadas falham fechadas;
 - tokens de sessão são persistidos apenas como digest;
 - CSRF, confirmação, razão, versão esperada, idempotência e auditoria protegem mutações sensíveis;
+- mutações de navegador nas rotas auth/private rejeitam `Origin` divergente e `Sec-Fetch-Site: cross-site` antes de autenticação privada;
+- o login aceita apenas JSON, limita o corpo a 4 KiB e mantém a senha limitada a 1024 caracteres antes da autenticação;
 - login rate limiting possui persistência D1 no Worker;
+- liveness, readiness, 404 e 500 não são cacheáveis; falhas desconhecidas usam JSON sanitizado e correlation ID;
+- respostas globais aplicam `nosniff`, `no-referrer`, `DENY` para framing e Permissions Policy restritiva; auth/private também usam `Cross-Origin-Resource-Policy: same-origin`;
 - respostas públicas usam DTOs allowlist;
 - nomes de repositório, branches, observações, recomendações, runs, reservas, gates, snapshots e payloads MCP permanecem privados;
 - GitHub é tratado como fonte não confiável e acessado apenas por GET;
@@ -238,6 +247,8 @@ Implementado no `main`:
 - Worker Cloudflare + D1 para projetos públicos;
 - autenticação owner, sessões revogáveis e login rate limiting em D1;
 - read models privados de Overview, Hoje, Roadmap, Projetos, Auditoria e Workflows em D1;
+- liveness/readiness explícitos e fail-closed;
+- hardening de origem, Fetch Metadata, tamanho/media type do login, headers de segurança e respostas de erro sanitizadas;
 - guardrail de boundary para impedir dependências Node/SQLite no Worker.
 
 Pendente ou separado do `main`:
