@@ -37,6 +37,10 @@ import {
   type PrivateBranchRecommendationCommands,
 } from "./routes/private/branch-recommendations";
 import {
+  createPrivateCooperativeRunTransitionRoutes,
+  type PrivateCooperativeRunTransitionCommands,
+} from "./routes/private/cooperative-run-transitions";
+import {
   createPrivateCooperativeRunRoutes,
   type PrivateCooperativeRunCommands,
 } from "./routes/private/cooperative-runs";
@@ -104,6 +108,7 @@ export type ApiDependencies = {
   privateRepositoryTargetRegistration?: PrivateRepositoryTargetRegistrationCommands;
   privateBranchRecommendations?: PrivateBranchRecommendationCommands;
   privateCooperativeRuns?: PrivateCooperativeRunCommands;
+  privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -184,6 +189,12 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/cooperative-runs",
     createPrivateCooperativeRunRoutes(dependencies.privateCooperativeRuns),
+  );
+  api.route(
+    "/api/v1/private/cooperative-runs",
+    createPrivateCooperativeRunTransitionRoutes(
+      dependencies.privateCooperativeRunTransitions,
+    ),
   );
   api.route(
     "/api/v1/private/audit",
