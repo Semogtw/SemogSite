@@ -1,6 +1,7 @@
 import type { AuthProvider } from "@semogtw/auth";
 import { Hono } from "hono";
 import { createPrivateAuthMiddleware } from "./middleware/auth";
+import { requireSameBrowserOrigin } from "./middleware/browser-origin";
 import { sanitizedErrorHandler } from "./middleware/error-handler";
 import {
   requestContext,
@@ -72,7 +73,9 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     "/api/v1/public/projects",
     createPublicProjectRoutes(dependencies.publicProjects),
   );
+  api.use("/api/v1/auth/*", requireSameBrowserOrigin);
   api.route("/api/v1/auth", createAuthSessionRoutes(dependencies.auth));
+  api.use("/api/v1/private/*", requireSameBrowserOrigin);
   api.use(
     "/api/v1/private/*",
     createPrivateAuthMiddleware(
