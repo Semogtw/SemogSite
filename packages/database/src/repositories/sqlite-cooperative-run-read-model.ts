@@ -1,6 +1,10 @@
 import type { CooperativeRunSnapshot } from "@semogtw/domain";
 import { createSqliteDatabase } from "../client";
-import type { CooperativeRunLedgerEvent } from "./d1-cooperative-run-read-model";
+import type {
+  CooperativeRunEventListOptions,
+  CooperativeRunLedgerEvent,
+  CooperativeRunListRecentInput,
+} from "./d1-cooperative-run-read-model";
 
 type SqliteDatabase = ReturnType<typeof createSqliteDatabase>;
 
@@ -31,8 +35,8 @@ type EventRow = {
   actor: string;
   source: string;
   summary: string;
-  before_json: string | null;
-  after_json: string | null;
+  before_json?: string | null;
+  after_json?: string | null;
   occurred_at: string;
   idempotency_key: string;
   correlation_id: string;
@@ -60,8 +64,8 @@ function toSnapshot(row: RunRow): CooperativeRunSnapshot {
   };
 }
 
-function parseJson(value: string | null): unknown {
-  if (value === null) return null;
+function parseJson(value: string | null | undefined): unknown {
+  if (value == null) return null;
   try {
     return JSON.parse(value) as unknown;
   } catch {
@@ -88,35 +92,36 @@ function toEvent(row: EventRow): CooperativeRunLedgerEvent {
 export class SqliteCooperativeRunReadModel {
   constructor(private readonly database: SqliteDatabase) {}
 
-  async listRecent(input: {
-    limit: number;
-    status?: CooperativeRunSnapshot["status"];
-  }): Promise<readonly CooperativeRunSnapshot[]> {
-    const rows = input.status === undefined
-      ? this.database.$client
-          .prepare(
-            `SELECT
-              id, project_id, title, actor_label, origin, status, phase, progress,
-              branch, summary, blocker, next_action, started_at, last_heartbeat_at,
-              finished_at, stale_after_seconds, updated_at
-            FROM cooperative_runs
-            ORDER BY updated_at DESC, id DESC
-            LIMIT ?`,
-          )
-          .all(input.limit)
-      : this.database.$client
-          .prepare(
-            `SELECT
-              id, project_id, title, actor_label, origin, status, phase, progress,
-              branch, summary, blocker, next_action, started_at, last_heartbeat_at,
-              finished_at, stale_after_seconds, updated_at
-            FROM cooperative_runs
-            WHERE status = ?
-            ORDER BY updated_at DESC, id DESC
-            LIMIT ?`,
-          )
-          .all(input.status, input.limit);
-    return (rows as RunRow[]).map(toSnapshot);
+  async listRecent(
+    input: CooperativeRunListRecentInput,
+  ): Promise<readonly CooperativeRunSnapshot[]> {
+    const clauses: string[] = [];
+    const params: unknown[] = [];
+    if (input.projectId !== undefined) {
+      clauses.push("project_id = ?");
+      params.push(input.projectId);
+    }
+    if (input.status !== undefined) {
+      clauses.push("status = ?");
+      params.push(input.status);
+    }
+    if (input.cursor !== undefined) {
+      clauses.push("(updated_at < ? OR (updated_at = ? AND id < ?))");
+      params.push(input.cursor.updatedAt, input.cursor.updatedAt, input.cursor.id);
+    }
+    const where = clauses.length === 0 ? "" : `\nWHERE ${clauses.join(" AND ")}`;
+    const rows = this.database.$client
+      .prepare(
+        `SELECT
+          id, project_id, title, actor_label, origin, status, phase, progress,
+          branch, summary, blocker, next_action, started_at, last_heartbeat_at,
+          finished_at, stale_after_seconds, updated_at
+        FROM cooperative_runs${where}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ?`,
+      )
+      .all(...params, input.limit) as RunRow[];
+    return rows.map(toSnapshot);
   }
 
   async findRun(runId: string): Promise<CooperativeRunSnapshot | null> {
@@ -136,19 +141,31 @@ export class SqliteCooperativeRunReadModel {
 
   async listEvents(
     runId: string,
-    limit: number,
+    input: number | CooperativeRunEventListOptions,
   ): Promise<readonly CooperativeRunLedgerEvent[]> {
+    const options: CooperativeRunEventListOptions =
+      typeof input === "number" ? { limit: input } : input;
+    const snapshotColumns = options.includeSnapshots === false
+      ? ""
+      : ", before_json, after_json";
+    const cursorClause = options.beforeSequence === undefined
+      ? ""
+      : " AND sequence < ?";
+    const params: unknown[] = [runId];
+    if (options.beforeSequence !== undefined) params.push(options.beforeSequence);
+    params.push(options.limit);
+
     const rows = this.database.$client
       .prepare(
         `SELECT
-          id, sequence, kind, actor, source, summary, before_json, after_json,
+          id, sequence, kind, actor, source, summary${snapshotColumns},
           occurred_at, idempotency_key, correlation_id
         FROM cooperative_run_events
-        WHERE run_id = ?
+        WHERE run_id = ?${cursorClause}
         ORDER BY sequence DESC
         LIMIT ?`,
       )
-      .all(runId, limit) as EventRow[];
+      .all(...params) as EventRow[];
     return rows.map(toEvent);
   }
 }
