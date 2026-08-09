@@ -69,6 +69,10 @@ import {
   type PrivateRoadmapQueries,
 } from "./routes/private/roadmap";
 import {
+  createPrivateScopeReservationRoutes,
+  type PrivateScopeReservationCommands,
+} from "./routes/private/scope-reservations";
+import {
   createPrivateSessionHandoffRoutes,
   type PrivateSessionHandoffCommands,
 } from "./routes/private/session-handoffs";
@@ -114,6 +118,7 @@ export type ApiDependencies = {
   privateCooperativeRuns?: PrivateCooperativeRunCommands;
   privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
   privateVerificationObligations?: PrivateVerificationObligationCommands;
+  privateScopeReservations?: PrivateScopeReservationCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -206,6 +211,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     createPrivateVerificationObligationRoutes(
       dependencies.privateVerificationObligations,
     ),
+  );
+  api.route(
+    "/api/v1/private/scope-reservations",
+    createPrivateScopeReservationRoutes(dependencies.privateScopeReservations),
   );
   api.route(
     "/api/v1/private/audit",
