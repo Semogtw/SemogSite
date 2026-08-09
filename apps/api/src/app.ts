@@ -2,7 +2,10 @@ import type { AuthProvider } from "@semogtw/auth";
 import { Hono } from "hono";
 import { createPrivateAuthMiddleware } from "./middleware/auth";
 import { requireSameBrowserOrigin } from "./middleware/browser-origin";
-import { sanitizedErrorHandler } from "./middleware/error-handler";
+import {
+  sanitizedErrorHandler,
+  sanitizedNotFoundHandler,
+} from "./middleware/error-handler";
 import {
   requestContext,
   type ApiEnvironment,
@@ -64,6 +67,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.use("*", requestContext);
   api.use("*", securityHeaders);
   api.onError(sanitizedErrorHandler);
+  api.notFound(sanitizedNotFoundHandler);
   api.get("/health", (context) =>
     context.json({
       ok: true,
