@@ -17,6 +17,7 @@ import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
 import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
+import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
@@ -28,6 +29,7 @@ import {
   ProjectService,
   RoadmapService,
   SessionHandoffService,
+  StageCompletionService,
   TodayService,
 } from "@semogtw/domain";
 import { createApiApp } from "../app";
@@ -126,6 +128,9 @@ async function composeD1ApiRuntime(
   const privateSessionHandoffs = new SessionHandoffService(
     new D1SessionHandoffRepository(bindings.DB),
   );
+  const privateStages = new StageCompletionService(
+    new D1StageCompletionRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -176,6 +181,7 @@ async function composeD1ApiRuntime(
       privateAttention,
       privateEvidence,
       privateSessionHandoffs,
+      privateStages,
       privateAudit,
       privateOverview,
       privateToday,
