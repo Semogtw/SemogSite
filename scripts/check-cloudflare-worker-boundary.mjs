@@ -69,6 +69,7 @@ function validateWorkerImports(root, violations) {
     for (const required of [
       "@semogtw/database/d1",
       "@semogtw/database/d1-auth-sessions",
+      "@semogtw/database/d1-attention-capture",
       "@semogtw/database/d1-login-rate-limiter",
       "@semogtw/database/d1-roadmap",
       "@semogtw/database/d1-today",
@@ -118,6 +119,8 @@ function validateDatabaseExports(root, violations) {
   const requiredExports = {
     "./d1": "./src/adapters/d1.ts",
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+    "./d1-attention-capture":
+      "./src/repositories/d1-attention-capture-repository.ts",
     "./d1-login-rate-limiter":
       "./src/repositories/d1-login-rate-limiter.ts",
     "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
