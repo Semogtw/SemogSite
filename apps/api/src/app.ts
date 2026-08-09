@@ -2,6 +2,7 @@ import type { AuthProvider } from "@semogtw/auth";
 import { Hono } from "hono";
 import { createPrivateAuthMiddleware } from "./middleware/auth";
 import { requireSameBrowserOrigin } from "./middleware/browser-origin";
+import { createPrivateCsrfMiddleware } from "./middleware/csrf";
 import {
   sanitizedErrorHandler,
   sanitizedNotFoundHandler,
@@ -15,6 +16,10 @@ import {
   createAuthSessionRoutes,
   type ApiAuthDependencies,
 } from "./routes/auth/session";
+import {
+  createPrivateAttentionRoutes,
+  type PrivateAttentionCommands,
+} from "./routes/private/attention";
 import {
   createPrivateAuditRoutes,
   type PrivateAuditQueries,
@@ -53,6 +58,7 @@ export type ApiDependencies = {
   authProvider?: AuthProvider;
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
+  privateAttention?: PrivateAttentionCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -88,6 +94,14 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     createPrivateAuthMiddleware(
       dependencies.auth?.provider ?? dependencies.authProvider,
     ),
+  );
+  api.use(
+    "/api/v1/private/*",
+    createPrivateCsrfMiddleware(dependencies.auth?.sessionSecret),
+  );
+  api.route(
+    "/api/v1/private/attention",
+    createPrivateAttentionRoutes(dependencies.privateAttention),
   );
   api.route(
     "/api/v1/private/audit",
