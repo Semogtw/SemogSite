@@ -19,6 +19,7 @@ import {
   SqliteProjectDataSource,
   SqlitePublicProjectSource,
   SqliteRoadmapDataSource,
+  SqliteSessionHandoffRepository,
   SqliteTodayDataSource,
   SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
@@ -28,6 +29,7 @@ import {
   OverviewService,
   ProjectService,
   RoadmapService,
+  SessionHandoffService,
   TodayService,
 } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
@@ -106,6 +108,9 @@ export function createSqliteApiRuntime(
   const privateEvidence = new EvidenceService(
     new SqliteEvidenceWriteRepository(database),
   );
+  const privateSessionHandoffs = new SessionHandoffService(
+    new SqliteSessionHandoffRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -153,6 +158,7 @@ export function createSqliteApiRuntime(
     },
     privateAttention,
     privateEvidence,
+    privateSessionHandoffs,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
