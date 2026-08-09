@@ -44,7 +44,7 @@ export function readD1SingleRowChange(
   operation: string,
 ): 0 | 1 {
   const changes = readD1ChangeCount(result, operation);
-  if (changes > 1) {
+  if (changes !== 0 && changes !== 1) {
     throw new Error(`D1 ${operation} changed more than one row.`);
   }
   return changes;
