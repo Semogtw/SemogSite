@@ -14,6 +14,7 @@
     "./d1-evidence-write": "./src/repositories/d1-evidence-write-repository.ts",
     "./d1-session-handoff": "./src/repositories/d1-session-handoff-repository.ts",
     "./d1-stage-completion": "./src/repositories/d1-stage-completion-repository.ts",
+    "./d1-repository-target-registration": "./src/repositories/d1-repository-target-registration-repository.ts",
     "./d1-repository-target-lifecycle": "./src/repositories/d1-repository-target-lifecycle-repository.ts",
     "./d1-login-rate-limiter": "./src/repositories/d1-login-rate-limiter.ts",
     "./d1-projects": "./src/repositories/d1-project-data-source.ts",
