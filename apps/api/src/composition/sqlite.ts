@@ -25,6 +25,7 @@ import {
   SqliteRepositoryTargetLifecycleRepository,
   SqliteRepositoryTargetRegistrationRepository,
   SqliteRoadmapDataSource,
+  SqliteScopeReservationRepository,
   SqliteSessionHandoffRepository,
   SqliteStageCompletionRepository,
   SqliteTodayDataSource,
@@ -47,7 +48,10 @@ import {
   StageCompletionService,
   TodayService,
 } from "@semogtw/domain";
-import { VerificationObligationService } from "@semogtw/domain/orchestration";
+import {
+  ScopeReservationService,
+  VerificationObligationService,
+} from "@semogtw/domain/orchestration";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -152,6 +156,9 @@ export function createSqliteApiRuntime(
   const privateVerificationObligations = new VerificationObligationService(
     new SqliteVerificationObligationRepository(database),
   );
+  const privateScopeReservations = new ScopeReservationService(
+    new SqliteScopeReservationRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -208,6 +215,7 @@ export function createSqliteApiRuntime(
     privateCooperativeRuns,
     privateCooperativeRunTransitions,
     privateVerificationObligations,
+    privateScopeReservations,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
