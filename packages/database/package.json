@@ -19,6 +19,7 @@
     "./d1-branch-recommendation-acceptance": "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
     "./d1-cooperative-run-registration": "./src/repositories/d1-cooperative-run-registration-repository.ts",
     "./d1-cooperative-run-transition": "./src/repositories/d1-cooperative-run-transition-repository.ts",
+    "./d1-verification-obligations": "./src/repositories/d1-verification-obligation-repository.ts",
     "./d1-login-rate-limiter": "./src/repositories/d1-login-rate-limiter.ts",
     "./d1-projects": "./src/repositories/d1-project-data-source.ts",
     "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
