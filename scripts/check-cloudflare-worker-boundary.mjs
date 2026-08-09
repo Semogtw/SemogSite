@@ -73,6 +73,7 @@ function validateWorkerImports(root, violations) {
       "@semogtw/database/d1-attention-lifecycle",
       "@semogtw/database/d1-branch-recommendation-acceptance",
       "@semogtw/database/d1-cooperative-run-registration",
+      "@semogtw/database/d1-cooperative-run-transition",
       "@semogtw/database/d1-evidence-write",
       "@semogtw/database/d1-session-handoff",
       "@semogtw/database/d1-stage-completion",
@@ -135,6 +136,8 @@ function validateDatabaseExports(root, violations) {
       "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
     "./d1-cooperative-run-registration":
       "./src/repositories/d1-cooperative-run-registration-repository.ts",
+    "./d1-cooperative-run-transition":
+      "./src/repositories/d1-cooperative-run-transition-repository.ts",
     "./d1-evidence-write":
       "./src/repositories/d1-evidence-write-repository.ts",
     "./d1-session-handoff":
