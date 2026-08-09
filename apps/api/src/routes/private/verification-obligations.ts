@@ -1,5 +1,8 @@
-import type { VerificationObligationService } from "@semogtw/domain/orchestration";
-import { Hono } from "hono";
+import type {
+  VerificationObligationResult,
+  VerificationObligationService,
+} from "@semogtw/domain/orchestration";
+import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import type { ApiEnvironment } from "../../middleware/request-context";
@@ -73,13 +76,16 @@ export type PrivateVerificationObligationCommands = Pick<
   "create" | "recordResult" | "supersede" | "waive"
 >;
 
+type FailureResult = Extract<VerificationObligationResult, { ok: false }>;
+type PrivateContext = Context<ApiEnvironment>;
+
 function isJsonRequest(contentType: string | undefined): boolean {
   if (contentType === undefined) return false;
   const mediaType = contentType.split(";", 1)[0]?.trim().toLowerCase();
   return mediaType === "application/json" || mediaType?.endsWith("+json") === true;
 }
 
-function failureStatus(code: string): 400 | 404 | 409 {
+function failureStatus(code: FailureResult["code"]): 400 | 404 | 409 {
   if (code === "VALIDATION_FAILED") return 400;
   if (
     code === "NOT_FOUND" ||
@@ -93,7 +99,7 @@ function failureStatus(code: string): 400 | 404 | 409 {
   return 409;
 }
 
-function failureMessage(code: string): string {
+function failureMessage(code: FailureResult["code"]): string {
   if (code === "VALIDATION_FAILED") {
     return "A alteração não satisfaz o contrato do gate.";
   }
@@ -110,6 +116,78 @@ function failureMessage(code: string): string {
   if (code === "TERMINAL_OBLIGATION") return "O gate já está em estado terminal.";
   if (code === "DUPLICATE") return "Esta alteração já foi registrada.";
   return "O estado mudou durante a gravação. Nenhuma alteração parcial foi confirmada.";
+}
+
+function invalidRequest(context: PrivateContext) {
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: "INVALID_REQUEST",
+        message: "Não foi possível atualizar este gate.",
+        correlationId: context.get("correlationId"),
+      },
+    },
+    400,
+  );
+}
+
+function unauthorized(context: PrivateContext) {
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Acesso não autorizado.",
+        correlationId: context.get("correlationId"),
+      },
+    },
+    401,
+  );
+}
+
+function unavailable(context: PrivateContext) {
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: "MUTATION_UNAVAILABLE",
+        message: "Não foi possível salvar esta alteração.",
+        correlationId: context.get("correlationId"),
+      },
+    },
+    503,
+  );
+}
+
+function storageFailure(context: PrivateContext) {
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: "STORAGE_UNAVAILABLE",
+        message: "Não foi possível salvar esta alteração.",
+        correlationId: context.get("correlationId"),
+      },
+    },
+    503,
+  );
+}
+
+function domainFailure(context: PrivateContext, result: FailureResult) {
+  const details = result.code === "VALIDATION_FAILED" ? result.errors : undefined;
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: result.code,
+        message: failureMessage(result.code),
+        ...(details === undefined ? {} : { details }),
+        correlationId: context.get("correlationId"),
+      },
+    },
+    failureStatus(result.code),
+  );
 }
 
 const limitBody = bodyLimit({
@@ -293,9 +371,4 @@ export function createPrivateVerificationObligationRoutes(
   });
 
   return routes;
-}
-
-function invalidRequest(context: Parameters<ReturnType<typeof createPrivateVerificationObligationRoutes>["request"]>[0] extends never ? never : never) {
-  void context;
-  throw new Error("unreachable");
 }
