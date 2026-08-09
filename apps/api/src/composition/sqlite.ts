@@ -33,6 +33,10 @@ import {
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
+import {
+  consoleRequestObserver,
+  isRequestLoggingEnabled,
+} from "../middleware/request-observer";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -136,8 +140,12 @@ export function createSqliteApiRuntime(
       }
     },
   };
+  const requestObserver = isRequestLoggingEnabled(env.SEMOGTW_REQUEST_LOGGING)
+    ? consoleRequestObserver
+    : undefined;
   const app = createApiApp({
     ...(auth === undefined ? {} : { auth }),
+    ...(requestObserver === undefined ? {} : { requestObserver }),
     readiness,
     publicProjects: {
       list: () => publicSource.listListed(),
