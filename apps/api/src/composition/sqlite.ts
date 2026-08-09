@@ -11,6 +11,7 @@ import {
 import {
   createSqliteDatabase,
   migrate,
+  SqliteAttentionCaptureRepository,
   SqliteAuthSessionStore,
   SqliteAuditDataSource,
   SqliteOverviewDataSource,
@@ -20,7 +21,13 @@ import {
   SqliteTodayDataSource,
   SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
-import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
+import {
+  AttentionCaptureService,
+  OverviewService,
+  ProjectService,
+  RoadmapService,
+  TodayService,
+} from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
@@ -87,6 +94,9 @@ export function createSqliteApiRuntime(
 
   const publicSource = new SqlitePublicProjectSource(database);
   const privateAudit = new SqliteAuditDataSource(database);
+  const privateAttention = new AttentionCaptureService(
+    new SqliteAttentionCaptureRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -128,6 +138,7 @@ export function createSqliteApiRuntime(
       list: () => publicSource.listListed(),
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
     },
+    privateAttention,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
