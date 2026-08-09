@@ -23,6 +23,7 @@ function createFixture(overrides = {}) {
       'import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";',
       'import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";',
       'import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";',
+      'import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";',
       'import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";',
       'import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";',
       'import { D1TodayDataSource } from "@semogtw/database/d1-today";',
@@ -61,6 +62,8 @@ function createFixture(overrides = {}) {
             "./src/repositories/d1-session-handoff-repository.ts",
           "./d1-stage-completion":
             "./src/repositories/d1-stage-completion-repository.ts",
+          "./d1-repository-target-lifecycle":
+            "./src/repositories/d1-repository-target-lifecycle-repository.ts",
           "./d1-login-rate-limiter":
             "./src/repositories/d1-login-rate-limiter.ts",
           "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
@@ -86,6 +89,8 @@ function createFixture(overrides = {}) {
       "export class D1SessionHandoffRepository {}\n",
     "packages/database/src/repositories/d1-stage-completion-repository.ts":
       "export class D1StageCompletionRepository {}\n",
+    "packages/database/src/repositories/d1-repository-target-lifecycle-repository.ts":
+      "export class D1RepositoryTargetLifecycleRepository {}\n",
     "packages/database/src/repositories/d1-login-rate-limiter.ts":
       "export class D1LoginRateLimiter {}\n",
     "packages/database/src/repositories/d1-roadmap-data-source.ts":
@@ -154,6 +159,8 @@ const requiredExports = {
     "./src/repositories/d1-session-handoff-repository.ts",
   "./d1-stage-completion":
     "./src/repositories/d1-stage-completion-repository.ts",
+  "./d1-repository-target-lifecycle":
+    "./src/repositories/d1-repository-target-lifecycle-repository.ts",
   "./d1-login-rate-limiter":
     "./src/repositories/d1-login-rate-limiter.ts",
   "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
@@ -168,6 +175,7 @@ for (const missing of [
   "./d1-evidence-write",
   "./d1-session-handoff",
   "./d1-stage-completion",
+  "./d1-repository-target-lifecycle",
 ]) {
   const exportsWithoutOne = { ...requiredExports };
   delete exportsWithoutOne[missing];
