@@ -19,6 +19,7 @@ function createFixture(overrides = {}) {
       'import { createD1Database } from "@semogtw/database/d1";',
       'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
       'import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";',
+      'import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";',
       'import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";',
       'import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";',
       'import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";',
@@ -52,6 +53,8 @@ function createFixture(overrides = {}) {
           "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
           "./d1-attention-capture":
             "./src/repositories/d1-attention-capture-repository.ts",
+          "./d1-attention-lifecycle":
+            "./src/repositories/d1-attention-lifecycle-repository.ts",
           "./d1-evidence-write":
             "./src/repositories/d1-evidence-write-repository.ts",
           "./d1-session-handoff":
@@ -75,6 +78,8 @@ function createFixture(overrides = {}) {
       "export class D1AuthSessionStore {}\n",
     "packages/database/src/repositories/d1-attention-capture-repository.ts":
       "export class D1AttentionCaptureRepository {}\n",
+    "packages/database/src/repositories/d1-attention-lifecycle-repository.ts":
+      "export class D1AttentionLifecycleRepository {}\n",
     "packages/database/src/repositories/d1-evidence-write-repository.ts":
       "export class D1EvidenceWriteRepository {}\n",
     "packages/database/src/repositories/d1-session-handoff-repository.ts":
@@ -136,140 +141,49 @@ assert.equal(
   true,
 );
 
-assert.equal(
-  scan({
-    "packages/database/package.json": JSON.stringify({
-      exports: {
-        "./d1": "./src/adapters/d1.ts",
-        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
-        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
-        "./d1-public-projects":
-          "./src/repositories/d1-public-project-source.ts",
-      },
-    }),
-  }).some(
-    (violation) =>
-      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
-      violation.detail?.startsWith("./d1-login-rate-limiter ->"),
-  ),
-  true,
-);
+const requiredExports = {
+  "./d1": "./src/adapters/d1.ts",
+  "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+  "./d1-attention-capture":
+    "./src/repositories/d1-attention-capture-repository.ts",
+  "./d1-attention-lifecycle":
+    "./src/repositories/d1-attention-lifecycle-repository.ts",
+  "./d1-evidence-write":
+    "./src/repositories/d1-evidence-write-repository.ts",
+  "./d1-session-handoff":
+    "./src/repositories/d1-session-handoff-repository.ts",
+  "./d1-stage-completion":
+    "./src/repositories/d1-stage-completion-repository.ts",
+  "./d1-login-rate-limiter":
+    "./src/repositories/d1-login-rate-limiter.ts",
+  "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
+  "./d1-today": "./src/repositories/d1-today-data-source.ts",
+  "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
+  "./d1-public-projects": "./src/repositories/d1-public-project-source.ts",
+};
 
-assert.equal(
-  scan({
-    "packages/database/package.json": JSON.stringify({
-      exports: {
-        "./d1": "./src/adapters/d1.ts",
-        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
-        "./d1-evidence-write":
-          "./src/repositories/d1-evidence-write-repository.ts",
-        "./d1-session-handoff":
-          "./src/repositories/d1-session-handoff-repository.ts",
-        "./d1-stage-completion":
-          "./src/repositories/d1-stage-completion-repository.ts",
-        "./d1-login-rate-limiter":
-          "./src/repositories/d1-login-rate-limiter.ts",
-        "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
-        "./d1-today": "./src/repositories/d1-today-data-source.ts",
-        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
-        "./d1-public-projects":
-          "./src/repositories/d1-public-project-source.ts",
-      },
-    }),
-  }).some(
-    (violation) =>
-      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
-      violation.detail?.startsWith("./d1-attention-capture ->"),
-  ),
-  true,
-);
-
-assert.equal(
-  scan({
-    "packages/database/package.json": JSON.stringify({
-      exports: {
-        "./d1": "./src/adapters/d1.ts",
-        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
-        "./d1-attention-capture":
-          "./src/repositories/d1-attention-capture-repository.ts",
-        "./d1-session-handoff":
-          "./src/repositories/d1-session-handoff-repository.ts",
-        "./d1-stage-completion":
-          "./src/repositories/d1-stage-completion-repository.ts",
-        "./d1-login-rate-limiter":
-          "./src/repositories/d1-login-rate-limiter.ts",
-        "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
-        "./d1-today": "./src/repositories/d1-today-data-source.ts",
-        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
-        "./d1-public-projects":
-          "./src/repositories/d1-public-project-source.ts",
-      },
-    }),
-  }).some(
-    (violation) =>
-      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
-      violation.detail?.startsWith("./d1-evidence-write ->"),
-  ),
-  true,
-);
-
-assert.equal(
-  scan({
-    "packages/database/package.json": JSON.stringify({
-      exports: {
-        "./d1": "./src/adapters/d1.ts",
-        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
-        "./d1-attention-capture":
-          "./src/repositories/d1-attention-capture-repository.ts",
-        "./d1-evidence-write":
-          "./src/repositories/d1-evidence-write-repository.ts",
-        "./d1-stage-completion":
-          "./src/repositories/d1-stage-completion-repository.ts",
-        "./d1-login-rate-limiter":
-          "./src/repositories/d1-login-rate-limiter.ts",
-        "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
-        "./d1-today": "./src/repositories/d1-today-data-source.ts",
-        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
-        "./d1-public-projects":
-          "./src/repositories/d1-public-project-source.ts",
-      },
-    }),
-  }).some(
-    (violation) =>
-      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
-      violation.detail?.startsWith("./d1-session-handoff ->"),
-  ),
-  true,
-);
-
-assert.equal(
-  scan({
-    "packages/database/package.json": JSON.stringify({
-      exports: {
-        "./d1": "./src/adapters/d1.ts",
-        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
-        "./d1-attention-capture":
-          "./src/repositories/d1-attention-capture-repository.ts",
-        "./d1-evidence-write":
-          "./src/repositories/d1-evidence-write-repository.ts",
-        "./d1-session-handoff":
-          "./src/repositories/d1-session-handoff-repository.ts",
-        "./d1-login-rate-limiter":
-          "./src/repositories/d1-login-rate-limiter.ts",
-        "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
-        "./d1-today": "./src/repositories/d1-today-data-source.ts",
-        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
-        "./d1-public-projects":
-          "./src/repositories/d1-public-project-source.ts",
-      },
-    }),
-  }).some(
-    (violation) =>
-      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
-      violation.detail?.startsWith("./d1-stage-completion ->"),
-  ),
-  true,
-);
+for (const missing of [
+  "./d1-attention-capture",
+  "./d1-attention-lifecycle",
+  "./d1-evidence-write",
+  "./d1-session-handoff",
+  "./d1-stage-completion",
+]) {
+  const exportsWithoutOne = { ...requiredExports };
+  delete exportsWithoutOne[missing];
+  assert.equal(
+    scan({
+      "packages/database/package.json": JSON.stringify({
+        exports: exportsWithoutOne,
+      }),
+    }).some(
+      (violation) =>
+        violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
+        violation.detail?.startsWith(`${missing} ->`),
+    ),
+    true,
+  );
+}
 
 assert.equal(
   scan({
