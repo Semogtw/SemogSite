@@ -11,10 +11,11 @@ function expectBaselineSecurityHeaders(response: Response): void {
 }
 
 describe("API response security headers", () => {
-  it("applies baseline headers to public responses without forcing same-origin resource policy", async () => {
+  it("applies baseline headers and disables caching for liveness responses", async () => {
     const response = await createApiApp().request("https://api.example.test/health");
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expectBaselineSecurityHeaders(response);
     expect(response.headers.get("cross-origin-resource-policy")).toBeNull();
   });
