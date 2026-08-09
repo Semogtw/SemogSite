@@ -20,6 +20,7 @@ function createFixture(overrides = {}) {
       'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
       'import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";',
       'import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";',
+      'import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";',
       'import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";',
       'import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";',
       'import { D1TodayDataSource } from "@semogtw/database/d1-today";',
@@ -52,6 +53,8 @@ function createFixture(overrides = {}) {
             "./src/repositories/d1-attention-capture-repository.ts",
           "./d1-evidence-write":
             "./src/repositories/d1-evidence-write-repository.ts",
+          "./d1-session-handoff":
+            "./src/repositories/d1-session-handoff-repository.ts",
           "./d1-login-rate-limiter":
             "./src/repositories/d1-login-rate-limiter.ts",
           "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
@@ -71,6 +74,8 @@ function createFixture(overrides = {}) {
       "export class D1AttentionCaptureRepository {}\n",
     "packages/database/src/repositories/d1-evidence-write-repository.ts":
       "export class D1EvidenceWriteRepository {}\n",
+    "packages/database/src/repositories/d1-session-handoff-repository.ts":
+      "export class D1SessionHandoffRepository {}\n",
     "packages/database/src/repositories/d1-login-rate-limiter.ts":
       "export class D1LoginRateLimiter {}\n",
     "packages/database/src/repositories/d1-roadmap-data-source.ts":
@@ -153,6 +158,8 @@ assert.equal(
         "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
         "./d1-evidence-write":
           "./src/repositories/d1-evidence-write-repository.ts",
+        "./d1-session-handoff":
+          "./src/repositories/d1-session-handoff-repository.ts",
         "./d1-login-rate-limiter":
           "./src/repositories/d1-login-rate-limiter.ts",
         "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
@@ -178,6 +185,8 @@ assert.equal(
         "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
         "./d1-attention-capture":
           "./src/repositories/d1-attention-capture-repository.ts",
+        "./d1-session-handoff":
+          "./src/repositories/d1-session-handoff-repository.ts",
         "./d1-login-rate-limiter":
           "./src/repositories/d1-login-rate-limiter.ts",
         "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
@@ -191,6 +200,33 @@ assert.equal(
     (violation) =>
       violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
       violation.detail?.startsWith("./d1-evidence-write ->"),
+  ),
+  true,
+);
+
+assert.equal(
+  scan({
+    "packages/database/package.json": JSON.stringify({
+      exports: {
+        "./d1": "./src/adapters/d1.ts",
+        "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+        "./d1-attention-capture":
+          "./src/repositories/d1-attention-capture-repository.ts",
+        "./d1-evidence-write":
+          "./src/repositories/d1-evidence-write-repository.ts",
+        "./d1-login-rate-limiter":
+          "./src/repositories/d1-login-rate-limiter.ts",
+        "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
+        "./d1-today": "./src/repositories/d1-today-data-source.ts",
+        "./d1-overview": "./src/repositories/d1-overview-data-source.ts",
+        "./d1-public-projects":
+          "./src/repositories/d1-public-project-source.ts",
+      },
+    }),
+  }).some(
+    (violation) =>
+      violation.code === "CLOUDFLARE_DATABASE_EXPORT_INVALID" &&
+      violation.detail?.startsWith("./d1-session-handoff ->"),
   ),
   true,
 );
