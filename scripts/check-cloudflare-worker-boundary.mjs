@@ -75,6 +75,7 @@ function validateWorkerImports(root, violations) {
       "@semogtw/database/d1-cooperative-run-registration",
       "@semogtw/database/d1-cooperative-run-transition",
       "@semogtw/database/d1-verification-obligations",
+      "@semogtw/database/d1-scope-reservations",
       "@semogtw/database/d1-evidence-write",
       "@semogtw/database/d1-session-handoff",
       "@semogtw/database/d1-stage-completion",
@@ -141,6 +142,8 @@ function validateDatabaseExports(root, violations) {
       "./src/repositories/d1-cooperative-run-transition-repository.ts",
     "./d1-verification-obligations":
       "./src/repositories/d1-verification-obligation-repository.ts",
+    "./d1-scope-reservations":
+      "./src/repositories/d1-scope-reservation-repository.ts",
     "./d1-evidence-write":
       "./src/repositories/d1-evidence-write-repository.ts",
     "./d1-session-handoff":
