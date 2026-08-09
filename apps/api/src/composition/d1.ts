@@ -29,7 +29,10 @@ import {
   TodayService,
 } from "@semogtw/domain";
 import { createApiApp } from "../app";
-import { consoleRequestObserver } from "../middleware/request-observer";
+import {
+  consoleRequestObserver,
+  isRequestLoggingEnabled,
+} from "../middleware/request-observer";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -58,17 +61,14 @@ const runtimeCache = new WeakMap<
   Map<string, Promise<D1ApiRuntime>>
 >();
 
-function requestLoggingEnabled(value: string | undefined): boolean {
-  const normalized = value?.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "enabled";
-}
-
 function configFingerprint(bindings: D1ApiBindings): string {
   return [
     bindings.NODE_ENV ?? "",
     bindings.SEMOGTW_OWNER_PASSWORD_HASH ?? "",
     bindings.SEMOGTW_SESSION_SECRET ?? "",
-    requestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING) ? "logging:on" : "logging:off",
+    isRequestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING)
+      ? "logging:on"
+      : "logging:off",
   ].join("\u0000");
 }
 
@@ -155,7 +155,7 @@ async function composeD1ApiRuntime(
       }
     },
   };
-  const requestObserver = requestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING)
+  const requestObserver = isRequestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING)
     ? consoleRequestObserver
     : undefined;
 
