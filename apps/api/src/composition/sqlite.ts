@@ -16,6 +16,7 @@ import {
   SqliteAuthSessionStore,
   SqliteAuditDataSource,
   SqliteBranchRecommendationAcceptanceRepository,
+  SqliteCooperativeRunRegistrationRepository,
   SqliteEvidenceWriteRepository,
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
@@ -32,6 +33,7 @@ import {
   AttentionCaptureService,
   AttentionLifecycleService,
   BranchRecommendationAcceptanceService,
+  CooperativeRunRegistrationService,
   EvidenceService,
   OverviewService,
   ProjectService,
@@ -137,6 +139,9 @@ export function createSqliteApiRuntime(
   const privateBranchRecommendations = new BranchRecommendationAcceptanceService(
     new SqliteBranchRecommendationAcceptanceRepository(database),
   );
+  const privateCooperativeRuns = new CooperativeRunRegistrationService(
+    new SqliteCooperativeRunRegistrationRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -190,6 +195,7 @@ export function createSqliteApiRuntime(
     privateRepositoryTargets,
     privateRepositoryTargetRegistration,
     privateBranchRecommendations,
+    privateCooperativeRuns,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
