@@ -81,6 +81,10 @@ import {
   type PrivateTodayQueries,
 } from "./routes/private/today";
 import {
+  createPrivateVerificationObligationRoutes,
+  type PrivateVerificationObligationCommands,
+} from "./routes/private/verification-obligations";
+import {
   createPrivateWorkflowRoutes,
   type PrivateWorkflowQueries,
 } from "./routes/private/workflows";
@@ -109,6 +113,7 @@ export type ApiDependencies = {
   privateBranchRecommendations?: PrivateBranchRecommendationCommands;
   privateCooperativeRuns?: PrivateCooperativeRunCommands;
   privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
+  privateVerificationObligations?: PrivateVerificationObligationCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -194,6 +199,12 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     "/api/v1/private/cooperative-runs",
     createPrivateCooperativeRunTransitionRoutes(
       dependencies.privateCooperativeRunTransitions,
+    ),
+  );
+  api.route(
+    "/api/v1/private/verification-obligations",
+    createPrivateVerificationObligationRoutes(
+      dependencies.privateVerificationObligations,
     ),
   );
   api.route(
