@@ -119,10 +119,24 @@ async function composeD1ApiRuntime(
     getProjectHub: (slug: string) => projects.getProjectHub(slug),
   };
   const auth = await composeAuth(bindings);
+  const readiness = {
+    check: async () => {
+      if (auth === undefined) return false;
+      try {
+        const migrationMarker = await bindings.DB
+          .prepare("SELECT COUNT(*) AS count FROM login_rate_limits")
+          .first();
+        return migrationMarker !== null;
+      } catch {
+        return false;
+      }
+    },
+  };
 
   return {
     app: createApiApp({
       ...(auth === undefined ? {} : { auth }),
+      readiness,
       publicProjects: {
         list: () => publicProjects.listListed(),
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
