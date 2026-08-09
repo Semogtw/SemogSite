@@ -45,6 +45,10 @@ import {
   type PrivateCooperativeRunCommands,
 } from "./routes/private/cooperative-runs";
 import {
+  createPrivateEditorialRedirectRoutes,
+  type PrivateEditorialRedirectCommands,
+} from "./routes/private/editorial-redirects";
+import {
   createPrivateEvidenceRoutes,
   type PrivateEvidenceCommands,
 } from "./routes/private/evidence";
@@ -119,6 +123,7 @@ export type ApiDependencies = {
   privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
   privateVerificationObligations?: PrivateVerificationObligationCommands;
   privateScopeReservations?: PrivateScopeReservationCommands;
+  privateEditorialRedirects?: PrivateEditorialRedirectCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -215,6 +220,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/scope-reservations",
     createPrivateScopeReservationRoutes(dependencies.privateScopeReservations),
+  );
+  api.route(
+    "/api/v1/private/editorial-redirects",
+    createPrivateEditorialRedirectRoutes(dependencies.privateEditorialRedirects),
   );
   api.route(
     "/api/v1/private/audit",
