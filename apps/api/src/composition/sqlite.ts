@@ -14,6 +14,7 @@ import {
   SqliteAttentionCaptureRepository,
   SqliteAuthSessionStore,
   SqliteAuditDataSource,
+  SqliteEvidenceWriteRepository,
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
   SqlitePublicProjectSource,
@@ -23,6 +24,7 @@ import {
 } from "@semogtw/database";
 import {
   AttentionCaptureService,
+  EvidenceService,
   OverviewService,
   ProjectService,
   RoadmapService,
@@ -97,6 +99,9 @@ export function createSqliteApiRuntime(
   const privateAttention = new AttentionCaptureService(
     new SqliteAttentionCaptureRepository(database),
   );
+  const privateEvidence = new EvidenceService(
+    new SqliteEvidenceWriteRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -139,6 +144,7 @@ export function createSqliteApiRuntime(
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
     },
     privateAttention,
+    privateEvidence,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
