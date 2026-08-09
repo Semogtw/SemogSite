@@ -24,6 +24,7 @@ function createFixture(overrides = {}) {
       'import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";',
       'import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";',
       'import { D1VerificationObligationRepository } from "@semogtw/database/d1-verification-obligations";',
+      'import { D1ScopeReservationRepository } from "@semogtw/database/d1-scope-reservations";',
       'import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";',
       'import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";',
       'import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";',
@@ -69,6 +70,8 @@ function createFixture(overrides = {}) {
             "./src/repositories/d1-cooperative-run-transition-repository.ts",
           "./d1-verification-obligations":
             "./src/repositories/d1-verification-obligation-repository.ts",
+          "./d1-scope-reservations":
+            "./src/repositories/d1-scope-reservation-repository.ts",
           "./d1-evidence-write":
             "./src/repositories/d1-evidence-write-repository.ts",
           "./d1-session-handoff":
@@ -106,6 +109,8 @@ function createFixture(overrides = {}) {
       "export class D1CooperativeRunTransitionRepository {}\n",
     "packages/database/src/repositories/d1-verification-obligation-repository.ts":
       "export class D1VerificationObligationRepository {}\n",
+    "packages/database/src/repositories/d1-scope-reservation-repository.ts":
+      "export class D1ScopeReservationRepository {}\n",
     "packages/database/src/repositories/d1-evidence-write-repository.ts":
       "export class D1EvidenceWriteRepository {}\n",
     "packages/database/src/repositories/d1-session-handoff-repository.ts":
@@ -186,6 +191,8 @@ const requiredExports = {
     "./src/repositories/d1-cooperative-run-transition-repository.ts",
   "./d1-verification-obligations":
     "./src/repositories/d1-verification-obligation-repository.ts",
+  "./d1-scope-reservations":
+    "./src/repositories/d1-scope-reservation-repository.ts",
   "./d1-evidence-write":
     "./src/repositories/d1-evidence-write-repository.ts",
   "./d1-session-handoff":
@@ -211,6 +218,7 @@ for (const missing of [
   "./d1-cooperative-run-registration",
   "./d1-cooperative-run-transition",
   "./d1-verification-obligations",
+  "./d1-scope-reservations",
   "./d1-evidence-write",
   "./d1-session-handoff",
   "./d1-stage-completion",
