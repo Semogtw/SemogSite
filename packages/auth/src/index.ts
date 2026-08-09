@@ -1,5 +1,6 @@
 export { CSRF_COOKIE_NAME, SESSION_COOKIE_NAME } from "./cookie-names";
 export {
+  csrfCookieOptions,
   issueCsrfToken,
   sessionCookieOptions,
   SlidingWindowRateLimiter,
@@ -26,3 +27,6 @@ export type {
   AuthenticatedOwner,
   OwnerCredentials,
 } from "./provider";
+
+export { decideLogout } from "./logout-policy";
+export type { LogoutDecision, LogoutPolicyInput } from "./logout-policy";

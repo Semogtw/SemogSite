@@ -35,20 +35,27 @@ describe("SQLite API composition", () => {
     });
 
     expect(runtime.authProvider).not.toBeUndefined();
-    const authenticated = await runtime.authProvider?.authenticate({
-      password: "correct horse battery staple",
+    const login = await runtime.app.request("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "127.0.0.1",
+      },
+      body: JSON.stringify({
+        password: "correct horse battery staple",
+      }),
     });
-    expect(authenticated?.ok).toBe(true);
-    if (authenticated === undefined || !authenticated.ok) {
-      throw new Error("expected authenticated API runtime");
-    }
+    expect(login.status).toBe(200);
+    const cookieHeader = login.headers
+      .getSetCookie()
+      .map((cookie) => cookie.split(";", 1)[0])
+      .join("; ");
+    expect(cookieHeader).toContain(`${SESSION_COOKIE_NAME}=`);
 
     const response = await runtime.app.request(
       "/api/v1/private/overview",
       {
-        headers: {
-          cookie: `${SESSION_COOKIE_NAME}=${authenticated.rawToken}`,
-        },
+        headers: { cookie: cookieHeader },
       },
     );
     expect(response.status).toBe(200);
@@ -57,6 +64,72 @@ describe("SQLite API composition", () => {
       data: {
         activeProjectCount: 1,
         inProgressStageCount: 1,
+      },
+    });
+
+    const todayResponse = await runtime.app.request(
+      "/api/v1/private/today",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(todayResponse.status).toBe(200);
+    await expect(todayResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        executeNow: [
+          {
+            stageId: "demo-stage-database",
+            projectId: "demo-project-platform",
+            projectSlug: "semogtw-platform-demo",
+          },
+        ],
+      },
+    });
+
+    const roadmapResponse = await runtime.app.request(
+      "/api/v1/private/roadmap",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(roadmapResponse.status).toBe(200);
+    await expect(roadmapResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        items: [
+          {
+            id: "demo-stage-database",
+            projectId: "demo-project-platform",
+            projectName: "Semogtw Platform — demonstração",
+            state: "in_progress",
+          },
+        ],
+        board: { in_progress: [{ id: "demo-stage-database" }] },
+      },
+    });
+
+    const portfolioResponse = await runtime.app.request(
+      "/api/v1/private/projects",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(portfolioResponse.status).toBe(200);
+    await expect(portfolioResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        activeProjects: [{
+          id: "demo-project-platform",
+          slug: "semogtw-platform-demo",
+        }],
+      },
+    });
+
+    const projectResponse = await runtime.app.request(
+      "/api/v1/private/projects/semogtw-platform-demo",
+      { headers: { cookie: cookieHeader } },
+    );
+    expect(projectResponse.status).toBe(200);
+    await expect(projectResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        project: { id: "demo-project-platform" },
+        currentStages: [{ id: "demo-stage-database" }],
       },
     });
     runtime.close();

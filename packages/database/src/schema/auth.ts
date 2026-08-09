@@ -30,3 +30,17 @@ export const authSessions = sqliteTable(
     ),
   ],
 );
+
+
+export const loginRateLimits = sqliteTable(
+  "login_rate_limits",
+  {
+    keyDigest: text("key_digest").primaryKey(),
+    windowStartedAt: text("window_started_at").notNull(),
+    attemptCount: integer("attempt_count").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_login_rate_limits_updated_at").on(table.updatedAt),
+  ],
+);

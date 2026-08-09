@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/app.ts",
-    "./sqlite": "./src/composition/sqlite.ts"
+    "./sqlite": "./src/composition/sqlite.ts",
+    "./d1": "./src/composition/d1.ts",
+    "./worker": "./src/worker.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

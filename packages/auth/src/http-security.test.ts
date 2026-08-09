@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SlidingWindowRateLimiter,
+  csrfCookieOptions,
   issueCsrfToken,
   sessionCookieOptions,
   verifyCsrfToken,
@@ -33,6 +34,13 @@ describe("HTTP authentication security", () => {
   it("uses secure production cookies with a fourteen-day absolute max age", () => {
     expect(sessionCookieOptions("production")).toEqual({
       httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 14,
+    });
+    expect(csrfCookieOptions("production")).toEqual({
+      httpOnly: false,
       sameSite: "lax",
       secure: true,
       path: "/",

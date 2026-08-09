@@ -9,7 +9,7 @@
   "scripts": {
     "backup:database": "node scripts/backup-database.mjs",
     "build": "pnpm -r build",
-    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:run-ledger-guardrails && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm test",
+    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:cloudflare-worker-boundary && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:run-ledger-guardrails && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm -r typecheck && pnpm test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:mcp-transport-boundary": "node scripts/check-mcp-transport-boundary.mjs",
@@ -19,14 +19,15 @@
     "dev:all": "pnpm --parallel --filter @semogtw/web --filter @semogtw/api dev",
     "hash:owner-password": "node scripts/hash-owner-password.mjs",
     "test": "vitest run --workspace vitest.workspace.ts",
-    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs && node scripts/check-mcp-package-boundaries.test.mjs && node scripts/check-mcp-node-runtime-boundary.test.mjs",
+    "test:guardrails": "node scripts/check-upstream-clean.test.mjs && node scripts/check-public-confidentiality.test.mjs && node scripts/check-mcp-transport-boundary.test.mjs && node scripts/check-mcp-transport-boundary-imports.test.mjs && node scripts/check-mcp-transport-boundary-apps.test.mjs && node scripts/check-mcp-cross-surface-imports.test.mjs && node scripts/check-mcp-package-boundaries.test.mjs && node scripts/check-mcp-node-runtime-boundary.test.mjs && node scripts/check-cloudflare-worker-boundary.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "verify:backup": "node scripts/verify-backup.mjs",
     "check:mcp-package-boundaries": "node scripts/check-mcp-package-boundaries.mjs",
     "check:mcp-node-runtime-boundary": "node scripts/check-mcp-node-runtime-boundary.mjs",
     "check:run-ledger-guardrails": "node scripts/check-run-ledger-guardrails.mjs",
     "check:editorial-guardrails": "node scripts/check-editorial-guardrails.mjs",
-    "test:e2e": "node scripts/prepare-e2e.mjs && pnpm --filter @semogtw/web build && playwright test"
+    "test:e2e": "node scripts/prepare-e2e.mjs && pnpm --filter @semogtw/web build && playwright test",
+    "check:cloudflare-worker-boundary": "node scripts/check-cloudflare-worker-boundary.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

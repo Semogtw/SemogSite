@@ -9,6 +9,7 @@ O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizz
 ## Documentação essencial
 
 - [Workflow orchestration core](docs/WORKFLOW_ORCHESTRATION.md) — reservas, gates, recuperação, fila segura, privacidade e evidências atuais.
+- [Fundação Cloudflare Worker + D1](docs/deployment/2026-08-05-cloudflare-d1-foundation.md) — composição pública, migrations, gates observados e bloqueios de promoção.
 - [Matriz de testes do workflow core](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md) — comandos e resultados realmente observados.
 - [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, checksums, remontagem, instalação sem rede, Chromium e SQLite nativo.
 - [Arquitetura e fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md) — fronteiras, composição e decisões estruturais.
@@ -233,7 +234,8 @@ Ainda bloqueado ou pendente de fase separada:
 
 - autenticação e transporte MCP remoto;
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
-- adapter e deploy no host definitivo;
+- port de autenticação, sessões e leituras privadas para D1;
+- migrations remotas, exportação/restauração e deploy preview Cloudflare;
 - migração de conteúdo real do Notion;
 - observabilidade e operação de produção;
 - campanhas, branch-divergence guidance e clustering de falhas CI além do núcleo atual.
