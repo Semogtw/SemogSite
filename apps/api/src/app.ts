@@ -45,6 +45,10 @@ import {
   type PrivateProjectQueries,
 } from "./routes/private/projects";
 import {
+  createPrivateRepositoryTargetRegistrationRoutes,
+  type PrivateRepositoryTargetRegistrationCommands,
+} from "./routes/private/repository-target-registration";
+import {
   createPrivateRepositoryTargetRoutes,
   type PrivateRepositoryTargetCommands,
 } from "./routes/private/repository-targets";
@@ -89,6 +93,7 @@ export type ApiDependencies = {
   privateSessionHandoffs?: PrivateSessionHandoffCommands;
   privateStages?: PrivateStageCommands;
   privateRepositoryTargets?: PrivateRepositoryTargetCommands;
+  privateRepositoryTargetRegistration?: PrivateRepositoryTargetRegistrationCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -153,6 +158,12 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/repository-targets",
     createPrivateRepositoryTargetRoutes(dependencies.privateRepositoryTargets),
+  );
+  api.route(
+    "/api/v1/private/repository-targets",
+    createPrivateRepositoryTargetRegistrationRoutes(
+      dependencies.privateRepositoryTargetRegistration,
+    ),
   );
   api.route(
     "/api/v1/private/audit",
