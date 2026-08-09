@@ -108,8 +108,22 @@ export function createSqliteApiRuntime(
     getProjectHub: (slug: string) => projects.getProjectHub(slug),
   };
   const auth = composeAuth(env, database);
+  const readiness = {
+    check: () => {
+      if (auth === undefined) return false;
+      try {
+        database.$client
+          .prepare("SELECT COUNT(*) AS count FROM login_rate_limits")
+          .get();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
   const app = createApiApp({
     ...(auth === undefined ? {} : { auth }),
+    readiness,
     publicProjects: {
       list: () => publicSource.listListed(),
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
