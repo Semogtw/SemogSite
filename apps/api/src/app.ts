@@ -21,6 +21,10 @@ import {
   type ApiAuthDependencies,
 } from "./routes/auth/session";
 import {
+  createPrivateAttentionLifecycleRoutes,
+  type PrivateAttentionLifecycleCommands,
+} from "./routes/private/attention-lifecycle";
+import {
   createPrivateAttentionRoutes,
   type PrivateAttentionCommands,
 } from "./routes/private/attention";
@@ -76,6 +80,7 @@ export type ApiDependencies = {
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
   privateAttention?: PrivateAttentionCommands;
+  privateAttentionLifecycle?: PrivateAttentionLifecycleCommands;
   privateEvidence?: PrivateEvidenceCommands;
   privateSessionHandoffs?: PrivateSessionHandoffCommands;
   privateStages?: PrivateStageCommands;
@@ -123,6 +128,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/attention",
     createPrivateAttentionRoutes(dependencies.privateAttention),
+  );
+  api.route(
+    "/api/v1/private/attention",
+    createPrivateAttentionLifecycleRoutes(dependencies.privateAttentionLifecycle),
   );
   api.route(
     "/api/v1/private/evidence",
