@@ -25,41 +25,42 @@ const authProvider: AuthProvider = {
   revokeSession: vi.fn(async () => undefined),
 };
 
-const heartbeat = vi.fn(async () => ({
-  ok: true,
+const transition = vi.fn(async () => ({
+  ok: true as const,
   run: {
     id: "cooperative-run-1",
-    status: "running",
-    progress: 25,
-    updatedAt: "2026-08-09T04:20:00.000Z",
-    finishedAt: null,
-  },
-}));
-const updateProgress = vi.fn(async () => ({
-  ok: true,
-  run: {
-    id: "cooperative-run-1",
-    status: "running",
+    projectId: null,
+    title: "Continuar Worker parity",
+    actorLabel: "ChatGPT",
+    origin: "chatgpt" as const,
+    status: "running" as const,
+    phase: "worker-parity",
     progress: 60,
-    updatedAt: "2026-08-09T04:21:00.000Z",
+    branch: "main",
+    summary: "Checkpoint registrado.",
+    blocker: null,
+    nextAction: "Continuar.",
+    startedAt: "2026-08-09T04:00:00.000Z",
+    lastHeartbeatAt: "2026-08-09T04:21:00.000Z",
     finishedAt: null,
+    staleAfterSeconds: 1800,
+    updatedAt: "2026-08-09T04:21:00.000Z",
+  },
+  event: {
+    id: "event-1",
+    runId: "cooperative-run-1",
+    kind: "run.checkpoint" as const,
+    actor: owner.id,
+    source: "manual" as const,
+    summary: "Checkpoint registrado.",
+    before: {} as never,
+    after: {} as never,
+    occurredAt: "2026-08-09T04:21:00.000Z",
+    idempotencyKey: "key",
+    correlationId: "correlation",
   },
 }));
-const finalize = vi.fn(async () => ({
-  ok: true,
-  run: {
-    id: "cooperative-run-1",
-    status: "completed",
-    progress: 100,
-    updatedAt: "2026-08-09T04:22:00.000Z",
-    finishedAt: "2026-08-09T04:22:00.000Z",
-  },
-}));
-const commands = {
-  heartbeat,
-  updateProgress,
-  finalize,
-} as unknown as PrivateCooperativeRunTransitionCommands;
+const commands = { transition } as unknown as PrivateCooperativeRunTransitionCommands;
 
 function app() {
   return createApiApp({
@@ -78,58 +79,57 @@ async function headers() {
 }
 
 const retryKey = "2b59d8e2-4afe-4731-9184-c7100422810f";
-const common = {
+const checkpoint = {
   idempotencyKey: retryKey,
   runId: "cooperative-run-1",
   expectedUpdatedAt: "2026-08-09T04:19:00.000Z",
-  summary: "Continuidade registrada.",
+  kind: "checkpoint" as const,
+  progress: 60,
+  summary: "Checkpoint registrado.",
   phase: "worker-parity",
   branch: "main",
-  blocker: null,
-  nextAction: "Continuar o port D1.",
+  nextAction: "Continuar.",
   confirmed: true as const,
 };
 
 beforeEach(() => {
-  heartbeat.mockClear();
-  updateProgress.mockClear();
-  finalize.mockClear();
+  transition.mockClear();
 });
 
-describe("private cooperative run transitions", () => {
-  it("requires owner authentication and CSRF before invoking commands", async () => {
+describe("private cooperative run transition", () => {
+  it("requires owner authentication and CSRF before invoking the domain", async () => {
     const unauthorized = await app().request(
-      "/api/v1/private/cooperative-runs/heartbeat",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(common),
+        body: JSON.stringify(checkpoint),
       },
     );
     expect(unauthorized.status).toBe(401);
 
     const noCsrf = await app().request(
-      "/api/v1/private/cooperative-runs/heartbeat",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: {
           cookie: `${SESSION_COOKIE_NAME}=cooperative-transition-token`,
           "content-type": "application/json",
         },
-        body: JSON.stringify(common),
+        body: JSON.stringify(checkpoint),
       },
     );
     expect(noCsrf.status).toBe(403);
-    expect(heartbeat).not.toHaveBeenCalled();
+    expect(transition).not.toHaveBeenCalled();
   });
 
-  it("uses retry-stable server event identities for heartbeat", async () => {
+  it("maps checkpoint input to the canonical domain command with retry-stable metadata", async () => {
     const response = await app().request(
-      "/api/v1/private/cooperative-runs/heartbeat",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
-        body: JSON.stringify(common),
+        body: JSON.stringify(checkpoint),
       },
     );
 
@@ -140,101 +140,120 @@ describe("private cooperative run transitions", () => {
       data: {
         runId: "cooperative-run-1",
         status: "running",
-        progress: 25,
+        progress: 60,
         processStarted: false,
       },
     });
-    const [input, context] = heartbeat.mock.calls[0] ?? [];
-    expect(input).toMatchObject({
-      runId: common.runId,
-      expectedUpdatedAt: common.expectedUpdatedAt,
-      summary: common.summary,
+
+    const [input, context] = transition.mock.calls[0] ?? [];
+    expect(input).toEqual({
+      runId: checkpoint.runId,
+      command: {
+        kind: "checkpoint",
+        progress: 60,
+        summary: checkpoint.summary,
+        phase: checkpoint.phase,
+        branch: checkpoint.branch,
+        nextAction: checkpoint.nextAction,
+      },
     });
-    expect(input).not.toHaveProperty("idempotencyKey");
-    expect(input).not.toHaveProperty("confirmed");
     expect(context).toMatchObject({
       actorId: owner.id,
-      eventId: `run-event-heartbeat-${retryKey}`,
-      idempotencyKey: `run-heartbeat-${retryKey}`,
-      correlationId: `correlation-run-heartbeat-${retryKey}`,
+      eventId: `run-event-owner-transition-${retryKey}`,
+      idempotencyKey: `owner-run-transition-${retryKey}`,
+      correlationId: `correlation-owner-transition-${retryKey}`,
+      source: "manual",
+      expectedUpdatedAt: checkpoint.expectedUpdatedAt,
     });
   });
 
-  it("routes progress and finalization without claiming external execution", async () => {
-    const progress = await app().request(
-      "/api/v1/private/cooperative-runs/progress",
+  it("supports heartbeat and terminal commands without inventing process execution", async () => {
+    const heartbeat = await app().request(
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
-        body: JSON.stringify({ ...common, progress: 60 }),
+        body: JSON.stringify({
+          ...checkpoint,
+          kind: "heartbeat",
+          summary: null,
+          phase: null,
+          branch: null,
+          nextAction: null,
+          progress: undefined,
+        }),
       },
     );
-    expect(progress.status).toBe(200);
-    await expect(progress.json()).resolves.toMatchObject({
-      ok: true,
-      data: { progress: 60, processStarted: false },
+    expect(heartbeat.status).toBe(200);
+    const heartbeatInput = transition.mock.calls[0]?.[0];
+    expect(heartbeatInput).toEqual({
+      runId: checkpoint.runId,
+      command: {
+        kind: "heartbeat",
+        phase: null,
+        branch: null,
+      },
     });
-    expect(updateProgress).toHaveBeenCalledTimes(1);
 
+    transition.mockClear();
     const completed = await app().request(
-      "/api/v1/private/cooperative-runs/finalize",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
-        body: JSON.stringify({ ...common, status: "completed" }),
+        body: JSON.stringify({
+          idempotencyKey: retryKey,
+          runId: checkpoint.runId,
+          expectedUpdatedAt: checkpoint.expectedUpdatedAt,
+          kind: "complete",
+          progress: 100,
+          summary: "Concluído.",
+          confirmed: true,
+        }),
       },
     );
     expect(completed.status).toBe(200);
-    await expect(completed.json()).resolves.toMatchObject({
-      ok: true,
-      data: {
-        status: "completed",
-        progress: 100,
-        processStarted: false,
-      },
-    });
-    expect(finalize).toHaveBeenCalledTimes(1);
-    const [finalizeInput, finalizeContext] = finalize.mock.calls[0] ?? [];
-    expect(finalizeInput).toMatchObject({
-      status: "completed",
-      finalStatus: "completed",
-      targetStatus: "completed",
-    });
-    expect(finalizeContext).toMatchObject({
-      eventId: `run-event-finalize-${retryKey}`,
-      idempotencyKey: `run-finalize-${retryKey}`,
+    expect(transition.mock.calls[0]?.[0]).toEqual({
+      runId: checkpoint.runId,
+      command: { kind: "complete", progress: 100, summary: "Concluído." },
     });
   });
 
-  it("maps stale and duplicate domain outcomes to conflict", async () => {
-    heartbeat.mockResolvedValueOnce({
+  it("maps domain stale, invalid-state and duplicate outcomes without false success", async () => {
+    transition.mockResolvedValueOnce({
       ok: false,
       code: "STALE_STATE",
     } as never);
     const stale = await app().request(
-      "/api/v1/private/cooperative-runs/heartbeat",
-      {
-        method: "POST",
-        headers: await headers(),
-        body: JSON.stringify(common),
-      },
+      "/api/v1/private/cooperative-runs/transition",
+      { method: "POST", headers: await headers(), body: JSON.stringify(checkpoint) },
     );
     expect(stale.status).toBe(409);
     await expect(stale.json()).resolves.toMatchObject({
       error: { code: "STALE_STATE" },
     });
 
-    updateProgress.mockResolvedValueOnce({
+    transition.mockResolvedValueOnce({
       ok: false,
-      code: "DUPLICATE",
+      code: "INVALID_CURRENT_STATE",
+      errors: ["RUNNING_NEXT_ACTION_REQUIRED"],
     } as never);
-    const duplicate = await app().request(
-      "/api/v1/private/cooperative-runs/progress",
-      {
-        method: "POST",
-        headers: await headers(),
-        body: JSON.stringify({ ...common, progress: 60 }),
+    const invalid = await app().request(
+      "/api/v1/private/cooperative-runs/transition",
+      { method: "POST", headers: await headers(), body: JSON.stringify(checkpoint) },
+    );
+    expect(invalid.status).toBe(409);
+    await expect(invalid.json()).resolves.toMatchObject({
+      error: {
+        code: "INVALID_CURRENT_STATE",
+        details: ["RUNNING_NEXT_ACTION_REQUIRED"],
       },
+    });
+
+    transition.mockResolvedValueOnce({ ok: false, code: "DUPLICATE" } as never);
+    const duplicate = await app().request(
+      "/api/v1/private/cooperative-runs/transition",
+      { method: "POST", headers: await headers(), body: JSON.stringify(checkpoint) },
     );
     expect(duplicate.status).toBe(409);
     await expect(duplicate.json()).resolves.toMatchObject({
