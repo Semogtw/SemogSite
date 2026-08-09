@@ -71,6 +71,7 @@ function validateWorkerImports(root, violations) {
       "@semogtw/database/d1-auth-sessions",
       "@semogtw/database/d1-attention-capture",
       "@semogtw/database/d1-attention-lifecycle",
+      "@semogtw/database/d1-branch-recommendation-acceptance",
       "@semogtw/database/d1-evidence-write",
       "@semogtw/database/d1-session-handoff",
       "@semogtw/database/d1-stage-completion",
@@ -129,6 +130,8 @@ function validateDatabaseExports(root, violations) {
       "./src/repositories/d1-attention-capture-repository.ts",
     "./d1-attention-lifecycle":
       "./src/repositories/d1-attention-lifecycle-repository.ts",
+    "./d1-branch-recommendation-acceptance":
+      "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
     "./d1-evidence-write":
       "./src/repositories/d1-evidence-write-repository.ts",
     "./d1-session-handoff":
