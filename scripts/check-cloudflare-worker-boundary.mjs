@@ -75,6 +75,7 @@ function validateWorkerImports(root, violations) {
       "@semogtw/database/d1-session-handoff",
       "@semogtw/database/d1-stage-completion",
       "@semogtw/database/d1-repository-target-lifecycle",
+      "@semogtw/database/d1-repository-target-registration",
       "@semogtw/database/d1-login-rate-limiter",
       "@semogtw/database/d1-roadmap",
       "@semogtw/database/d1-today",
@@ -136,6 +137,8 @@ function validateDatabaseExports(root, violations) {
       "./src/repositories/d1-stage-completion-repository.ts",
     "./d1-repository-target-lifecycle":
       "./src/repositories/d1-repository-target-lifecycle-repository.ts",
+    "./d1-repository-target-registration":
+      "./src/repositories/d1-repository-target-registration-repository.ts",
     "./d1-login-rate-limiter":
       "./src/repositories/d1-login-rate-limiter.ts",
     "./d1-roadmap": "./src/repositories/d1-roadmap-data-source.ts",
