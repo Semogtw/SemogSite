@@ -11,6 +11,7 @@ import {
 } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
 import { D1AuditDataSource } from "@semogtw/database/d1-audit";
+import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
@@ -18,7 +19,13 @@ import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
-import { OverviewService, ProjectService, RoadmapService, TodayService } from "@semogtw/domain";
+import {
+  AttentionCaptureService,
+  OverviewService,
+  ProjectService,
+  RoadmapService,
+  TodayService,
+} from "@semogtw/domain";
 import { createApiApp } from "../app";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
@@ -98,6 +105,9 @@ async function composeD1ApiRuntime(
   const database = createD1Database(bindings.DB);
   const publicProjects = new D1PublicProjectSource(database);
   const privateAudit = new D1AuditDataSource(database);
+  const privateAttention = new AttentionCaptureService(
+    new D1AttentionCaptureRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -141,6 +151,7 @@ async function composeD1ApiRuntime(
         list: () => publicProjects.listListed(),
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
+      privateAttention,
       privateAudit,
       privateOverview,
       privateToday,
