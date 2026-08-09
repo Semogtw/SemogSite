@@ -1,15 +1,16 @@
 # Semogtw Platform
 
-Plataforma pessoal portátil composta por uma área pública editorial, o **Semogtw DevOS** privado e adapters sobre os mesmos contratos de domínio. O projeto permanece desacoplado de um provedor de hospedagem específico.
+Plataforma pessoal portátil composta por uma área pública editorial, o **Semogtw DevOS** privado e adapters sobre contratos compartilhados de domínio. O projeto continua desacoplado de um único provedor, mas a direção de hospedagem escolhida é Cloudflare Workers + D1 para a plataforma, mantendo o adapter Node/SQLite como referência local e para superfícies ainda não portadas.
 
-O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizzle ORM, SQLite e pnpm workspaces.
+O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizzle ORM, SQLite/D1 e pnpm workspaces.
 
 > O seed demonstrativo existe apenas para exercitar a fundação. Ele não representa migração concluída do Notion, estado confirmado do GitHub nem progresso real de produção.
 
 ## Documentação essencial
 
 - [Workflow orchestration core](docs/WORKFLOW_ORCHESTRATION.md) — reservas, gates, recuperação, fila segura, privacidade e evidências atuais.
-- [Fundação Cloudflare Worker + D1](docs/deployment/2026-08-05-cloudflare-d1-foundation.md) — composição pública, migrations, gates observados e bloqueios de promoção.
+- [Fundação Cloudflare Worker + D1](docs/deployment/2026-08-05-cloudflare-d1-foundation.md) — composição Worker/D1, auth, leituras privadas, migrations e bloqueios de promoção.
+- [Deployment](DEPLOYMENT.md) — modos, gates, rollback e requisitos de produção.
 - [Matriz de testes do workflow core](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md) — comandos e resultados realmente observados.
 - [Tutorial da toolchain offline](docs/OFFLINE_TOOLCHAIN.md) — download, checksums, remontagem, instalação sem rede, Chromium e SQLite nativo.
 - [Arquitetura e fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md) — fronteiras, composição e decisões estruturais.
@@ -17,35 +18,33 @@ O stack principal usa TypeScript, TanStack Start/Router, React, Hono, Zod, Drizz
 - [Segurança](docs/security/README.md) — autenticação, privacidade, integrações e threat models.
 - [Testes](docs/TESTING.md) — gates gerais, comandos e evidências observadas.
 - [Runbook do ledger](docs/runbook/2026-08-01-cooperative-run-ledger.md) — operação e recuperação do fluxo cooperativo.
-- [Especificação da fundação](docs/superpowers/specs/2026-08-01-semogtw-platform-foundation-design.md).
-- [Plano da fundação](docs/superpowers/plans/2026-08-01-semogtw-platform-foundation.md).
 
 ## Estrutura
 
 ```text
 apps/web               TanStack Start: site público e DevOS
-apps/api               Hono: API pública/privada e runtime Node
+apps/api               Hono: API runtime-neutral, Node/SQLite e Worker/D1
 apps/mcp               composição SQLite → DevOSReadService → McpServer
 packages/domain        regras e serviços sem framework
 packages/contracts     schemas e DTOs públicos/privados
-packages/database      Drizzle, SQLite, migrations, writes e read models
+packages/database      Drizzle, SQLite/D1, migrations, writes e read models
 packages/github        cliente REST GET-only e fonte de observações
 packages/mcp           adapter MCP somente leitura, sem transporte
-packages/auth          autenticação local e sessões revogáveis
+packages/auth          autenticação local, cookies, CSRF e sessões revogáveis
 packages/ui            tokens, primitivas e navegação
 packages/config        configuração tipada e fail-closed
 ```
 
-## Requisitos
+## Requisitos locais
 
 - Node.js 22;
 - pnpm 10.14;
-- binário ou toolchain compatível com `better-sqlite3`;
+- binário ou toolchain compatível com `better-sqlite3` para o runtime Node/SQLite;
 - acesso HTTPS ao GitHub somente quando observações reais forem executadas.
 
-Em ambientes sem acesso direto ao npm, use o artifact reproduzível de [`Semogtw/Offline-Toolchains`](https://github.com/Semogtw/Offline-Toolchains) e siga o [tutorial offline](docs/OFFLINE_TOOLCHAIN.md).
+Em ambientes sem acesso direto ao npm, use os artifacts reproduzíveis de [`Semogtw/Offline-Toolchains`](https://github.com/Semogtw/Offline-Toolchains) e siga o [tutorial offline](docs/OFFLINE_TOOLCHAIN.md). Gates pesados e workflows de checkout devem ser centralizados nesse repositório público de toolchains quando possível.
 
-## Instalação
+## Instalação local
 
 ```bash
 corepack enable
@@ -66,17 +65,19 @@ Use o resultado em `SEMOGTW_SESSION_SECRET`. Para observações GitHub, configur
 
 ```bash
 pnpm dev       # web
-pnpm dev:api   # Hono em http://localhost:3001
+pnpm dev:api   # Hono/Node em http://localhost:3001
 pnpm dev:all   # ambos
 ```
 
 Sem autenticação válida, `/devos` e `/api/v1/private/*` falham fechados. Sem token GitHub, o cadastro e a revisão local de alvos continuam disponíveis, mas nenhuma leitura do provider é executada.
 
+O Worker Cloudflare é composto por `apps/api/src/worker.ts` e `apps/api/src/composition/d1.ts`. O arquivo `apps/api/wrangler.jsonc` aponta apenas para o banco D1 de desenvolvimento. Não existe autorização implícita para deploy de produção.
+
 Não existe transporte MCP remoto nesta fase. `apps/mcp` compõe o servidor somente leitura sem abrir HTTP, stdio ou outra porta.
 
 ## Banco e migrations
 
-Uma base nova aplica, em ordem:
+Uma base nova no `main` atual aplica, em ordem:
 
 1. `0001_foundation.sql`;
 2. `0002_seed_demo.sql`;
@@ -90,19 +91,18 @@ Uma base nova aplica, em ordem:
 10. `0010_editorial_redirect_registry.sql`;
 11. `0011_scope_reservations.sql`;
 12. `0012_verification_obligations.sql`;
-13. `0013_recovery_snapshots.sql`.
+13. `0013_recovery_snapshots.sql`;
+14. `0014_login_rate_limits.sql`.
 
-O build web copia esses arquivos somente para o bundle de servidor e falha quando a lista empacotada diverge da fonte. As migrations não são publicadas em `dist/client`.
+O build web mantém migrations apenas no bundle de servidor e deve falhar quando a lista empacotada diverge da fonte. As migrations não podem ser publicadas em `dist/client`.
 
-As migrations `0011`–`0013` adicionam coordenação cooperativa sem reescrever histórico:
+`0011`–`0013` adicionam coordenação cooperativa sem reescrever histórico. `0014` adiciona persistência para limitação de tentativas de login compatível com D1.
 
-- reservas de repositório/branch/escopo e eventos imutáveis;
-- obrigações de verificação vinculadas a SHA completo;
-- snapshots canônicos de recuperação com SHA-256 e idempotência.
+A branch de Growth continua preservada na PR #24 e contém migrations posteriores (`0015`/`0015a`), mas não faz parte do `main` enquanto os conflitos estruturais com as linhas de desenvolvimento mais recentes não forem reconciliados.
 
 ## Semogtw DevOS
 
-As superfícies privadas implementadas incluem:
+As superfícies privadas implementadas no `main` incluem:
 
 - Overview, Hoje, Projetos, hub e Roadmap;
 - captura e ciclo de vida de atenção;
@@ -112,7 +112,8 @@ As superfícies privadas implementadas incluem:
 - Operação GitHub somente leitura;
 - ledger de execuções cooperativas, checkpoints e comandos locais;
 - `/devos/workflows` para reservas, gates e próximo trabalho seguro;
-- `/devos/workflows/recovery` para gerar e reutilizar handoffs imutáveis.
+- `/devos/workflows/recovery` para gerar e reutilizar handoffs imutáveis;
+- ciclo editorial owner-only com revisão, aprovação, publicação, retirada e rollback auditáveis.
 
 ### Workflow orchestration
 
@@ -129,9 +130,33 @@ A coordenação de desenvolvimento permanece provider-neutral:
 
 A sincronização GitHub nunca altera automaticamente branch ativa, papel, status do alvo ou `sync_enabled`. Aceitar uma recomendação modifica apenas o estado local auditado do DevOS e não escreve no GitHub.
 
+## API Node e Cloudflare
+
+Rotas atualmente compostas pela API compartilhada:
+
+```text
+GET  /health
+GET  /api/v1/public/projects
+GET  /api/v1/public/projects/:slug
+GET  /api/v1/auth/session
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+GET  /api/v1/private/overview
+GET  /api/v1/private/today
+GET  /api/v1/private/roadmap
+GET  /api/v1/private/projects
+GET  /api/v1/private/projects/:slug
+GET  /api/v1/private/audit
+GET  /api/v1/private/workflows
+```
+
+No Worker/D1, owner auth, sessão/revogação, login rate limiting e esses read models privados já possuem adapters D1. Ausência/invalidade dos secrets de autenticação mantém as rotas privadas fechadas.
+
+Ainda não há paridade Worker/D1 para todas as mutações privadas do DevOS. Até essa portabilidade existir e for verificada, a implantação deve ser explicitamente dividida ou manter essas mutações no runtime Node/SQLite.
+
 ## MCP somente leitura
 
-`DevOSReadService` reutiliza os serviços de Overview, Today, Projetos e Roadmap. O catálogo inicial contém:
+`DevOSReadService` reutiliza serviços de Overview, Today, Projetos e Roadmap. O catálogo inicial contém:
 
 ```text
 Resources
@@ -148,22 +173,9 @@ devos_get_project
 devos_query_roadmap
 ```
 
-Todos os tools são anotados como somente leitura, não destrutivos e idempotentes. Entradas, saídas, limites de coleção, tamanho JSON e campos sensíveis são validados antes de responder.
+Todos os tools são somente leitura, não destrutivos e idempotentes. Entradas, saídas, limites de coleção, tamanho JSON e campos sensíveis são validados antes de responder.
 
 Isso não constitui endpoint remoto. Exposição futura exige autenticação, autorização, isolamento de sessão, TLS, validação de Host/Origin, rate limiting, timeouts, cache privado, logging sanitizado, revogação e rollback.
-
-## API local
-
-Rotas iniciais:
-
-```text
-GET /health
-GET /api/v1/public/projects
-GET /api/v1/public/projects/:slug
-GET /api/v1/private/overview
-```
-
-Endpoints privados autenticam antes de invocar serviços e retornam políticas de cache privadas.
 
 ## Gates
 
@@ -171,20 +183,14 @@ Endpoints privados autenticam antes de invocar serviços e retornam políticas d
 pnpm check
 pnpm build
 pnpm test:e2e
+pnpm check:cloudflare-worker-boundary
 ```
 
-O gate focado do workflow core também executa:
+Quando o ambiente atual não consegue executar um gate por falta de toolchain, rede, quota ou runtime, a limitação deve ser documentada e o desenvolvimento deve seguir para tarefas resolvíveis por código. Não reutilize contagens de testes antigas depois de alterar arquivos cobertos pelo gate.
 
-- allowlist efêmera de `better-sqlite3` somente no checkout descartável do runner;
-- scanners de fronteiras e confidencialidade pública;
-- testes de domínio, migrations, backup e repositórios SQLite;
-- typechecks de domínio, banco, UI e web;
-- geração da árvore TanStack e build de produção;
-- Playwright anônimo/autenticado e viewport de 360×800.
+O checkpoint offline observado em 3 de agosto de 2026 passou 157 arquivos / 600 testes, build de produção, validação das 13 migrations então existentes no SSR e 6/6 cenários Playwright do workflow core. Essa evidência é histórica e não cobre `0014` nem os commits Cloudflare/D1 posteriores.
 
-A evidência atual, os IDs das execuções e qualquer limitação permanecem registrados em [docs/testing/2026-08-03-workflow-orchestration-test-matrix.md](docs/testing/2026-08-03-workflow-orchestration-test-matrix.md). Não reutilize contagens antigas depois de alterar arquivos cobertos pelo gate.
-
-O checkpoint offline observado em 3 de agosto de 2026 passou 157 arquivos / 600 testes, build de produção, validação das 13 migrations no SSR e 6/6 cenários Playwright do workflow core. O `pnpm check` agregado excedeu o limite externo somente durante a suíte monorepo; os mesmos testes passaram integralmente por workspace.
+A documentação Cloudflare registra um dry-run e uma aplicação local D1 observados no primeiro slice de 5 de agosto; também são evidências históricas e devem ser reexecutadas para o head exato antes de promoção.
 
 ## Backup
 
@@ -193,27 +199,28 @@ pnpm backup:database -- ./data/semogtw.sqlite ./backups/semogtw.sqlite
 pnpm verify:backup -- ./backups/semogtw.sqlite ./data/semogtw.sqlite
 ```
 
-Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e estado das migrations. Upload, criptografia e rotação continuam responsabilidades do runtime escolhido.
+Os comandos recusam overwrite e verificam integridade, chaves estrangeiras e estado das migrations. Upload, criptografia e rotação continuam responsabilidades do runtime escolhido. Para D1 remoto, export/restore deve ser provado separadamente antes de produção.
 
 ## Segurança
 
 - autenticação e mutações privadas falham fechadas;
 - tokens de sessão são persistidos apenas como digest;
 - CSRF, confirmação, razão, versão esperada, idempotência e auditoria protegem mutações sensíveis;
+- login rate limiting possui persistência D1 no Worker;
 - respostas públicas usam DTOs allowlist;
 - nomes de repositório, branches, observações, recomendações, runs, reservas, gates, snapshots e payloads MCP permanecem privados;
 - GitHub é tratado como fonte não confiável e acessado apenas por GET;
 - nenhum token, authorization header ou corpo bruto do provider é persistido;
 - snapshots rejeitam conteúdo com aparência de credencial e caminhos de documento inseguros;
 - MCP não possui ferramenta de escrita nem transporte remoto;
-- migrations e dependências nativas necessárias ao SSR são verificadas no build.
+- o Worker deve importar somente subpaths D1 explicitamente permitidos, sem carregar o adapter SQLite nativo.
 
 ## Estado atual
 
-Implementado e verificado por gates focados:
+Implementado no `main`:
 
 - fundação portátil e autenticação local;
-- leituras e escritas operacionais auditadas;
+- leituras e escritas operacionais auditadas no runtime Node/SQLite;
 - backup, restauração e auditoria;
 - integração GitHub somente leitura;
 - recomendações e decisão local de branch;
@@ -224,21 +231,25 @@ Implementado e verificado por gates focados:
 - obrigações de verificação com classificação explícita e vínculo a SHA;
 - snapshots de recuperação determinísticos, imutáveis e reutilizáveis;
 - fila conservadora de próximo trabalho seguro e reavaliação por capacidades explícitas da sessão;
-- ciclo editorial owner-only completo com revisions imutáveis, diff textual limitado, análise sensível, aprovação por hash, publicação, retirada e rollback auditáveis;
+- ciclo editorial owner-only completo;
 - projeções públicas derivadas exclusivamente da revisão aprovada e publicada;
 - renderer Markdown em elementos React, sem HTML bruto, com política restritiva de links;
-- canonical provider-neutral em índices e projeções publicadas;
-- registry append-only de aliases e redirects `308` sem cache persistente.
+- canonical provider-neutral e registry append-only de aliases/redirects `308`;
+- Worker Cloudflare + D1 para projetos públicos;
+- autenticação owner, sessões revogáveis e login rate limiting em D1;
+- read models privados de Overview, Hoje, Roadmap, Projetos, Auditoria e Workflows em D1;
+- guardrail de boundary para impedir dependências Node/SQLite no Worker.
 
-Ainda bloqueado ou pendente de fase separada:
+Pendente ou separado do `main`:
 
+- paridade Worker/D1 para mutações privadas necessárias a um DevOS totalmente hospedado no Worker;
+- migrations remotas, exportação/restauração e deploy preview Cloudflare;
 - autenticação e transporte MCP remoto;
 - validação de token/rate limit contra repositórios GitHub reais no runtime escolhido;
-- port de autenticação, sessões e leituras privadas para D1;
-- migrations remotas, exportação/restauração e deploy preview Cloudflare;
 - migração de conteúdo real do Notion;
 - observabilidade e operação de produção;
-- campanhas, branch-divergence guidance e clustering de falhas CI além do núcleo atual.
+- campanhas, branch-divergence guidance e clustering de falhas CI além do núcleo atual;
+- reconciliação da PR #24 de Growth, atualmente preservada mas conflitante com `main`.
 
 ## Referência upstream
 
