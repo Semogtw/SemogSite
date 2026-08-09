@@ -19,6 +19,7 @@ import {
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
   SqlitePublicProjectSource,
+  SqliteRepositoryTargetLifecycleRepository,
   SqliteRoadmapDataSource,
   SqliteSessionHandoffRepository,
   SqliteStageCompletionRepository,
@@ -31,6 +32,7 @@ import {
   EvidenceService,
   OverviewService,
   ProjectService,
+  RepositoryTargetLifecycleService,
   RoadmapService,
   SessionHandoffService,
   StageCompletionService,
@@ -121,6 +123,9 @@ export function createSqliteApiRuntime(
   const privateStages = new StageCompletionService(
     new SqliteStageCompletionRepository(database),
   );
+  const privateRepositoryTargets = new RepositoryTargetLifecycleService(
+    new SqliteRepositoryTargetLifecycleRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -171,6 +176,7 @@ export function createSqliteApiRuntime(
     privateEvidence,
     privateSessionHandoffs,
     privateStages,
+    privateRepositoryTargets,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
