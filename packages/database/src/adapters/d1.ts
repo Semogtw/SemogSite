@@ -14,9 +14,7 @@ export type D1QueryResult<Row = Record<string, unknown>> = {
 export interface D1PreparedStatementBinding {
   bind(...values: readonly unknown[]): D1PreparedStatementBinding;
   all<Row = Record<string, unknown>>(): Promise<D1QueryResult<Row>>;
-  first<Row = Record<string, unknown>>(
-    columnName?: string,
-  ): Promise<Row | unknown | null>;
+  first<Row = Record<string, unknown>>(): Promise<Row | null>;
   raw<Row extends readonly unknown[] = readonly unknown[]>(options?: {
     columnNames?: boolean;
   }): Promise<readonly Row[]>;
