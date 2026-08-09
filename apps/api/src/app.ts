@@ -68,12 +68,13 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.use("*", securityHeaders);
   api.onError(sanitizedErrorHandler);
   api.notFound(sanitizedNotFoundHandler);
-  api.get("/health", (context) =>
-    context.json({
+  api.get("/health", (context) => {
+    context.header("cache-control", "no-store");
+    return context.json({
       ok: true,
       service: "semogtw-api",
-    }),
-  );
+    });
+  });
   api.route("/ready", createReadinessRoutes(dependencies.readiness));
   api.route(
     "/api/v1/public/projects",
