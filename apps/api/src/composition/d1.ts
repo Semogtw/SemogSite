@@ -22,6 +22,7 @@ import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";
 import { D1RepositoryTargetRegistrationRepository } from "@semogtw/database/d1-repository-target-registration";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
+import { D1ScopeReservationRepository } from "@semogtw/database/d1-scope-reservations";
 import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
 import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
@@ -45,7 +46,10 @@ import {
   StageCompletionService,
   TodayService,
 } from "@semogtw/domain";
-import { VerificationObligationService } from "@semogtw/domain/orchestration";
+import {
+  ScopeReservationService,
+  VerificationObligationService,
+} from "@semogtw/domain/orchestration";
 import { createApiApp } from "../app";
 import {
   consoleRequestObserver,
@@ -167,6 +171,9 @@ async function composeD1ApiRuntime(
   const privateVerificationObligations = new VerificationObligationService(
     new D1VerificationObligationRepository(bindings.DB),
   );
+  const privateScopeReservations = new ScopeReservationService(
+    new D1ScopeReservationRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -225,6 +232,7 @@ async function composeD1ApiRuntime(
       privateCooperativeRuns,
       privateCooperativeRunTransitions,
       privateVerificationObligations,
+      privateScopeReservations,
       privateAudit,
       privateOverview,
       privateToday,
