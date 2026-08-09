@@ -25,6 +25,7 @@ import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
 import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
 import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
+import { D1VerificationObligationRepository } from "@semogtw/database/d1-verification-obligations";
 import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
@@ -44,6 +45,7 @@ import {
   StageCompletionService,
   TodayService,
 } from "@semogtw/domain";
+import { VerificationObligationService } from "@semogtw/domain/orchestration";
 import { createApiApp } from "../app";
 import {
   consoleRequestObserver,
@@ -162,6 +164,9 @@ async function composeD1ApiRuntime(
   const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
     new D1CooperativeRunTransitionRepository(bindings.DB),
   );
+  const privateVerificationObligations = new VerificationObligationService(
+    new D1VerificationObligationRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -219,6 +224,7 @@ async function composeD1ApiRuntime(
       privateBranchRecommendations,
       privateCooperativeRuns,
       privateCooperativeRunTransitions,
+      privateVerificationObligations,
       privateAudit,
       privateOverview,
       privateToday,
