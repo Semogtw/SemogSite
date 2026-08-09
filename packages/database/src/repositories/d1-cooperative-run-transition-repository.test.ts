@@ -85,11 +85,13 @@ const next: CooperativeRunSnapshot = {
 const event: CooperativeRunEvent = {
   id: "run-event-transition-1",
   runId: current.id,
-  kind: "progress.updated",
+  kind: "run.checkpoint",
   actor: "semogtw-owner",
-  summary: next.summary,
-  occurredAt: next.updatedAt,
   source: "chatgpt",
+  summary: next.summary,
+  before: current,
+  after: next,
+  occurredAt: next.updatedAt,
   idempotencyKey: "run-transition-1",
   correlationId: "run-transition-correlation-1",
 };
@@ -97,27 +99,35 @@ const event: CooperativeRunEvent = {
 function replayRow(after: CooperativeRunSnapshot = next) {
   return {
     id: event.id,
+    kind: event.kind,
     actor: event.actor,
     source: event.source,
     summary: event.summary,
     before_json: JSON.stringify(current),
     after_json: JSON.stringify(after),
+    occurred_at: event.occurredAt,
     correlation_id: event.correlationId,
   };
 }
 
 describe("D1CooperativeRunTransitionRepository", () => {
-  it("updates by observed timestamp and appends the next ledger sequence", async () => {
+  it("updates the observed state and appends the next ledger sequence", async () => {
     const binding = new CapturingD1();
     const repository = new D1CooperativeRunTransitionRepository(binding);
 
-    await expect(repository.transition(current, next, event)).resolves.toBe("updated");
+    await expect(repository.apply(current, next, event)).resolves.toBe("updated");
     const [update, insertEvent] = binding.batches[0] ?? [];
     expect(update?.sql).toContain("AND updated_at = ?");
+    expect(update?.sql).toContain("AND status = ?");
+    expect(update?.sql).toContain("AND progress = ?");
+    expect(update?.sql).toContain("AND last_heartbeat_at = ?");
     expect(update?.sql).toContain("idempotency_key = ?");
-    expect(update?.params.slice(-4)).toEqual([
+    expect(update?.params.slice(-7)).toEqual([
       current.id,
       current.updatedAt,
+      current.status,
+      current.progress,
+      current.lastHeartbeatAt,
       current.id,
       event.idempotencyKey,
     ]);
@@ -136,10 +146,10 @@ describe("D1CooperativeRunTransitionRepository", () => {
     binding.firstResponses.push(replayRow());
     const repository = new D1CooperativeRunTransitionRepository(binding);
 
-    await expect(repository.transition(current, next, event)).resolves.toBe("duplicate");
+    await expect(repository.apply(current, next, event)).resolves.toBe("duplicate");
   });
 
-  it("rejects idempotency replay with different semantic intent", async () => {
+  it("rejects an idempotency replay with different semantic intent", async () => {
     const binding = new CapturingD1();
     binding.batchResults = [
       { results: [], success: true, meta: { changes: 0 } },
@@ -150,41 +160,29 @@ describe("D1CooperativeRunTransitionRepository", () => {
     );
     const repository = new D1CooperativeRunTransitionRepository(binding);
 
-    await expect(repository.transition(current, next, event)).resolves.toBe("conflict");
+    await expect(repository.apply(current, next, event)).resolves.toBe("conflict");
   });
 
-  it("classifies a lost timestamp race as stale", async () => {
+  it("classifies a lost optimistic race as conflict", async () => {
     const binding = new CapturingD1();
     binding.batchResults = [
       { results: [], success: true, meta: { changes: 0 } },
       { results: [], success: true, meta: { changes: 0 } },
     ];
     binding.firstResponses.push(null);
-    binding.allResponses.push({
-      success: true,
-      results: [{
-        id: current.id,
-        project_id: current.projectId,
-        title: current.title,
-        actor_label: current.actorLabel,
-        origin: current.origin,
-        status: current.status,
-        phase: current.phase,
-        progress: current.progress,
-        branch: current.branch,
-        summary: current.summary,
-        blocker: current.blocker,
-        next_action: current.nextAction,
-        started_at: current.startedAt,
-        last_heartbeat_at: current.lastHeartbeatAt,
-        finished_at: current.finishedAt,
-        stale_after_seconds: current.staleAfterSeconds,
-        updated_at: "2026-08-09T04:06:00.000Z",
-      }],
-    });
     const repository = new D1CooperativeRunTransitionRepository(binding);
 
-    await expect(repository.transition(current, next, event)).resolves.toBe("stale");
+    await expect(repository.apply(current, next, event)).resolves.toBe("conflict");
+  });
+
+  it("rejects inconsistent event identities before touching D1", async () => {
+    const binding = new CapturingD1();
+    const repository = new D1CooperativeRunTransitionRepository(binding);
+
+    await expect(
+      repository.apply(current, next, { ...event, runId: "other-run" }),
+    ).resolves.toBe("conflict");
+    expect(binding.batches).toHaveLength(0);
   });
 
   it("fails closed when D1 omits transition changes metadata", async () => {
@@ -195,7 +193,7 @@ describe("D1CooperativeRunTransitionRepository", () => {
     ];
     const repository = new D1CooperativeRunTransitionRepository(binding);
 
-    await expect(repository.transition(current, next, event)).rejects.toThrow(
+    await expect(repository.apply(current, next, event)).rejects.toThrow(
       "missing changes metadata",
     );
   });
