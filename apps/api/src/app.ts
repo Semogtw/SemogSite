@@ -37,6 +37,10 @@ import {
   type PrivateBranchRecommendationCommands,
 } from "./routes/private/branch-recommendations";
 import {
+  createPrivateCooperativeRunRoutes,
+  type PrivateCooperativeRunCommands,
+} from "./routes/private/cooperative-runs";
+import {
   createPrivateEvidenceRoutes,
   type PrivateEvidenceCommands,
 } from "./routes/private/evidence";
@@ -99,6 +103,7 @@ export type ApiDependencies = {
   privateRepositoryTargets?: PrivateRepositoryTargetCommands;
   privateRepositoryTargetRegistration?: PrivateRepositoryTargetRegistrationCommands;
   privateBranchRecommendations?: PrivateBranchRecommendationCommands;
+  privateCooperativeRuns?: PrivateCooperativeRunCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -175,6 +180,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     createPrivateBranchRecommendationRoutes(
       dependencies.privateBranchRecommendations,
     ),
+  );
+  api.route(
+    "/api/v1/private/cooperative-runs",
+    createPrivateCooperativeRunRoutes(dependencies.privateCooperativeRuns),
   );
   api.route(
     "/api/v1/private/audit",
