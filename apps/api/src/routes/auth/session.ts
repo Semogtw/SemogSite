@@ -11,9 +11,12 @@ import {
   type RuntimeNodeEnv,
 } from "@semogtw/auth";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { ApiEnvironment } from "../../middleware/request-context";
+
+const MAX_LOGIN_BODY_BYTES = 4 * 1024;
 
 const LoginInput = z.object({
   password: z.string().min(1).max(1024),
@@ -46,6 +49,12 @@ function disableCaching(context: {
   context.header("pragma", "no-cache");
 }
 
+function isJsonRequest(contentType: string | undefined): boolean {
+  if (contentType === undefined) return false;
+  const mediaType = contentType.split(";", 1)[0]?.trim().toLowerCase();
+  return mediaType === "application/json" || mediaType?.endsWith("+json") === true;
+}
+
 function clientRateKey(request: {
   header(name: string): string | undefined;
 }): string {
@@ -71,6 +80,23 @@ function clearAuthCookies(
     maxAge: 0,
   });
 }
+
+const limitLoginBody = bodyLimit({
+  maxSize: MAX_LOGIN_BODY_BYTES,
+  onError: (context) => {
+    disableCaching(context);
+    return context.json(
+      {
+        ok: false,
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Não foi possível autenticar.",
+        },
+      },
+      413,
+    );
+  },
+});
 
 export function createAuthSessionRoutes(
   dependencies?: ApiAuthDependencies,
@@ -105,7 +131,7 @@ export function createAuthSessionRoutes(
               },
       });
     })
-    .post("/login", async (context) => {
+    .post("/login", limitLoginBody, async (context) => {
       disableCaching(context);
       if (dependencies === undefined) {
         return context.json(
@@ -117,6 +143,19 @@ export function createAuthSessionRoutes(
             },
           },
           401,
+        );
+      }
+
+      if (!isJsonRequest(context.req.header("content-type"))) {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "INVALID_REQUEST",
+              message: "Não foi possível autenticar.",
+            },
+          },
+          400,
         );
       }
 
