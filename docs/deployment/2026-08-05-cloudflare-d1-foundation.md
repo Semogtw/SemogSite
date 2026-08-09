@@ -2,9 +2,11 @@
 
 ## Status
 
-The first production-adapter slice is implemented on the development branch. It preserves the Node + `better-sqlite3` runtime for local development while adding a separate Cloudflare Worker + D1 composition for public API reads.
+The Cloudflare production-adapter foundation is now integrated into `main` (PR #28, merged on August 8, 2026 local project time). It preserves the Node + `better-sqlite3` runtime for local development while adding a separate Cloudflare Worker + D1 composition.
 
-This document records observed evidence from August 5, 2026. It does not authorize production promotion.
+The original August 5 evidence below remains historical evidence for the foundation slice; it is not automatically evidence for the current merged `main` head. Subsequent commits added D1-backed owner authentication, session persistence, login rate limiting and private read models. Mandatory gates must be rerun against the exact deployment candidate before promotion.
+
+No production hostname or production D1 database is authorized by this document.
 
 ## Runtime composition
 
@@ -14,22 +16,24 @@ The Worker entry is:
 apps/api/src/worker.ts
 ```
 
-It composes the existing runtime-neutral Hono application through:
+It composes the runtime-neutral Hono application through:
 
 ```text
 apps/api/src/composition/d1.ts
 ```
 
-The D1 composition imports only explicit Worker-safe database subpaths:
+The D1 composition imports only explicit Worker-safe database subpaths. It must not import the main `@semogtw/database` barrel because that surface also exports the Node/SQLite adapter and can pull `better-sqlite3` into a Worker bundle.
 
-```text
-@semogtw/database/d1
-@semogtw/database/d1-public-projects
-```
+The Worker composition currently provides:
 
-It must not import the main `@semogtw/database` barrel, because that public surface also exports the Node/SQLite adapter and can pull `better-sqlite3` into a Worker bundle.
+- public project reads;
+- owner session inspection, login and logout;
+- D1-backed session persistence and revocation;
+- D1-backed login rate limiting;
+- private Overview, Hoje, Roadmap, Projetos, Auditoria and Workflows reads;
+- fail-closed private behavior when required auth secrets are absent or invalid.
 
-Private routes remain deliberately fail-closed. The D1 session store, owner authentication, CSRF persistence and private read models are separate migration slices and have not been enabled implicitly.
+CSRF tokens remain bound to the authenticated session and logout revocation is persisted through the D1 session store. Private write/mutation parity is not complete: the richer DevOS mutation surfaces still rely on the existing Node/SQLite server composition and must be ported or deliberately kept behind a split deployment mode before a fully Worker-hosted DevOS can be claimed.
 
 ## Development database
 
@@ -55,22 +59,20 @@ The canonical migrations remain in:
 packages/database/migrations
 ```
 
-Wrangler is configured with a relative `migrations_dir`; migrations are not copied into a second Cloudflare-only history.
+Wrangler uses that canonical migration directory; there is no second Cloudflare-only migration history.
 
-## Observed gates
+The merged runtime now includes `0014_login_rate_limits.sql` in addition to the original `0001`–`0013` foundation migrations.
 
-### Database and API tests
+## Historical observed gates — August 5 foundation slice
 
-The following focused gates passed before this document was written:
+The following evidence was observed before the later auth/private-read commits and before merge into `main`:
 
 ```text
 @semogtw/database: 55 files / 159 tests
 @semogtw/api:       5 files / 11 tests
 ```
 
-Both package typechecks passed.
-
-### Worker bundle boundary
+Both package typechecks passed for that earlier slice.
 
 A Wrangler 4.118.0 dry run completed successfully:
 
@@ -81,18 +83,18 @@ wrangler deploy \
   --outdir /tmp/semogsite-worker-dry-run
 ```
 
-Observed bundle size:
+Observed bundle size at that point:
 
 ```text
 upload: 408.98 KiB
 gzip:    76.50 KiB
 ```
 
-The bundle resolved `env.DB` and did not fail on the native SQLite module. The repository guardrail `pnpm check:cloudflare-worker-boundary` now protects the explicit D1 imports, Worker entry, D1 binding, migration path and contiguous migration naming.
+The bundle resolved `env.DB` and did not fail on the native SQLite module. The repository guardrail `pnpm check:cloudflare-worker-boundary` protects the explicit D1 imports, Worker entry, D1 binding, migration path and contiguous migration naming.
 
-### Local D1 migration proof
+### Historical local D1 migration proof
 
-The canonical migrations were applied to a persisted local D1 database:
+The then-current canonical migrations were applied to a persisted local D1 database:
 
 ```bash
 wrangler d1 migrations apply semogsite-development \
@@ -101,7 +103,7 @@ wrangler d1 migrations apply semogsite-development \
   --persist-to /tmp/semogsite-wrangler-state
 ```
 
-Final observed state:
+Observed state for that historical run:
 
 ```text
 d1_migrations rows: 13
@@ -109,11 +111,11 @@ application tables: 34
 seeded projects:     1
 ```
 
-This exercised migrations `0001` through `0013`, including the editorial triggers, against the local D1 runtime. Command timeouts during the first attempts were treated as resumable environment limits; Wrangler resumed idempotently and the final database was inspected directly.
+That run exercised `0001` through `0013`. It predates `0014_login_rate_limits.sql`; therefore it must not be cited as proof that the current migration set has been applied successfully to D1.
 
-## Reproduction commands
+## Current reproduction gates
 
-Activate the approved SemogSite toolchain, install the frozen workspace, and then run:
+With a compatible SemogSite toolchain/runtime, run at minimum:
 
 ```bash
 pnpm check:cloudflare-worker-boundary
@@ -133,30 +135,35 @@ wrangler d1 migrations apply semogsite-development \
   --persist-to /tmp/semogsite-wrangler-state
 ```
 
+After any migration-set change, inspect the resulting migration table and application schema instead of reusing old counts.
+
 Do not use `--remote` merely to repeat a local proof. Remote migrations require an explicit checkpoint, export/restore plan and inspection of the target database before mutation.
 
-## Toolchain limitation observed
+## Toolchain policy
 
-The current public SemogSite toolchain can install its frozen reference workspace and run the bundled Wrangler. It did not fully resolve adding Wrangler to the real workspace manifest offline: the package manager requested transitive versions not present in the captured store.
+Heavy CI/check-out work belongs in `Semogtw/Offline-Toolchains`. The private SemogSite repository should keep only lightweight coordination/stub workflows where useful. If a local environment cannot execute Wrangler or the native SQLite gates, document the missing capability and continue code work that does not depend on that gate.
 
-Until the toolchain is regenerated and its add-dependency smoke passes:
-
-- use the verified standalone Wrangler from the restored reference workspace for deployment gates;
-- do not modify the project lockfile merely to accommodate a stale cache;
-- keep repository scripts independent of a globally installed Wrangler;
-- record Wrangler dry-run and migration commands as environment-dependent gates rather than making `pnpm check` download tooling.
+The public toolchain must contain every dependency needed by the current lockfile before it is treated as an offline reproduction source. Do not weaken the project lockfile or silently download unreviewed transitive tooling to make a stale cache pass.
 
 ## Promotion blockers
 
-Before remote preview deployment:
+Before a remote preview deployment is promoted:
 
-- apply all migrations to the remote development D1 and inspect the resulting schema;
-- prove a D1 export and restore into a separate database;
-- add D1 session storage and owner authentication without weakening fail-closed behavior;
-- port private read models and CSRF/revocation persistence;
+- rerun database/API tests and typechecks against the exact merged `main` candidate;
+- run the Worker boundary guard and a fresh Wrangler dry run;
+- apply all current migrations, including `0014`, to a disposable/local D1 and inspect the resulting schema;
+- apply migrations to the remote development D1 only after an explicit checkpoint;
+- prove D1 export and restore into a separate database;
+- decide whether the deployment is intentionally split (Worker reads/auth + Node mutation backend) or port the required private write surfaces to a Worker-safe D1 composition;
 - run public/private HTTP and browser gates against a deployed preview;
-- verify logs and observability do not expose private DTOs, branch data, sessions or secrets;
+- verify session cookies, CSRF, revocation and rate limiting through the real Cloudflare edge path;
+- verify logs and observability do not expose private DTOs, branch data, sessions, password material or secrets;
 - document rollback for both Worker code and additive D1 schema;
-- confirm free-tier quotas with representative traffic.
+- confirm free-tier quotas with representative traffic;
+- require explicit owner approval before production promotion.
 
-The Node/SQLite adapter remains supported until these gates pass. No production database or public hostname is configured by this foundation slice.
+The Node/SQLite adapter remains supported and is the reference path for private mutations until equivalent Worker-safe write adapters are deliberately implemented and verified.
+
+## Relationship to MCP
+
+This foundation does not expose MCP remotely. The MCP adapter remains in-process/read-only. Remote MCP requires its own authenticated transport design, isolation, origin/host validation, rate limiting, logging policy and rollback controls; it must not be inferred from the existence of the Cloudflare Worker API.
