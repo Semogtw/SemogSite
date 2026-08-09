@@ -25,6 +25,10 @@ import {
   type PrivateAuditQueries,
 } from "./routes/private/audit";
 import {
+  createPrivateEvidenceRoutes,
+  type PrivateEvidenceCommands,
+} from "./routes/private/evidence";
+import {
   createPrivateOverviewRoutes,
   type PrivateOverviewQueries,
 } from "./routes/private/overview";
@@ -59,6 +63,7 @@ export type ApiDependencies = {
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
   privateAttention?: PrivateAttentionCommands;
+  privateEvidence?: PrivateEvidenceCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -102,6 +107,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/attention",
     createPrivateAttentionRoutes(dependencies.privateAttention),
+  );
+  api.route(
+    "/api/v1/private/evidence",
+    createPrivateEvidenceRoutes(dependencies.privateEvidence),
   );
   api.route(
     "/api/v1/private/audit",
