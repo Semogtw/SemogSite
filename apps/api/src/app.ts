@@ -8,6 +8,10 @@ import {
   sanitizedNotFoundHandler,
 } from "./middleware/error-handler";
 import {
+  createRequestObserverMiddleware,
+  type ApiRequestObserver,
+} from "./middleware/request-observer";
+import {
   requestContext,
   type ApiEnvironment,
 } from "./middleware/request-context";
@@ -60,6 +64,7 @@ import {
 export type ApiDependencies = {
   auth?: ApiAuthDependencies;
   authProvider?: AuthProvider;
+  requestObserver?: ApiRequestObserver;
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
   privateAttention?: PrivateAttentionCommands;
@@ -76,6 +81,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   const api = new Hono<ApiEnvironment>({ strict: false });
 
   api.use("*", requestContext);
+  api.use("*", createRequestObserverMiddleware(dependencies.requestObserver));
   api.use("*", securityHeaders);
   api.onError(sanitizedErrorHandler);
   api.notFound(sanitizedNotFoundHandler);
