@@ -49,6 +49,10 @@ import {
   type PrivateSessionHandoffCommands,
 } from "./routes/private/session-handoffs";
 import {
+  createPrivateStageRoutes,
+  type PrivateStageCommands,
+} from "./routes/private/stages";
+import {
   createPrivateTodayRoutes,
   type PrivateTodayQueries,
 } from "./routes/private/today";
@@ -74,6 +78,7 @@ export type ApiDependencies = {
   privateAttention?: PrivateAttentionCommands;
   privateEvidence?: PrivateEvidenceCommands;
   privateSessionHandoffs?: PrivateSessionHandoffCommands;
+  privateStages?: PrivateStageCommands;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
   privateRoadmap?: PrivateRoadmapQueries;
@@ -126,6 +131,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/session-handoffs",
     createPrivateSessionHandoffRoutes(dependencies.privateSessionHandoffs),
+  );
+  api.route(
+    "/api/v1/private/stages",
+    createPrivateStageRoutes(dependencies.privateStages),
   );
   api.route(
     "/api/v1/private/audit",
