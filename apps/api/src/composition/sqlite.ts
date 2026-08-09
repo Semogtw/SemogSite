@@ -18,6 +18,7 @@ import {
   SqliteBranchRecommendationAcceptanceRepository,
   SqliteCooperativeRunRegistrationRepository,
   SqliteCooperativeRunTransitionRepository,
+  SqliteEditorialRedirectRepository,
   SqliteEvidenceWriteRepository,
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
@@ -38,6 +39,7 @@ import {
   BranchRecommendationAcceptanceService,
   CooperativeRunRegistrationService,
   CooperativeRunTransitionService,
+  EditorialRedirectService,
   EvidenceService,
   OverviewService,
   ProjectService,
@@ -159,6 +161,9 @@ export function createSqliteApiRuntime(
   const privateScopeReservations = new ScopeReservationService(
     new SqliteScopeReservationRepository(database),
   );
+  const privateEditorialRedirects = new EditorialRedirectService(
+    new SqliteEditorialRedirectRepository(database),
+  );
   const overview = new OverviewService(
     new SqliteOverviewDataSource(database),
   );
@@ -216,6 +221,7 @@ export function createSqliteApiRuntime(
     privateCooperativeRunTransitions,
     privateVerificationObligations,
     privateScopeReservations,
+    privateEditorialRedirects,
     privateAudit,
     privateOverview: overview,
     privateToday: today,
