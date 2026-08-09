@@ -38,10 +38,15 @@ import {
   createPublicProjectRoutes,
   type PublicProjectQueries,
 } from "./routes/public/projects";
+import {
+  createReadinessRoutes,
+  type ApiReadinessProbe,
+} from "./routes/readiness";
 
 export type ApiDependencies = {
   auth?: ApiAuthDependencies;
   authProvider?: AuthProvider;
+  readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
   privateOverview?: PrivateOverviewQueries;
   privateToday?: PrivateTodayQueries;
@@ -62,6 +67,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
       service: "semogtw-api",
     }),
   );
+  api.route("/ready", createReadinessRoutes(dependencies.readiness));
   api.route(
     "/api/v1/public/projects",
     createPublicProjectRoutes(dependencies.publicProjects),
