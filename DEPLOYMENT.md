@@ -27,8 +27,10 @@ Before promotion, verify and record:
 - Worker runtime compatibility and bundle boundary;
 - D1 relational behavior and canonical migration procedure;
 - server-only secrets for owner auth/session and GitHub reads;
+- liveness/readiness semantics through the deployed edge;
 - secure cookies and CSRF through the real edge path;
-- login rate limiting through D1 under representative concurrency;
+- same-origin/Fetch Metadata rejection for browser mutations;
+- login request-size/media-type constraints and rate limiting through D1 under representative concurrency;
 - static assets and canonical web/API URLs;
 - outbound HTTPS and GitHub rate-limit behavior;
 - preview environment and custom-domain rollback;
@@ -77,6 +79,15 @@ The Growth work preserved in PR #24 contains later migrations (`0015` and `0015a
 
 Reservations, gates, recovery snapshots, auth digests and rate-limit state are private canonical data and must be covered by the appropriate backup/export policy. MCP owns no separate schema.
 
+## Health contract
+
+The shared API exposes two distinct operational probes:
+
+- `GET /health` is liveness only. It returns process/runtime availability and is explicitly `no-store`.
+- `GET /ready` is fail-closed readiness. In the D1 composition it requires valid owner auth configuration and a queryable `login_rate_limits` table from migration `0014`. Missing secrets, incompatible schema or storage failure returns `503` with a sanitized error and `Retry-After`.
+
+Neither route authorizes production promotion by itself. Preview promotion still requires migration, auth, private-read, confidentiality and rollback evidence.
+
 ## Pre-deploy gate
 
 ```text
@@ -92,9 +103,16 @@ Reservations, gates, recovery snapshots, auth digests and rate-limit state are p
 [ ] migrations 0001–0014 applied to disposable/local D1 and schema inspected
 [ ] D1 export created and restore rehearsed into a separate database
 [ ] remote development D1 checkpoint recorded before mutation
+[ ] GET /health returns 200 and no-store through deployed edge
+[ ] GET /ready returns 200 only for the fully configured/migrated candidate
+[ ] GET /ready returns sanitized 503 for an intentionally broken readiness dependency
 [ ] public API smoke tests passed
+[ ] unknown routes and internal failures are JSON-sanitized, correlated and non-cacheable
+[ ] baseline security headers are present through the deployed edge
 [ ] owner login/session/logout passed through deployed edge
 [ ] secure cookie attributes verified on preview hostname
+[ ] cross-origin and Sec-Fetch-Site: cross-site unsafe browser requests are rejected
+[ ] login rejects oversized/non-JSON bodies before password verification
 [ ] CSRF rejection/acceptance behavior verified through deployed edge
 [ ] login rate limiting and reset behavior verified
 [ ] private Overview/Hoje/Projetos/Roadmap/Auditoria/Workflows reads passed
@@ -111,6 +129,12 @@ Reservations, gates, recovery snapshots, auth digests and rate-limit state are p
 ```
 
 Old test counts and old workflow run IDs are historical evidence only. Any code or migration change requires evidence tied to the exact candidate SHA.
+
+### Latest validated checkpoint
+
+Commit `7660dfbe4d507a12bf6df95bed01c92cc0b7f0b2` was validated by the public `Semogtw/Offline-Toolchains` runner on August 8/9, 2026. The run completed frozen install, native SQLite verification, package/confidentiality guards, focused orchestration tests/typechecks, full `pnpm check`, production web build, isolated E2E database preparation and Playwright privacy/mobile-navigation tests successfully.
+
+That checkpoint predates later login-body, Fetch Metadata, sanitized failure and D1-readiness-test commits. It is evidence for its exact SHA only; a newer checkpoint is required before any preview promotion.
 
 ## Toolchain and CI policy
 
@@ -154,7 +178,7 @@ Before every production deployment:
 5. save anonymous/authenticated preview evidence;
 6. update `CHANGELOG.md` and test evidence;
 7. deploy once;
-8. perform confidentiality, authentication and private-read smoke tests;
+8. perform liveness/readiness, confidentiality, authentication and private-read smoke tests;
 9. perform mutation smoke tests in whichever runtime owns mutations;
 10. run MCP transport smoke tests only if a transport is intentionally enabled;
 11. record the result or execute rollback.
@@ -165,7 +189,7 @@ Before every production deployment:
 - keep `DB` as an explicit D1 binding;
 - configure `SEMOGTW_OWNER_PASSWORD_HASH` and `SEMOGTW_SESSION_SECRET` only as Worker secrets;
 - never commit production database IDs/secrets beyond intentionally public/non-secret development identifiers;
-- validate cookies and CSRF on the actual preview/custom hostname;
+- validate `/health`, `/ready`, cookies, origin guards and CSRF on the actual preview/custom hostname;
 - do not import the Node/SQLite package barrel into the Worker composition;
 - apply remote migrations only after checkpoint/export planning.
 
