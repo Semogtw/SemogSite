@@ -15,6 +15,7 @@ import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-cap
 import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";
 import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";
 import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";
+import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";
 import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
@@ -32,6 +33,7 @@ import {
   AttentionLifecycleService,
   BranchRecommendationAcceptanceService,
   CooperativeRunRegistrationService,
+  CooperativeRunTransitionService,
   EvidenceService,
   OverviewService,
   ProjectService,
@@ -157,6 +159,9 @@ async function composeD1ApiRuntime(
   const privateCooperativeRuns = new CooperativeRunRegistrationService(
     new D1CooperativeRunRegistrationRepository(bindings.DB),
   );
+  const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
+    new D1CooperativeRunTransitionRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -213,6 +218,7 @@ async function composeD1ApiRuntime(
       privateRepositoryTargetRegistration,
       privateBranchRecommendations,
       privateCooperativeRuns,
+      privateCooperativeRunTransitions,
       privateAudit,
       privateOverview,
       privateToday,
