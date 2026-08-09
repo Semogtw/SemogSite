@@ -21,7 +21,7 @@ type RunRow = {
   branch: string | null;
   summary: string;
   blocker: string | null;
-  next_action: string;
+  next_action: string | null;
   started_at: string;
   last_heartbeat_at: string;
   finished_at: string | null;
@@ -31,11 +31,13 @@ type RunRow = {
 
 type ExistingRunEvent = {
   id: string;
+  kind: CooperativeRunEvent["kind"];
   actor: string;
-  source: string;
+  source: CooperativeRunEvent["source"];
   summary: string;
   before_json: string | null;
   after_json: string | null;
+  occurred_at: string;
   correlation_id: string;
 };
 
@@ -58,55 +60,22 @@ function readChangeCount(result: D1QueryResult | undefined): number {
   return changes;
 }
 
-function parseObject(value: string | null): Record<string, unknown> | null {
-  if (value === null) return null;
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function snapshotMatches(
-  parsed: Record<string, unknown> | null,
-  snapshot: CooperativeRunSnapshot,
-): boolean {
-  return (
-    parsed !== null &&
-    parsed.id === snapshot.id &&
-    parsed.projectId === snapshot.projectId &&
-    parsed.title === snapshot.title &&
-    parsed.actorLabel === snapshot.actorLabel &&
-    parsed.origin === snapshot.origin &&
-    parsed.status === snapshot.status &&
-    parsed.phase === snapshot.phase &&
-    parsed.progress === snapshot.progress &&
-    parsed.branch === snapshot.branch &&
-    parsed.summary === snapshot.summary &&
-    parsed.blocker === snapshot.blocker &&
-    parsed.nextAction === snapshot.nextAction &&
-    parsed.finishedAt === snapshot.finishedAt &&
-    parsed.staleAfterSeconds === snapshot.staleAfterSeconds
-  );
-}
-
-function sameEventIntent(
+function sameStoredIntent(
   existing: ExistingRunEvent,
-  current: CooperativeRunSnapshot,
-  next: CooperativeRunSnapshot,
+  before: CooperativeRunSnapshot,
+  after: CooperativeRunSnapshot,
   event: CooperativeRunEvent,
 ): boolean {
   return (
     existing.id === event.id &&
+    existing.kind === event.kind &&
     existing.actor === event.actor &&
     existing.source === event.source &&
     existing.summary === event.summary &&
-    existing.correlation_id === event.correlationId &&
-    snapshotMatches(parseObject(existing.before_json), current) &&
-    snapshotMatches(parseObject(existing.after_json), next)
+    existing.before_json === JSON.stringify(before) &&
+    existing.after_json === JSON.stringify(after) &&
+    existing.occurred_at === event.occurredAt &&
+    existing.correlation_id === event.correlationId
   );
 }
 
@@ -150,19 +119,28 @@ export class D1CooperativeRunTransitionRepository
       )
       .bind(runId)
       .all<RunRow>();
+
     if (result.success === false || (result.error?.length ?? 0) > 0) {
       throw new Error("D1 cooperative run lookup failed.");
     }
+
     const row = result.results[0];
     return row === undefined ? null : toSnapshot(row);
   }
 
-  async transition(
-    current: CooperativeRunSnapshot,
-    next: CooperativeRunSnapshot,
+  async apply(
+    before: CooperativeRunSnapshot,
+    after: CooperativeRunSnapshot,
     event: CooperativeRunEvent,
   ): Promise<CooperativeRunTransitionStoreResult> {
-    if (event.runId !== current.id || next.id !== current.id) return "conflict";
+    if (
+      before.id !== after.id ||
+      before.id !== event.runId ||
+      event.before.id !== before.id ||
+      event.after.id !== after.id
+    ) {
+      return "conflict";
+    }
 
     const update = this.database
       .prepare(
@@ -173,25 +151,31 @@ export class D1CooperativeRunTransitionRepository
           updated_at = ?
         WHERE id = ?
           AND updated_at = ?
+          AND status = ?
+          AND progress = ?
+          AND last_heartbeat_at = ?
           AND NOT EXISTS (
             SELECT 1 FROM cooperative_run_events
             WHERE run_id = ? AND idempotency_key = ?
           )`,
       )
       .bind(
-        next.status,
-        next.phase,
-        next.progress,
-        next.branch,
-        next.summary,
-        next.blocker,
-        next.nextAction,
-        next.lastHeartbeatAt,
-        next.finishedAt,
-        next.updatedAt,
-        current.id,
-        current.updatedAt,
-        current.id,
+        after.status,
+        after.phase,
+        after.progress,
+        after.branch,
+        after.summary,
+        after.blocker,
+        after.nextAction,
+        after.lastHeartbeatAt,
+        after.finishedAt,
+        after.updatedAt,
+        before.id,
+        before.updatedAt,
+        before.status,
+        before.progress,
+        before.lastHeartbeatAt,
+        before.id,
         event.idempotencyKey,
       );
 
@@ -215,8 +199,8 @@ export class D1CooperativeRunTransitionRepository
         event.actor,
         event.source,
         event.summary,
-        JSON.stringify(current),
-        JSON.stringify(next),
+        JSON.stringify(before),
+        JSON.stringify(after),
         event.occurredAt,
         event.idempotencyKey,
         event.correlationId,
@@ -224,28 +208,27 @@ export class D1CooperativeRunTransitionRepository
 
     const results = await this.database.batch([update, insertEvent]);
     assertBatchSucceeded(results);
+
     const changed = readChangeCount(results[0]);
     if (changed > 1) {
       throw new Error("D1 cooperative run transition changed multiple runs.");
     }
     if (changed === 1) return "updated";
 
-    const replay = await this.database
+    const existing = await this.database
       .prepare(
-        `SELECT id, actor, source, summary, before_json, after_json, correlation_id
+        `SELECT id, kind, actor, source, summary, before_json, after_json,
+                occurred_at, correlation_id
         FROM cooperative_run_events
         WHERE run_id = ? AND idempotency_key = ?
         LIMIT 1`,
       )
-      .bind(current.id, event.idempotencyKey)
+      .bind(before.id, event.idempotencyKey)
       .first<ExistingRunEvent>();
-    if (replay !== null) {
-      return sameEventIntent(replay, current, next, event) ? "duplicate" : "conflict";
-    }
 
-    const latest = await this.findRun(current.id);
-    if (latest === null) return "not_found";
-    if (latest.updatedAt !== current.updatedAt) return "stale";
+    if (existing !== null && sameStoredIntent(existing, before, after, event)) {
+      return "duplicate";
+    }
     return "conflict";
   }
 }
