@@ -1,48 +1,160 @@
-import type { CooperativeRunTransitionService } from "@semogtw/domain";
+import type {
+  CooperativeRunTransitionService,
+  RunTransitionCommand,
+} from "@semogtw/domain";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import type { ApiEnvironment } from "../../middleware/request-context";
 
 const MAX_RUN_TRANSITION_BODY_BYTES = 16 * 1024;
-const retryKey = z.string().uuid();
-const nullableText = (max: number) => z.string().max(max).nullable().optional();
-const CommonTransitionSchema = z.object({
-  idempotencyKey: retryKey,
-  runId: z.string().max(200),
-  expectedUpdatedAt: z.string().max(100),
-  summary: z.string().max(2_000),
-  phase: nullableText(200),
-  branch: nullableText(255),
-  blocker: nullableText(2_000),
-  nextAction: z.string().max(1_000).optional(),
+const common = {
+  idempotencyKey: z.string().uuid(),
+  runId: z.string().trim().min(1).max(200),
+  expectedUpdatedAt: z.string().datetime({ offset: true }),
   confirmed: z.literal(true),
-});
-const HeartbeatSchema = CommonTransitionSchema;
-const ProgressSchema = CommonTransitionSchema.extend({
-  progress: z.number().int().min(0).max(100),
-});
-const FinalizeSchema = CommonTransitionSchema.extend({
-  status: z.enum(["completed", "failed", "cancelled"]),
-});
+} as const;
+
+const TransitionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...common,
+    kind: z.literal("heartbeat"),
+    summary: z.string().trim().min(1).max(2_000).nullable(),
+    phase: z.string().trim().min(1).max(200).nullable(),
+    branch: z.string().trim().min(1).max(255).nullable(),
+    nextAction: z.string().trim().min(1).max(1_000).nullable(),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("checkpoint"),
+    progress: z.number().int().min(0).max(100).nullable(),
+    summary: z.string().trim().min(1).max(2_000),
+    phase: z.string().trim().min(1).max(200).nullable(),
+    branch: z.string().trim().min(1).max(255).nullable(),
+    nextAction: z.string().trim().min(1).max(1_000),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("block"),
+    progress: z.number().int().min(0).max(100).nullable(),
+    blocker: z.string().trim().min(1).max(2_000),
+    nextAction: z.string().trim().min(1).max(1_000),
+    summary: z.string().trim().min(1).max(2_000).nullable(),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("resume"),
+    progress: z.number().int().min(0).max(100).nullable(),
+    summary: z.string().trim().min(1).max(2_000),
+    phase: z.string().trim().min(1).max(200).nullable(),
+    branch: z.string().trim().min(1).max(255).nullable(),
+    nextAction: z.string().trim().min(1).max(1_000),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("complete"),
+    progress: z.literal(100),
+    summary: z.string().trim().min(1).max(2_000),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("fail"),
+    reason: z.string().trim().min(1).max(2_000),
+    summary: z.string().trim().min(1).max(2_000),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("cancel"),
+    reason: z.string().trim().min(1).max(2_000),
+    summary: z.string().trim().min(1).max(2_000).nullable(),
+  }),
+]);
+
+type TransitionRequest = z.infer<typeof TransitionSchema>;
 
 export type PrivateCooperativeRunTransitionCommands = Pick<
   CooperativeRunTransitionService,
-  "heartbeat" | "updateProgress" | "finalize"
+  "transition"
 >;
 
-type TransitionMethod = keyof PrivateCooperativeRunTransitionCommands;
-type TransitionInput<M extends TransitionMethod> = Parameters<
-  PrivateCooperativeRunTransitionCommands[M]
->[0];
-type TransitionContext<M extends TransitionMethod> = Parameters<
-  PrivateCooperativeRunTransitionCommands[M]
->[1];
+function transitionCommand(data: TransitionRequest): RunTransitionCommand {
+  if (data.kind === "heartbeat") {
+    return {
+      kind: data.kind,
+      ...(data.summary === null ? {} : { summary: data.summary }),
+      phase: data.phase,
+      branch: data.branch,
+      ...(data.nextAction === null ? {} : { nextAction: data.nextAction }),
+    };
+  }
+  if (data.kind === "checkpoint") {
+    return {
+      kind: data.kind,
+      ...(data.progress === null ? {} : { progress: data.progress }),
+      summary: data.summary,
+      phase: data.phase,
+      branch: data.branch,
+      nextAction: data.nextAction,
+    };
+  }
+  if (data.kind === "block") {
+    return {
+      kind: data.kind,
+      ...(data.progress === null ? {} : { progress: data.progress }),
+      blocker: data.blocker,
+      nextAction: data.nextAction,
+      ...(data.summary === null ? {} : { summary: data.summary }),
+    };
+  }
+  if (data.kind === "resume") {
+    return {
+      kind: data.kind,
+      ...(data.progress === null ? {} : { progress: data.progress }),
+      summary: data.summary,
+      phase: data.phase,
+      branch: data.branch,
+      nextAction: data.nextAction,
+    };
+  }
+  if (data.kind === "complete") {
+    return { kind: data.kind, progress: data.progress, summary: data.summary };
+  }
+  if (data.kind === "fail") {
+    return { kind: data.kind, reason: data.reason, summary: data.summary };
+  }
+  return {
+    kind: data.kind,
+    reason: data.reason,
+    ...(data.summary === null ? {} : { summary: data.summary }),
+  };
+}
 
 function isJsonRequest(contentType: string | undefined): boolean {
   if (contentType === undefined) return false;
   const mediaType = contentType.split(";", 1)[0]?.trim().toLowerCase();
   return mediaType === "application/json" || mediaType?.endsWith("+json") === true;
+}
+
+function failureStatus(code: string): 400 | 404 | 409 {
+  if (code === "VALIDATION_FAILED") return 400;
+  if (code === "RUN_NOT_FOUND") return 404;
+  return 409;
+}
+
+function failureMessage(code: string): string {
+  if (code === "VALIDATION_FAILED") {
+    return "A transição não satisfaz as invariantes do run.";
+  }
+  if (code === "RUN_NOT_FOUND") return "A execução não existe mais.";
+  if (code === "STALE_STATE") {
+    return "O estado foi atualizado. Recarregue antes de tentar novamente.";
+  }
+  if (code === "TERMINAL_RUN") return "A execução já está em estado terminal.";
+  if (code === "DUPLICATE") return "Esta transição já foi registrada.";
+  if (code === "INVALID_CURRENT_STATE") {
+    return "O estado persistido não satisfaz as invariantes do ledger.";
+  }
+  return "O estado mudou durante a gravação. Nenhuma transição parcial foi criada.";
 }
 
 const limitBody = bodyLimit({
@@ -63,200 +175,131 @@ const limitBody = bodyLimit({
   },
 });
 
-function commandContext<M extends TransitionMethod>(
-  method: M,
-  stableKey: string,
-  actorId: string,
-): TransitionContext<M> {
-  const kind =
-    method === "heartbeat"
-      ? "heartbeat"
-      : method === "updateProgress"
-        ? "progress"
-        : "finalize";
-  return {
-    actorId,
-    eventId: `run-event-${kind}-${stableKey}`,
-    idempotencyKey: `run-${kind}-${stableKey}`,
-    correlationId: `correlation-run-${kind}-${stableKey}`,
-    now: new Date().toISOString(),
-  } as TransitionContext<M>;
-}
-
-function failureStatus(code: string): 400 | 404 | 409 {
-  if (code === "VALIDATION_FAILED") return 400;
-  if (code === "RUN_NOT_FOUND" || code === "NOT_FOUND") return 404;
-  return 409;
-}
-
-function failureMessage(code: string): string {
-  if (code === "VALIDATION_FAILED") return "Revise os campos da atualização.";
-  if (code === "RUN_NOT_FOUND" || code === "NOT_FOUND") {
-    return "Esta execução não existe mais.";
-  }
-  if (code === "DUPLICATE") return "Esta atualização já foi registrada.";
-  if (code === "STALE_STATE" || code === "STALE") {
-    return "A execução mudou desde a última leitura.";
-  }
-  if (code === "INVALID_TRANSITION") return "Esta transição não é permitida.";
-  return "O estado mudou durante a atualização.";
-}
-
 export function createPrivateCooperativeRunTransitionRoutes(
   commands?: PrivateCooperativeRunTransitionCommands,
 ) {
-  const routes = new Hono<ApiEnvironment>({ strict: false });
-
-  async function execute<M extends TransitionMethod>(
-    context: Parameters<Parameters<typeof routes.post>[1]>[0],
-    method: M,
-    schema: typeof HeartbeatSchema | typeof ProgressSchema | typeof FinalizeSchema,
-  ) {
-    context.header("cache-control", "no-store, private");
-    if (!isJsonRequest(context.req.header("content-type"))) {
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code: "INVALID_REQUEST",
-            message: "Não foi possível atualizar esta execução.",
-            correlationId: context.get("correlationId"),
+  return new Hono<ApiEnvironment>({ strict: false }).post(
+    "/transition",
+    limitBody,
+    async (context) => {
+      context.header("cache-control", "no-store, private");
+      if (!isJsonRequest(context.req.header("content-type"))) {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "INVALID_REQUEST",
+              message: "Não foi possível atualizar esta execução.",
+              correlationId: context.get("correlationId"),
+            },
           },
-        },
-        400,
-      );
-    }
+          400,
+        );
+      }
 
-    const parsed = schema.safeParse(await context.req.json().catch(() => null));
-    if (!parsed.success) {
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code: "INVALID_REQUEST",
-            message: "Não foi possível atualizar esta execução.",
-            correlationId: context.get("correlationId"),
+      const parsed = TransitionSchema.safeParse(
+        await context.req.json().catch(() => null),
+      );
+      if (!parsed.success) {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "INVALID_REQUEST",
+              message: "Não foi possível atualizar esta execução.",
+              correlationId: context.get("correlationId"),
+            },
           },
-        },
-        400,
-      );
-    }
+          400,
+        );
+      }
 
-    const owner = context.get("owner");
-    if (owner === null) {
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code: "UNAUTHORIZED",
-            message: "Acesso não autorizado.",
-            correlationId: context.get("correlationId"),
+      const owner = context.get("owner");
+      if (owner === null) {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "UNAUTHORIZED",
+              message: "Acesso não autorizado.",
+              correlationId: context.get("correlationId"),
+            },
           },
-        },
-        401,
-      );
-    }
-    if (commands === undefined) {
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code: "MUTATION_UNAVAILABLE",
-            message: "Não foi possível salvar esta atualização.",
-            correlationId: context.get("correlationId"),
+          401,
+        );
+      }
+      if (commands === undefined) {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "MUTATION_UNAVAILABLE",
+              message: "Não foi possível salvar esta atualização.",
+              correlationId: context.get("correlationId"),
+            },
           },
-        },
-        503,
-      );
-    }
+          503,
+        );
+      }
 
-    const stableKey = parsed.data.idempotencyKey;
-    const { confirmed: _confirmed, idempotencyKey: _retryKey, ...clientInput } =
-      parsed.data;
-    const finalizeStatus = "status" in clientInput ? clientInput.status : undefined;
-    const domainInput = {
-      ...clientInput,
-      ...(finalizeStatus === undefined
-        ? {}
-        : {
-            status: finalizeStatus,
-            finalStatus: finalizeStatus,
-            targetStatus: finalizeStatus,
-          }),
-    } as TransitionInput<M>;
-
-    let result: Awaited<ReturnType<PrivateCooperativeRunTransitionCommands[M]>>;
-    try {
-      const command = commands[method] as (
-        input: TransitionInput<M>,
-        commandContext: TransitionContext<M>,
-      ) => Promise<Awaited<ReturnType<PrivateCooperativeRunTransitionCommands[M]>>>;
-      result = await command(
-        domainInput,
-        commandContext(method, stableKey, owner.id),
-      );
-    } catch {
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code: "STORAGE_UNAVAILABLE",
-            message: "Não foi possível salvar esta atualização.",
-            correlationId: context.get("correlationId"),
+      const stableKey = parsed.data.idempotencyKey;
+      let result: Awaited<ReturnType<PrivateCooperativeRunTransitionCommands["transition"]>>;
+      try {
+        result = await commands.transition(
+          {
+            runId: parsed.data.runId,
+            command: transitionCommand(parsed.data),
           },
-        },
-        503,
-      );
-    }
-
-    if (!result.ok) {
-      const code = String(result.code);
-      const details = "errors" in result ? result.errors : undefined;
-      return context.json(
-        {
-          ok: false,
-          error: {
-            code,
-            message: failureMessage(code),
-            ...(details === undefined ? {} : { details }),
-            correlationId: context.get("correlationId"),
+          {
+            actorId: owner.id,
+            eventId: `run-event-owner-transition-${stableKey}`,
+            idempotencyKey: `owner-run-transition-${stableKey}`,
+            correlationId: `correlation-owner-transition-${stableKey}`,
+            source: "manual",
+            now: new Date().toISOString(),
+            expectedUpdatedAt: parsed.data.expectedUpdatedAt,
           },
+        );
+      } catch {
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: "STORAGE_UNAVAILABLE",
+              message: "Não foi possível salvar esta atualização.",
+              correlationId: context.get("correlationId"),
+            },
+          },
+          503,
+        );
+      }
+
+      if (!result.ok) {
+        const details = "errors" in result ? result.errors : undefined;
+        return context.json(
+          {
+            ok: false,
+            error: {
+              code: result.code,
+              message: failureMessage(result.code),
+              ...(details === undefined ? {} : { details }),
+              correlationId: context.get("correlationId"),
+            },
+          },
+          failureStatus(result.code),
+        );
+      }
+
+      return context.json({
+        ok: true,
+        data: {
+          runId: result.run.id,
+          status: result.run.status,
+          progress: result.run.progress,
+          updatedAt: result.run.updatedAt,
+          processStarted: false,
         },
-        failureStatus(code),
-      );
-    }
-
-    const successful = result as typeof result & {
-      run: {
-        id: string;
-        status: string;
-        progress: number;
-        updatedAt: string;
-        finishedAt: string | null;
-      };
-    };
-    return context.json({
-      ok: true,
-      data: {
-        runId: successful.run.id,
-        status: successful.run.status,
-        progress: successful.run.progress,
-        updatedAt: successful.run.updatedAt,
-        finishedAt: successful.run.finishedAt,
-        processStarted: false,
-      },
-    });
-  }
-
-  routes.post("/heartbeat", limitBody, (context) =>
-    execute(context, "heartbeat", HeartbeatSchema),
+      });
+    },
   );
-  routes.post("/progress", limitBody, (context) =>
-    execute(context, "updateProgress", ProgressSchema),
-  );
-  routes.post("/finalize", limitBody, (context) =>
-    execute(context, "finalize", FinalizeSchema),
-  );
-
-  return routes;
 }
