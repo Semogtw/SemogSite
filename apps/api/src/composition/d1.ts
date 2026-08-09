@@ -12,6 +12,7 @@ import {
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
 import { D1AuditDataSource } from "@semogtw/database/d1-audit";
 import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";
+import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
@@ -21,6 +22,7 @@ import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import {
   AttentionCaptureService,
+  EvidenceService,
   OverviewService,
   ProjectService,
   RoadmapService,
@@ -108,6 +110,9 @@ async function composeD1ApiRuntime(
   const privateAttention = new AttentionCaptureService(
     new D1AttentionCaptureRepository(bindings.DB),
   );
+  const privateEvidence = new EvidenceService(
+    new D1EvidenceWriteRepository(bindings.DB),
+  );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -152,6 +157,7 @@ async function composeD1ApiRuntime(
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
       privateAttention,
+      privateEvidence,
       privateAudit,
       privateOverview,
       privateToday,
