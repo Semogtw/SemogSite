@@ -1,11 +1,19 @@
-import type { ErrorHandler } from "hono";
+import type { ErrorHandler, NotFoundHandler } from "hono";
 import type { ApiEnvironment } from "./request-context";
+
+function disableFailureCaching(context: {
+  header(name: string, value: string): void;
+}): void {
+  context.header("cache-control", "no-store");
+  context.header("pragma", "no-cache");
+}
 
 export const sanitizedErrorHandler: ErrorHandler<ApiEnvironment> = (
   _error,
   context,
-) =>
-  context.json(
+) => {
+  disableFailureCaching(context);
+  return context.json(
     {
       ok: false,
       error: {
@@ -16,3 +24,21 @@ export const sanitizedErrorHandler: ErrorHandler<ApiEnvironment> = (
     },
     500,
   );
+};
+
+export const sanitizedNotFoundHandler: NotFoundHandler<ApiEnvironment> = (
+  context,
+) => {
+  disableFailureCaching(context);
+  return context.json(
+    {
+      ok: false,
+      error: {
+        code: "NOT_FOUND",
+        message: "Recurso não encontrado.",
+        correlationId: context.get("correlationId"),
+      },
+    },
+    404,
+  );
+};
