@@ -17,6 +17,7 @@ import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";
+import { D1RepositoryTargetRegistrationRepository } from "@semogtw/database/d1-repository-target-registration";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
 import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
 import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";
@@ -31,6 +32,7 @@ import {
   OverviewService,
   ProjectService,
   RepositoryTargetLifecycleService,
+  RepositoryTargetRegistrationService,
   RoadmapService,
   SessionHandoffService,
   StageCompletionService,
@@ -141,6 +143,10 @@ async function composeD1ApiRuntime(
   const privateRepositoryTargets = new RepositoryTargetLifecycleService(
     new D1RepositoryTargetLifecycleRepository(bindings.DB),
   );
+  const privateRepositoryTargetRegistration =
+    new RepositoryTargetRegistrationService(
+      new D1RepositoryTargetRegistrationRepository(bindings.DB),
+    );
   const privateOverview = new OverviewService(
     new D1OverviewDataSource(database),
   );
@@ -194,6 +200,7 @@ async function composeD1ApiRuntime(
       privateSessionHandoffs,
       privateStages,
       privateRepositoryTargets,
+      privateRepositoryTargetRegistration,
       privateAudit,
       privateOverview,
       privateToday,
