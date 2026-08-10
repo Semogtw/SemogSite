@@ -2,8 +2,12 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { completeStageFn } from "../../server/devos-stage-completion";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const validationMessages: Record<string, string> = {
   CONFIRMATION_REQUIRED: "Confirme conscientemente a conclusão da etapa.",
@@ -19,6 +23,12 @@ const validationMessages: Record<string, string> = {
   BLOCKER_REQUIRED: "A etapa bloqueada não possui bloqueio registrado.",
   NEXT_STEP_REQUIRED: "A etapa não possui próxima ação válida.",
 };
+
+function validationErrors(details: unknown): readonly string[] {
+  return Array.isArray(details) && details.every((item) => typeof item === "string")
+    ? details
+    : [];
+}
 
 export function StageCompletionForm({ stageId }: { stageId: string }) {
   const router = useRouter();
@@ -36,35 +46,31 @@ export function StageCompletionForm({ stageId }: { stageId: string }) {
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setMessage("Não foi possível validar esta sessão.");
-      return;
-    }
-
     setPending(true);
     setMessage(null);
     setErrors([]);
     try {
-      const response = await completeStageFn({
-        data: {
-          csrfToken,
-          stageId,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.stages.complete({
+        stageId,
+        reason,
+        confirmed: true,
       });
-      if (!response.ok) {
-        setMessage(response.message);
-        setErrors("errors" in response ? response.errors : []);
-        return;
-      }
 
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setMessage("Não foi possível concluir esta etapa.");
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setMessage(error.message);
+        setErrors(validationErrors(error.details));
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setMessage("Não foi possível validar esta sessão.");
+      } else {
+        setMessage("Não foi possível concluir esta etapa.");
+      }
     } finally {
       setPending(false);
     }
