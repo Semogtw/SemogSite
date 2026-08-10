@@ -19,6 +19,8 @@
     "./d1-branch-recommendation-acceptance": "./src/repositories/d1-branch-recommendation-acceptance-repository.ts",
     "./d1-cooperative-run-registration": "./src/repositories/d1-cooperative-run-registration-repository.ts",
     "./d1-cooperative-run-transition": "./src/repositories/d1-cooperative-run-transition-repository.ts",
+    "./d1-cooperative-run-read": "./src/repositories/d1-cooperative-run-read-model.ts",
+    "./sqlite-cooperative-run-read": "./src/repositories/sqlite-cooperative-run-read-model.ts",
     "./d1-verification-obligations": "./src/repositories/d1-verification-obligation-repository.ts",
     "./d1-scope-reservations": "./src/repositories/d1-scope-reservation-repository.ts",
     "./d1-editorial-redirects": "./src/repositories/d1-editorial-redirect-repository.ts",
