@@ -25,7 +25,7 @@ const authProvider: AuthProvider = {
   revokeSession: vi.fn(async () => undefined),
 };
 
-const transition = vi.fn(async () => ({
+const transition = vi.fn<PrivateCooperativeRunTransitionCommands["transition"]>(async () => ({
   ok: true as const,
   run: {
     id: "cooperative-run-1",
@@ -60,7 +60,7 @@ const transition = vi.fn(async () => ({
     correlationId: "correlation",
   },
 }));
-const commands = { transition } as unknown as PrivateCooperativeRunTransitionCommands;
+const commands: PrivateCooperativeRunTransitionCommands = { transition };
 
 function app() {
   return createApiApp({
