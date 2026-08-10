@@ -3,8 +3,12 @@ import type { CooperativeRunStatus } from "@semogtw/domain";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { transitionCooperativeRunFn } from "../../server/devos-run-transitions";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 type TransitionKind =
   | "heartbeat"
@@ -65,22 +69,22 @@ export function RunTransitionForm({
     idempotencyKey.current = null;
   }
 
+  async function finishSuccess(message: string) {
+    setFeedback({ message, success: true });
+    idempotencyKey.current = null;
+    setSummary("");
+    setBlocker("");
+    setReason("");
+    setConfirmed(false);
+    await router.invalidate();
+  }
+
   async function transition(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !confirmed) return;
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     idempotencyKey.current ??= crypto.randomUUID();
     const common = {
-      csrfToken,
       runId: run.id,
       expectedUpdatedAt: run.updatedAt,
       idempotencyKey: idempotencyKey.current,
@@ -90,86 +94,99 @@ export function RunTransitionForm({
     setPending(true);
     setFeedback(null);
     try {
-      const response =
+      const result =
         kind === "heartbeat"
-          ? await transitionCooperativeRunFn({
-              data: {
-                ...common,
-                kind,
-                summary: summary.trim().length === 0 ? null : summary.trim(),
-                phase: phase.trim().length === 0 ? null : phase.trim(),
-                branch: branch.trim().length === 0 ? null : branch.trim(),
-                nextAction:
-                  nextAction.trim().length === 0 ? null : nextAction.trim(),
-              },
+          ? await privateDevos.runs.transition({
+              ...common,
+              kind,
+              summary: summary.trim().length === 0 ? null : summary.trim(),
+              phase: phase.trim().length === 0 ? null : phase.trim(),
+              branch: branch.trim().length === 0 ? null : branch.trim(),
+              nextAction:
+                nextAction.trim().length === 0 ? null : nextAction.trim(),
             })
           : kind === "block"
-            ? await transitionCooperativeRunFn({
-                data: {
+            ? await privateDevos.runs.transition({
+                ...common,
+                kind,
+                progress,
+                blocker: blocker.trim(),
+                nextAction: nextAction.trim(),
+                summary:
+                  summary.trim().length === 0 ? null : summary.trim(),
+              })
+            : kind === "resume"
+              ? await privateDevos.runs.transition({
                   ...common,
                   kind,
                   progress,
-                  blocker: blocker.trim(),
+                  summary: summary.trim(),
+                  phase: phase.trim().length === 0 ? null : phase.trim(),
+                  branch: branch.trim().length === 0 ? null : branch.trim(),
                   nextAction: nextAction.trim(),
-                  summary:
-                    summary.trim().length === 0 ? null : summary.trim(),
-                },
-              })
-            : kind === "resume"
-              ? await transitionCooperativeRunFn({
-                  data: {
-                    ...common,
-                    kind,
-                    progress,
-                    summary: summary.trim(),
-                    phase: phase.trim().length === 0 ? null : phase.trim(),
-                    branch: branch.trim().length === 0 ? null : branch.trim(),
-                    nextAction: nextAction.trim(),
-                  },
                 })
               : kind === "complete"
-                ? await transitionCooperativeRunFn({
-                    data: {
-                      ...common,
-                      kind,
-                      progress: 100,
-                      summary: summary.trim(),
-                    },
+                ? await privateDevos.runs.transition({
+                    ...common,
+                    kind,
+                    progress: 100,
+                    summary: summary.trim(),
                   })
                 : kind === "fail"
-                  ? await transitionCooperativeRunFn({
-                      data: {
-                        ...common,
-                        kind,
-                        reason: reason.trim(),
-                        summary: summary.trim(),
-                      },
+                  ? await privateDevos.runs.transition({
+                      ...common,
+                      kind,
+                      reason: reason.trim(),
+                      summary: summary.trim(),
                     })
-                  : await transitionCooperativeRunFn({
-                      data: {
-                        ...common,
-                        kind,
-                        reason: reason.trim(),
-                        summary:
-                          summary.trim().length === 0 ? null : summary.trim(),
-                      },
+                  : await privateDevos.runs.transition({
+                      ...common,
+                      kind,
+                      reason: reason.trim(),
+                      summary:
+                        summary.trim().length === 0 ? null : summary.trim(),
                     });
 
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
-
-      idempotencyKey.current = null;
-      setSummary("");
-      setBlocker("");
-      setReason("");
-      setConfirmed(false);
-      await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "A transição falhou. A mesma chave será reutilizada na próxima tentativa.",
-      });
+      await finishSuccess(
+        result.status === "completed"
+          ? "Execução concluída e registrada no ledger."
+          : result.status === "failed"
+            ? "Falha registrada no ledger da execução."
+            : result.status === "cancelled"
+              ? "Cancelamento registrado no ledger da execução."
+              : "Transição registrada no estado canônico.",
+      );
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        if (error.code === "DUPLICATE") {
+          await finishSuccess("Esta transição já havia sido registrada.");
+          return;
+        }
+        setFeedback({ success: false, message: error.message });
+        if (
+          error.code === "STALE_STATE" ||
+          error.code === "TERMINAL_RUN" ||
+          error.code === "RUN_NOT_FOUND" ||
+          error.code === "INVALID_CURRENT_STATE" ||
+          error.code === "CONFLICT"
+        ) {
+          await router.invalidate();
+        }
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "A transição falhou. A mesma chave será reutilizada na próxima tentativa.",
+        });
+      }
     } finally {
       setPending(false);
     }
