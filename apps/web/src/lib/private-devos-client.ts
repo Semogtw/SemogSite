@@ -4,7 +4,10 @@ import {
   type PrivateRuntimeCapabilities,
 } from "./private-api-client";
 import {
+  capturePrivateAttention,
   transitionPrivateAttention,
+  type AttentionCaptureMutationInput,
+  type AttentionCaptureMutationResult,
   type AttentionLifecycleMutationInput,
   type AttentionLifecycleMutationResult,
 } from "./private-attention-commands";
@@ -79,6 +82,9 @@ export type PrivateDevosClient = {
   mutate<T>(operation: string, payload: unknown): Promise<T>;
   getRetryPolicy(operation: string): Promise<PrivateMutationRetryPolicy>;
   attention: {
+    capture(
+      input: AttentionCaptureMutationInput,
+    ): Promise<AttentionCaptureMutationResult>;
     transition(
       input: AttentionLifecycleMutationInput,
     ): Promise<AttentionLifecycleMutationResult>;
@@ -166,6 +172,7 @@ export function createPrivateDevosClient(
       return getPrivateMutationRetryPolicy(capability);
     },
     attention: {
+      capture: (input) => capturePrivateAttention(api, input),
       transition: (input) => transitionPrivateAttention(api, input),
     },
     evidence: {
