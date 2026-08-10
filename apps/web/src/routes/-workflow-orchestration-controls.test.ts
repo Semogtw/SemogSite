@@ -30,17 +30,20 @@ describe("workflow orchestration controls", () => {
     const form = source(
       "../components/devos/verification-obligation-result-form.tsx",
     );
-    const server = source(
-      "../server/devos-verification-obligation-result.ts",
+    const commands = source(
+      "../lib/private-verification-obligation-commands.ts",
     );
 
     expect(route).toContain("VerificationObligationResultForm");
     expect(route).toContain("terminalObligationStatuses");
     expect(route).toContain("expectedVersion={obligation.version}");
-    expect(form).toContain("recordVerificationResultFn");
+    expect(form).toContain("createPrivateDevosBrowserClient");
+    expect(form).toContain("privateDevos.verification.recordResult");
+    expect(form).toContain("idempotencyKey.current");
     expect(form).toContain("environment_missing");
-    expect(server).toContain("requireMutationOwner");
-    expect(server).toContain("service.recordResult");
+    expect(form).toContain("Nenhum gate foi executado por esta ação");
+    expect(form).not.toContain("recordVerificationResultFn");
+    expect(commands).toContain('"verification_obligation.result"');
   });
 
   it("links the workflow dashboard to the owner-only recovery workspace", () => {
