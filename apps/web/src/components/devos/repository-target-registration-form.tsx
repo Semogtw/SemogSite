@@ -4,8 +4,12 @@ import type { RepositorySyncTargetRole } from "@semogtw/domain";
 import { Button, EmptyState } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { registerRepositoryTargetFn } from "../../server/devos-repository-target";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const roleOptions: ReadonlyArray<{
   value: RepositorySyncTargetRole;
@@ -57,31 +61,21 @@ export function RepositoryTargetRegistrationForm({
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     setPending(true);
     setFeedback(null);
     try {
-      const response = await registerRepositoryTargetFn({
-        data: {
-          csrfToken,
-          projectId,
-          fullName,
-          defaultBranch,
-          role,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.repositories.registerTarget({
+        projectId,
+        fullName,
+        defaultBranch,
+        role,
+        reason,
+        confirmed: true,
       });
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
+      setFeedback({
+        success: true,
+        message: "Alvo privado cadastrado. Os metadados do GitHub serão verificados em leitura posterior.",
+      });
 
       setFullName("");
       setDefaultBranch("main");
@@ -89,12 +83,24 @@ export function RepositoryTargetRegistrationForm({
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "O alvo não pôde ser cadastrado. Nenhum registro parcial foi confirmado.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O alvo não pôde ser cadastrado. Nenhum registro parcial foi confirmado.",
+        });
+      }
     } finally {
       setPending(false);
     }
