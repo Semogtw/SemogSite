@@ -24,6 +24,14 @@ const capabilities: PrivateRuntimeCapabilities = {
     commandExecution: false,
     processControl: false,
   },
+  semantics: {
+    ownerSessionRequired: true,
+    sameOriginRequired: true,
+    csrfRequiredForMutations: true,
+    auditLedger: true,
+    optimisticConcurrency: true,
+    semanticIdempotency: true,
+  },
 };
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
