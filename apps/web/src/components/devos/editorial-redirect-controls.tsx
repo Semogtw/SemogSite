@@ -7,11 +7,12 @@ import type {
 import { Button, Status, Surface } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import {
-  createEditorialRedirectFn,
-  revokeEditorialRedirectFn,
-} from "../../server/devos-editorial-redirects";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 type Props = {
   documentId: string;
@@ -22,10 +23,6 @@ type Props = {
 };
 
 type Feedback = { success: boolean; message: string };
-
-function csrfToken(): string | null {
-  return readCookie(CSRF_COOKIE_NAME);
-}
 
 function latestBySlug(
   events: readonly EditorialRedirectEventSnapshot[],
@@ -48,6 +45,20 @@ function FeedbackMessage({ feedback }: { feedback: Feedback }) {
   );
 }
 
+async function refreshAfterCanonicalConflict(
+  error: PrivateApiError,
+  invalidate: () => Promise<void>,
+) {
+  if (
+    error.code === "TARGET_NOT_PUBLISHED" ||
+    error.code === "REDIRECT_NOT_ACTIVE" ||
+    error.code === "CANONICAL_CONFLICT" ||
+    error.code === "CONFLICT"
+  ) {
+    await invalidate();
+  }
+}
+
 function RevokeAliasForm({
   event,
   documentId,
@@ -64,40 +75,49 @@ function RevokeAliasForm({
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
+  async function finishSuccess(message: string) {
+    setFeedback({ success: true, message });
+    idempotencyKey.current = null;
+    setReason("");
+    setConfirmed(false);
+    await router.invalidate();
+  }
+
   async function revoke(eventSubmit: FormEvent<HTMLFormElement>) {
     eventSubmit.preventDefault();
     if (pending || reason.trim().length === 0 || !confirmed) return;
-    const token = csrfToken();
-    if (token === null) {
-      setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
-      return;
-    }
     idempotencyKey.current ??= crypto.randomUUID();
     setPending(true);
     setFeedback(null);
     try {
-      const response = await revokeEditorialRedirectFn({
-        data: {
-          csrfToken: token,
-          idempotencyKey: idempotencyKey.current,
-          documentId,
-          kind,
-          sourceSlug: event.sourceSlug,
-          reason,
-          confirmed: true,
-        },
+      const response = await privateDevos.editorial.revokeRedirect({
+        idempotencyKey: idempotencyKey.current,
+        targetDocumentId: documentId,
+        kind,
+        sourceSlug: event.sourceSlug,
+        reason,
+        confirmed: true,
       });
-      setFeedback({ success: response.ok, message: response.message });
-      if (!response.ok) return;
-      idempotencyKey.current = null;
-      setReason("");
-      setConfirmed(false);
-      await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message: "A revogação falhou. A identidade da tentativa será reutilizada.",
-      });
+      await finishSuccess(
+        response.duplicate
+          ? "Esta revogação já havia sido registrada."
+          : "Alias revogado com evento auditado.",
+      );
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+        await refreshAfterCanonicalConflict(error, () => router.invalidate());
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
+      } else {
+        setFeedback({
+          success: false,
+          message: "A revogação falhou. A identidade da tentativa será reutilizada.",
+        });
+      }
     } finally {
       setPending(false);
     }
@@ -157,41 +177,50 @@ export function EditorialRedirectControls({
   const latest = useMemo(() => latestBySlug(redirects), [redirects]);
   const active = latest.filter((event) => event.action === "created");
 
+  async function finishSuccess(message: string) {
+    setFeedback({ success: true, message });
+    idempotencyKey.current = null;
+    setSourceSlug("");
+    setReason("");
+    setConfirmed(false);
+    await router.invalidate();
+  }
+
   async function create(eventSubmit: FormEvent<HTMLFormElement>) {
     eventSubmit.preventDefault();
     if (pending || sourceSlug.trim().length === 0 || reason.trim().length === 0 || !confirmed) return;
-    const token = csrfToken();
-    if (token === null) {
-      setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
-      return;
-    }
     idempotencyKey.current ??= crypto.randomUUID();
     setPending(true);
     setFeedback(null);
     try {
-      const response = await createEditorialRedirectFn({
-        data: {
-          csrfToken: token,
-          idempotencyKey: idempotencyKey.current,
-          documentId,
-          kind,
-          sourceSlug,
-          reason,
-          confirmed: true,
-        },
+      const response = await privateDevos.editorial.createRedirect({
+        idempotencyKey: idempotencyKey.current,
+        targetDocumentId: documentId,
+        kind,
+        sourceSlug,
+        reason,
+        confirmed: true,
       });
-      setFeedback({ success: response.ok, message: response.message });
-      if (!response.ok) return;
-      idempotencyKey.current = null;
-      setSourceSlug("");
-      setReason("");
-      setConfirmed(false);
-      await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message: "A criação falhou. A identidade da tentativa será reutilizada.",
-      });
+      await finishSuccess(
+        response.duplicate
+          ? "Este alias já havia sido registrado."
+          : "Alias criado com evento auditado.",
+      );
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+        await refreshAfterCanonicalConflict(error, () => router.invalidate());
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({ success: false, message: "A sessão owner não pôde ser validada." });
+      } else {
+        setFeedback({
+          success: false,
+          message: "A criação falhou. A identidade da tentativa será reutilizada.",
+        });
+      }
     } finally {
       setPending(false);
     }
