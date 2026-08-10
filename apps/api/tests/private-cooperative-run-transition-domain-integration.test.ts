@@ -49,12 +49,12 @@ const initial: CooperativeRunSnapshot = {
   updatedAt: "2026-08-09T04:05:00.000Z",
 };
 
-const findRun = vi.fn(async () => initial);
-const transition = vi.fn(async () => "updated" as const);
-const repository = {
+const findRun = vi.fn<CooperativeRunTransitionRepository["findRun"]>(async () => initial);
+const apply = vi.fn<CooperativeRunTransitionRepository["apply"]>(async () => "updated" as const);
+const repository: CooperativeRunTransitionRepository = {
   findRun,
-  transition,
-} as unknown as CooperativeRunTransitionRepository;
+  apply,
+};
 
 function app() {
   return createApiApp({
@@ -76,13 +76,13 @@ async function headers() {
 
 beforeEach(() => {
   findRun.mockClear();
-  transition.mockClear();
+  apply.mockClear();
 });
 
 describe("cooperative run route/domain integration", () => {
   it("passes heartbeat data through the real domain transition service", async () => {
     const response = await app().request(
-      "/api/v1/private/cooperative-runs/heartbeat",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
@@ -90,10 +90,10 @@ describe("cooperative run route/domain integration", () => {
           idempotencyKey: "04013acb-c9c7-4a36-8605-a7c297507fad",
           runId: initial.id,
           expectedUpdatedAt: initial.updatedAt,
+          kind: "heartbeat",
           summary: "Heartbeat confirmado.",
           phase: "validation",
           branch: "main",
-          blocker: null,
           nextAction: "Continuar validação.",
           confirmed: true,
         }),
@@ -102,8 +102,8 @@ describe("cooperative run route/domain integration", () => {
 
     expect(response.status).toBe(200);
     expect(findRun).toHaveBeenCalledWith(initial.id);
-    expect(transition).toHaveBeenCalledTimes(1);
-    const [before, after, event] = transition.mock.calls[0] ?? [];
+    expect(apply).toHaveBeenCalledTimes(1);
+    const [before, after, event] = apply.mock.calls[0] ?? [];
     expect(before).toEqual(initial);
     expect(after).toMatchObject({
       id: initial.id,
@@ -119,9 +119,9 @@ describe("cooperative run route/domain integration", () => {
     });
   });
 
-  it("passes monotonic progress through the real domain transition service", async () => {
+  it("passes monotonic progress through the canonical checkpoint command", async () => {
     const response = await app().request(
-      "/api/v1/private/cooperative-runs/progress",
+      "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
@@ -129,11 +129,11 @@ describe("cooperative run route/domain integration", () => {
           idempotencyKey: "750b075a-ac3f-4070-9c42-bd99950b4e20",
           runId: initial.id,
           expectedUpdatedAt: initial.updatedAt,
+          kind: "checkpoint",
           progress: 60,
           summary: "Integração validada.",
           phase: "validation",
           branch: "main",
-          blocker: null,
           nextAction: "Rodar gate.",
           confirmed: true,
         }),
@@ -141,8 +141,8 @@ describe("cooperative run route/domain integration", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(transition).toHaveBeenCalledTimes(1);
-    const [, after, event] = transition.mock.calls[0] ?? [];
+    expect(apply).toHaveBeenCalledTimes(1);
+    const [, after, event] = apply.mock.calls[0] ?? [];
     expect(after).toMatchObject({
       progress: 60,
       summary: "Integração validada.",
