@@ -57,6 +57,19 @@ import {
   type StageCompletionMutationInput,
   type StageCompletionMutationResult,
 } from "./private-stage-completion";
+import {
+  createPrivateVerificationObligation,
+  recordPrivateVerificationObligationResult,
+  supersedePrivateVerificationObligation,
+  waivePrivateVerificationObligation,
+  type CreateVerificationObligationInput,
+  type CreateVerificationObligationResult,
+  type RecordVerificationObligationResultInput,
+  type RecordVerificationObligationResultResult,
+  type SupersedeVerificationObligationInput,
+  type VerificationObligationLifecycleResult,
+  type WaiveVerificationObligationInput,
+} from "./private-verification-obligation-commands";
 
 export type PrivateDevosClientOptions = Parameters<typeof createPrivateApiClient>[0];
 
@@ -108,6 +121,20 @@ export type PrivateDevosClient = {
     transition(
       input: CooperativeRunTransitionInput,
     ): Promise<CooperativeRunTransitionResult>;
+  };
+  verification: {
+    create(
+      input: CreateVerificationObligationInput,
+    ): Promise<CreateVerificationObligationResult>;
+    recordResult(
+      input: RecordVerificationObligationResultInput,
+    ): Promise<RecordVerificationObligationResultResult>;
+    supersede(
+      input: SupersedeVerificationObligationInput,
+    ): Promise<VerificationObligationLifecycleResult>;
+    waive(
+      input: WaiveVerificationObligationInput,
+    ): Promise<VerificationObligationLifecycleResult>;
   };
   editorial: {
     createRedirect(
@@ -162,6 +189,14 @@ export function createPrivateDevosClient(
     runs: {
       register: (input) => registerPrivateCooperativeRun(api, input),
       transition: (input) => transitionPrivateCooperativeRun(api, input),
+    },
+    verification: {
+      create: (input) => createPrivateVerificationObligation(api, input),
+      recordResult: (input) =>
+        recordPrivateVerificationObligationResult(api, input),
+      supersede: (input) =>
+        supersedePrivateVerificationObligation(api, input),
+      waive: (input) => waivePrivateVerificationObligation(api, input),
     },
     editorial: {
       createRedirect: (input) => createPrivateEditorialRedirect(api, input),
