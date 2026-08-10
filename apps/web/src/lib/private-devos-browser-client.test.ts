@@ -31,6 +31,14 @@ const capabilities = {
     commandExecution: false,
     processControl: false,
   },
+  semantics: {
+    ownerSessionRequired: true,
+    sameOriginRequired: true,
+    csrfRequiredForMutations: true,
+    auditLedger: true,
+    optimisticConcurrency: true,
+    semanticIdempotency: true,
+  },
 };
 
 describe("createPrivateDevosBrowserClient", () => {
