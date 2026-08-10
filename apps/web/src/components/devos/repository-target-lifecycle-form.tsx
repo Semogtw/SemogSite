@@ -2,8 +2,12 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { changeRepositoryTargetLifecycleFn } from "../../server/devos-repository-target-lifecycle";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export function RepositoryTargetLifecycleForm({
   repositoryId,
@@ -37,41 +41,52 @@ export function RepositoryTargetLifecycleForm({
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     setPending(true);
     setFeedback(null);
     try {
-      const response = await changeRepositoryTargetLifecycleFn({
-        data: {
-          csrfToken,
-          repositoryId,
-          desiredSyncEnabled,
-          expectedSyncEnabled: syncEnabled,
-          expectedUpdatedAt: updatedAt,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.repositories.changeTarget({
+        repositoryId,
+        desiredSyncEnabled,
+        expectedSyncEnabled: syncEnabled,
+        expectedUpdatedAt: updatedAt,
+        reason,
+        confirmed: true,
       });
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
+      setFeedback({
+        success: true,
+        message: desiredSyncEnabled
+          ? "Alvo reativado com auditoria."
+          : "Alvo pausado com auditoria.",
+      });
 
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "O estado do alvo não pôde ser alterado. O valor anterior foi preservado.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+        if (
+          error.code === "STALE_STATE" ||
+          error.code === "CONCURRENT_MODIFICATION" ||
+          error.code === "ALREADY_APPLIED"
+        ) {
+          await router.invalidate();
+        }
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O estado do alvo não pôde ser alterado. O valor anterior foi preservado.",
+        });
+      }
     } finally {
       setPending(false);
     }
