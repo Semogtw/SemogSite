@@ -2,8 +2,12 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { acceptBranchRecommendationFn } from "../../server/devos-branch-recommendation";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export function BranchRecommendationAcceptanceForm({
   repositoryId,
@@ -36,40 +40,48 @@ export function BranchRecommendationAcceptanceForm({
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     setPending(true);
     setFeedback(null);
     try {
-      const response = await acceptBranchRecommendationFn({
-        data: {
-          csrfToken,
-          repositoryId,
-          recommendationId,
-          expectedActiveBranch,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.repositories.acceptBranchRecommendation({
+        repositoryId,
+        recommendationId,
+        expectedActiveBranch,
+        reason,
+        confirmed: true,
       });
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
-
+      setFeedback({
+        success: true,
+        message: "Recomendação registrada como branch ativa do DevOS.",
+      });
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "A decisão não pôde ser confirmada. A branch ativa permaneceu inalterada.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+        if (
+          error.code === "STALE_RECOMMENDATION" ||
+          error.code === "STALE_STATE" ||
+          error.code === "CONCURRENT_MODIFICATION"
+        ) {
+          await router.invalidate();
+        }
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "A decisão não pôde ser confirmada. A branch ativa permaneceu inalterada.",
+        });
+      }
     } finally {
       setPending(false);
     }
