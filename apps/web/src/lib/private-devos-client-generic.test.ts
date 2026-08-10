@@ -30,6 +30,14 @@ const capabilities = {
     commandExecution: false as const,
     processControl: false as const,
   },
+  semantics: {
+    ownerSessionRequired: true as const,
+    sameOriginRequired: true as const,
+    csrfRequiredForMutations: true as const,
+    auditLedger: true as const,
+    optimisticConcurrency: true as const,
+    semanticIdempotency: true as const,
+  },
 };
 
 describe("generic private DevOS operations", () => {
