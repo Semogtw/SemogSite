@@ -2,8 +2,14 @@ import type { MiddlewareHandler } from "hono";
 import { privateStateWriteCapabilities } from "../private-capability-registry";
 import type { ApiEnvironment } from "./request-context";
 
-const privateMutationByPath = new Map(
-  privateStateWriteCapabilities.map((capability) => [capability.path, capability]),
+type PrivateStateWriteCapability = (typeof privateStateWriteCapabilities)[number];
+
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+const privateMutationByMethodAndPath = new Map<string, PrivateStateWriteCapability>(
+  privateStateWriteCapabilities.map((capability) => [
+    `${capability.method} ${capability.path}`,
+    capability,
+  ]),
 );
 
 function normalizePath(path: string): string {
@@ -15,20 +21,19 @@ function normalizePath(path: string): string {
  * Makes the capability registry a fail-closed mutation allowlist.
  *
  * Authentication/origin/CSRF middleware runs before this guard. A newly added
- * private POST therefore cannot silently become a write surface without also
- * declaring its canonical operation in the machine-readable capability
- * registry.
+ * unsafe private method therefore cannot silently become a write surface
+ * without declaring its exact method/path pair in the capability registry.
  */
 export const requireRegisteredPrivateMutation: MiddlewareHandler<ApiEnvironment> =
   async (context, next) => {
-    if (context.req.method !== "POST") {
+    if (safeMethods.has(context.req.method)) {
       await next();
       return;
     }
 
     const path = normalizePath(context.req.path);
-    const capability = privateMutationByPath.get(
-      path as `/api/v1/private/${string}`,
+    const capability = privateMutationByMethodAndPath.get(
+      `${context.req.method} ${path}`,
     );
     if (capability === undefined) {
       context.header("cache-control", "no-store, private");
@@ -46,5 +51,6 @@ export const requireRegisteredPrivateMutation: MiddlewareHandler<ApiEnvironment>
     }
 
     context.header("x-semogtw-operation", capability.name);
+    context.header("x-semogtw-retry-semantics", capability.retrySemantics);
     await next();
   };
