@@ -1,5 +1,6 @@
 import {
   createPrivateApiClient,
+  findPrivateStateWriteCapability,
   type PrivateRuntimeCapabilities,
 } from "./private-api-client";
 import {
@@ -18,6 +19,10 @@ import {
   type EditorialRedirectMutationInput,
   type EditorialRedirectMutationResult,
 } from "./private-editorial-redirect-commands";
+import {
+  getPrivateMutationRetryPolicy,
+  type PrivateMutationRetryPolicy,
+} from "./private-api-retry-policy";
 import {
   acceptPrivateBranchRecommendation,
   changePrivateRepositoryTarget,
@@ -40,6 +45,8 @@ export type PrivateDevosClientOptions = Parameters<typeof createPrivateApiClient
 export type PrivateDevosClient = {
   getCapabilities(refresh?: boolean): Promise<PrivateRuntimeCapabilities>;
   clearCapabilities(): void;
+  mutate<T>(operation: string, payload: unknown): Promise<T>;
+  getRetryPolicy(operation: string): Promise<PrivateMutationRetryPolicy>;
   attention: {
     transition(
       input: AttentionLifecycleMutationInput,
@@ -81,6 +88,7 @@ export type PrivateDevosClient = {
  *
  * Components call domain-shaped methods while operation discovery, endpoint
  * selection, CSRF transport and response-metadata validation stay centralized.
+ * The generic mutation escape hatch remains constrained by the server registry.
  */
 export function createPrivateDevosClient(
   options: PrivateDevosClientOptions,
@@ -89,6 +97,18 @@ export function createPrivateDevosClient(
   return {
     getCapabilities: api.getCapabilities,
     clearCapabilities: api.clearCapabilities,
+    mutate: api.mutate,
+    async getRetryPolicy(operation) {
+      let capabilities = await api.getCapabilities();
+      let capability = capabilities.stateWriteEndpoints.find(
+        (item) => item.name === operation,
+      );
+      if (capability === undefined) {
+        capabilities = await api.getCapabilities(true);
+        capability = findPrivateStateWriteCapability(capabilities, operation);
+      }
+      return getPrivateMutationRetryPolicy(capability);
+    },
     attention: {
       transition: (input) => transitionPrivateAttention(api, input),
     },
