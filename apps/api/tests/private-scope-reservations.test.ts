@@ -49,8 +49,8 @@ const success = (snapshot: ScopeReservationSnapshot = reservation) => ({
   overlaps: [] as string[],
   audit: {} as never,
 });
-const acquire = vi.fn(async () => success());
-const renew = vi.fn(async () =>
+const acquire = vi.fn<PrivateScopeReservationCommands["acquire"]>(async () => success());
+const renew = vi.fn<PrivateScopeReservationCommands["renew"]>(async () =>
   success({
     ...reservation,
     renewedAt: "2026-08-09T20:10:00.000Z",
@@ -58,7 +58,7 @@ const renew = vi.fn(async () =>
     version: 2,
   }),
 );
-const release = vi.fn(async () =>
+const release = vi.fn<PrivateScopeReservationCommands["release"]>(async () =>
   success({
     ...reservation,
     state: "released" as const,
@@ -66,7 +66,7 @@ const release = vi.fn(async () =>
     version: 2,
   }),
 );
-const override = vi.fn(async () =>
+const override = vi.fn<PrivateScopeReservationCommands["override"]>(async () =>
   success({
     ...reservation,
     state: "overridden" as const,
@@ -74,7 +74,7 @@ const override = vi.fn(async () =>
     version: 2,
   }),
 );
-const commands = { acquire, renew, release, override } as unknown as PrivateScopeReservationCommands;
+const commands: PrivateScopeReservationCommands = { acquire, renew, release, override };
 
 function app() {
   return createApiApp({
