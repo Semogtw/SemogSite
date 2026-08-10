@@ -12,15 +12,17 @@ describe("workflow orchestration controls", () => {
     const form = source(
       "../components/devos/scope-reservation-override-form.tsx",
     );
-    const server = source("../server/devos-scope-reservation-override.ts");
+    const commands = source("../lib/private-scope-reservation-commands.ts");
 
     expect(route).toContain("ScopeReservationOverrideForm");
     expect(route).toContain('reservation.persistedState === "active"');
     expect(route).toContain("expectedVersion={reservation.version}");
-    expect(form).toContain("overrideScopeReservationFn");
+    expect(form).toContain("createPrivateDevosBrowserClient");
+    expect(form).toContain("privateDevos.scopes.override");
+    expect(form).toContain("idempotencyKey.current");
     expect(form).toContain("Confirmo o encerramento explícito");
-    expect(server).toContain("requireMutationOwner");
-    expect(server).toContain("service.override");
+    expect(form).not.toContain("overrideScopeReservationFn");
+    expect(commands).toContain('"scope_reservation.override"');
   });
 
   it("records observed results only for non-terminal verification obligations", () => {
