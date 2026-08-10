@@ -51,12 +51,12 @@ const obligation: VerificationObligationSnapshot = {
   version: 1,
 };
 
-const create = vi.fn(async () => ({
+const create = vi.fn<PrivateVerificationObligationCommands["create"]>(async () => ({
   ok: true as const,
   obligation,
   audit: {} as never,
 }));
-const recordResult = vi.fn(async () => ({
+const recordResult = vi.fn<PrivateVerificationObligationCommands["recordResult"]>(async () => ({
   ok: true as const,
   obligation: {
     ...obligation,
@@ -69,7 +69,7 @@ const recordResult = vi.fn(async () => ({
   },
   audit: {} as never,
 }));
-const supersede = vi.fn(async () => ({
+const supersede = vi.fn<PrivateVerificationObligationCommands["supersede"]>(async () => ({
   ok: true as const,
   obligation: {
     ...obligation,
@@ -79,7 +79,7 @@ const supersede = vi.fn(async () => ({
   },
   audit: {} as never,
 }));
-const waive = vi.fn(async () => ({
+const waive = vi.fn<PrivateVerificationObligationCommands["waive"]>(async () => ({
   ok: true as const,
   obligation: {
     ...obligation,
@@ -89,12 +89,12 @@ const waive = vi.fn(async () => ({
   },
   audit: {} as never,
 }));
-const commands = {
+const commands: PrivateVerificationObligationCommands = {
   create,
   recordResult,
   supersede,
   waive,
-} as unknown as PrivateVerificationObligationCommands;
+};
 
 function app() {
   return createApiApp({
