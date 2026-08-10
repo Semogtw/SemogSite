@@ -7,6 +7,7 @@ import {
   sanitizedErrorHandler,
   sanitizedNotFoundHandler,
 } from "./middleware/error-handler";
+import { requireRegisteredPrivateMutation } from "./middleware/private-operation-registry";
 import {
   createRequestObserverMiddleware,
   type ApiRequestObserver,
@@ -36,6 +37,14 @@ import {
   createPrivateBranchRecommendationRoutes,
   type PrivateBranchRecommendationCommands,
 } from "./routes/private/branch-recommendations";
+import {
+  createPrivateCapabilityRoutes,
+  type PrivateCapabilityQueries,
+} from "./routes/private/capabilities";
+import {
+  createPrivateCooperativeRunReadRoutes,
+  type PrivateCooperativeRunQueries,
+} from "./routes/private/cooperative-run-read";
 import {
   createPrivateCooperativeRunTransitionRoutes,
   type PrivateCooperativeRunTransitionCommands,
@@ -111,6 +120,7 @@ export type ApiDependencies = {
   requestObserver?: ApiRequestObserver;
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
+  privateCapabilities?: PrivateCapabilityQueries;
   privateAttention?: PrivateAttentionCommands;
   privateAttentionLifecycle?: PrivateAttentionLifecycleCommands;
   privateEvidence?: PrivateEvidenceCommands;
@@ -120,6 +130,7 @@ export type ApiDependencies = {
   privateRepositoryTargetRegistration?: PrivateRepositoryTargetRegistrationCommands;
   privateBranchRecommendations?: PrivateBranchRecommendationCommands;
   privateCooperativeRuns?: PrivateCooperativeRunCommands;
+  privateCooperativeRunQueries?: PrivateCooperativeRunQueries;
   privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
   privateVerificationObligations?: PrivateVerificationObligationCommands;
   privateScopeReservations?: PrivateScopeReservationCommands;
@@ -165,6 +176,11 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     "/api/v1/private/*",
     createPrivateCsrfMiddleware(dependencies.auth?.sessionSecret),
   );
+  api.use("/api/v1/private/*", requireRegisteredPrivateMutation);
+  api.route(
+    "/api/v1/private/capabilities",
+    createPrivateCapabilityRoutes(dependencies.privateCapabilities),
+  );
   api.route(
     "/api/v1/private/attention",
     createPrivateAttentionRoutes(dependencies.privateAttention),
@@ -204,6 +220,10 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/cooperative-runs",
     createPrivateCooperativeRunRoutes(dependencies.privateCooperativeRuns),
+  );
+  api.route(
+    "/api/v1/private/cooperative-runs",
+    createPrivateCooperativeRunReadRoutes(dependencies.privateCooperativeRunQueries),
   );
   api.route(
     "/api/v1/private/cooperative-runs",
