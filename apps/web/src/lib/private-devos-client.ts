@@ -20,6 +20,11 @@ import {
   type EditorialRedirectMutationResult,
 } from "./private-editorial-redirect-commands";
 import {
+  recordPrivateManualEvidence,
+  type RecordManualEvidenceInput,
+  type RecordManualEvidenceResult,
+} from "./private-evidence-commands";
+import {
   getPrivateMutationRetryPolicy,
   type PrivateMutationRetryPolicy,
 } from "./private-api-retry-policy";
@@ -52,6 +57,11 @@ export type PrivateDevosClient = {
       input: AttentionLifecycleMutationInput,
     ): Promise<AttentionLifecycleMutationResult>;
   };
+  evidence: {
+    record(
+      input: RecordManualEvidenceInput,
+    ): Promise<RecordManualEvidenceResult>;
+  };
   stages: {
     complete(
       input: StageCompletionMutationInput,
@@ -83,13 +93,6 @@ export type PrivateDevosClient = {
   };
 };
 
-/**
- * High-level browser facade over the private canonical-state API.
- *
- * Components call domain-shaped methods while operation discovery, endpoint
- * selection, CSRF transport and response-metadata validation stay centralized.
- * The generic mutation escape hatch remains constrained by the server registry.
- */
 export function createPrivateDevosClient(
   options: PrivateDevosClientOptions,
 ): PrivateDevosClient {
@@ -111,6 +114,9 @@ export function createPrivateDevosClient(
     },
     attention: {
       transition: (input) => transitionPrivateAttention(api, input),
+    },
+    evidence: {
+      record: (input) => recordPrivateManualEvidence(api, input),
     },
     stages: {
       complete: (input) => completePrivateStage(api, input),
