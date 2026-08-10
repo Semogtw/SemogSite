@@ -2,23 +2,16 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { attachManualEvidenceFn } from "../../server/devos-evidence";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+import type {
+  EvidenceKind,
+  EvidenceStatus,
+} from "../../lib/private-evidence-commands";
 
-type EvidenceKind =
-  | "commit"
-  | "pull_request"
-  | "issue"
-  | "workflow_run"
-  | "test"
-  | "document"
-  | "manual_note";
-type EvidenceStatus =
-  | "observed"
-  | "passed"
-  | "failed"
-  | "pending"
-  | "superseded";
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 type StageOption = {
   id: string;
@@ -42,6 +35,12 @@ const validationMessages: Record<string, string> = {
   REASON_REQUIRED: "Explique por que a evidência está sendo registrada.",
   REASON_TOO_LONG: "A razão deve ter no máximo 500 caracteres.",
 };
+
+function validationErrors(details: unknown): readonly string[] {
+  return Array.isArray(details) && details.every((item) => typeof item === "string")
+    ? details
+    : [];
+}
 
 export function EvidenceCaptureForm({
   projectId,
@@ -73,41 +72,26 @@ export function EvidenceCaptureForm({
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setSaved(false);
-      setMessage("Não foi possível validar esta sessão.");
-      return;
-    }
-
     setPending(true);
     setSaved(false);
     setMessage(null);
     setErrors([]);
     try {
-      const response = await attachManualEvidenceFn({
-        data: {
-          csrfToken,
-          projectId,
-          stageId: stageId.length === 0 ? null : stageId,
-          kind,
-          title,
-          url: url.trim().length === 0 ? null : url,
-          externalId: null,
-          status,
-          summary,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.evidence.record({
+        projectId,
+        stageId: stageId.length === 0 ? null : stageId,
+        kind,
+        title,
+        url: url.trim().length === 0 ? null : url,
+        externalId: null,
+        status,
+        summary,
+        reason,
+        confirmed: true,
       });
-      if (!response.ok) {
-        setMessage(response.message);
-        setErrors("errors" in response ? response.errors : []);
-        return;
-      }
 
       setSaved(true);
-      setMessage(response.message);
+      setMessage("Evidência registrada com auditoria.");
       setStageId("");
       setKind("manual_note");
       setStatus("observed");
@@ -117,8 +101,18 @@ export function EvidenceCaptureForm({
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setMessage("Não foi possível salvar esta evidência.");
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setMessage(error.message);
+        setErrors(validationErrors(error.details));
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setMessage("Não foi possível validar esta sessão.");
+      } else {
+        setMessage("Não foi possível salvar esta evidência.");
+      }
     } finally {
       setPending(false);
     }
