@@ -24,6 +24,14 @@ export type PrivateRuntimeCapabilities = {
     commandExecution: false;
     processControl: false;
   };
+  semantics: {
+    ownerSessionRequired: true;
+    sameOriginRequired: true;
+    csrfRequiredForMutations: true;
+    auditLedger: true;
+    optimisticConcurrency: true;
+    semanticIdempotency: true;
+  };
 };
 
 export type PrivateApiErrorDetails = {
@@ -58,8 +66,14 @@ type ApiEnvelope<T> =
   | { ok: true; data: T }
   | { ok: false; error: PrivateApiErrorDetails };
 
+type CsrfTokenProvider = () => string | Promise<string>;
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasDuplicates(values: readonly string[]): boolean {
+  return new Set(values).size !== values.length;
 }
 
 function parseCapability(value: unknown): PrivateStateWriteCapability | null {
@@ -67,9 +81,11 @@ function parseCapability(value: unknown): PrivateStateWriteCapability | null {
   const retrySemantics = value.retrySemantics;
   if (
     typeof value.name !== "string" ||
+    value.name.trim().length === 0 ||
     value.method !== "POST" ||
     typeof value.path !== "string" ||
     !value.path.startsWith("/api/v1/private/") ||
+    value.path.endsWith("/") ||
     value.externalEffect !== false ||
     (retrySemantics !== "atomic-create" &&
       retrySemantics !== "deduplicated-state" &&
@@ -102,10 +118,18 @@ function parseCapabilities(value: unknown): PrivateRuntimeCapabilities {
     (value.canonicalStorage !== "d1" && value.canonicalStorage !== "sqlite") ||
     !Array.isArray(value.stateWrites) ||
     !value.stateWrites.every((item) => typeof item === "string") ||
-    !isObject(value.externalEffects)
+    !isObject(value.externalEffects) ||
+    !isObject(value.semantics)
   ) {
     throw new Error("Invalid private capability payload.");
   }
+  if (
+    (value.runtime === "cloudflare-worker-d1" && value.canonicalStorage !== "d1") ||
+    (value.runtime === "node-sqlite" && value.canonicalStorage !== "sqlite")
+  ) {
+    throw new Error("Private capability runtime/storage pair is inconsistent.");
+  }
+
   const effects = value.externalEffects;
   if (
     effects.repositoryCheckout !== false ||
@@ -116,15 +140,38 @@ function parseCapabilities(value: unknown): PrivateRuntimeCapabilities {
   ) {
     throw new Error("Private API unexpectedly advertises external effects.");
   }
+
+  const semantics = value.semantics;
+  if (
+    semantics.ownerSessionRequired !== true ||
+    semantics.sameOriginRequired !== true ||
+    semantics.csrfRequiredForMutations !== true ||
+    semantics.auditLedger !== true ||
+    semantics.optimisticConcurrency !== true ||
+    semantics.semanticIdempotency !== true
+  ) {
+    throw new Error("Private API security semantics are weaker than required.");
+  }
+
   const endpoints = stateWriteEndpoints as PrivateStateWriteCapability[];
   const endpointNames = endpoints.map((item) => item.name);
-  if (JSON.stringify(endpointNames) !== JSON.stringify(value.stateWrites)) {
+  const endpointPaths = endpoints.map((item) => item.path);
+  const stateWrites = [...value.stateWrites] as string[];
+  if (
+    hasDuplicates(endpointNames) ||
+    hasDuplicates(endpointPaths) ||
+    hasDuplicates(stateWrites)
+  ) {
+    throw new Error("Private capability registry contains duplicates.");
+  }
+  if (JSON.stringify(endpointNames) !== JSON.stringify(stateWrites)) {
     throw new Error("Private capability names do not match endpoint registry.");
   }
+
   return {
     runtime: value.runtime,
     canonicalStorage: value.canonicalStorage,
-    stateWrites: [...value.stateWrites] as string[],
+    stateWrites,
     stateWriteEndpoints: endpoints,
     externalEffects: {
       repositoryCheckout: false,
@@ -132,6 +179,14 @@ function parseCapabilities(value: unknown): PrivateRuntimeCapabilities {
       repositoryPush: false,
       commandExecution: false,
       processControl: false,
+    },
+    semantics: {
+      ownerSessionRequired: true,
+      sameOriginRequired: true,
+      csrfRequiredForMutations: true,
+      auditLedger: true,
+      optimisticConcurrency: true,
+      semanticIdempotency: true,
     },
   };
 }
@@ -237,4 +292,67 @@ export async function executePrivateStateWrite<T>(options: {
     throw new Error("Private API returned success data with a failing status.");
   }
   return envelope.data;
+}
+
+/**
+ * Browser-safe facade for private state writes.
+ *
+ * Capabilities are cached per client instance, while CSRF is requested for
+ * every mutation so session/token rotation does not require rebuilding it.
+ * A missing operation forces one capability refresh before failing.
+ */
+export function createPrivateApiClient(options: {
+  getCsrfToken: CsrfTokenProvider;
+  fetchImpl?: FetchLike;
+}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  let capabilitiesPromise: Promise<PrivateRuntimeCapabilities> | null = null;
+
+  const getCapabilities = (refresh = false) => {
+    if (refresh || capabilitiesPromise === null) {
+      capabilitiesPromise = loadPrivateRuntimeCapabilities(fetchImpl).catch((error) => {
+        capabilitiesPromise = null;
+        throw error;
+      });
+    }
+    return capabilitiesPromise;
+  };
+
+  const resolveCapability = async (operation: string) => {
+    let capabilities = await getCapabilities();
+    let capability = capabilities.stateWriteEndpoints.find(
+      (item) => item.name === operation,
+    );
+    if (capability === undefined) {
+      capabilities = await getCapabilities(true);
+      capability = capabilities.stateWriteEndpoints.find(
+        (item) => item.name === operation,
+      );
+    }
+    if (capability === undefined) {
+      throw new Error(`Private operation is not available: ${operation}`);
+    }
+    return capabilities;
+  };
+
+  return {
+    getCapabilities,
+    clearCapabilities() {
+      capabilitiesPromise = null;
+    },
+    async mutate<T>(operation: string, payload: unknown): Promise<T> {
+      const capabilities = await resolveCapability(operation);
+      const csrfToken = (await options.getCsrfToken()).trim();
+      if (csrfToken.length === 0) {
+        throw new Error("Private mutation requires a CSRF token.");
+      }
+      return executePrivateStateWrite<T>({
+        capabilities,
+        operation,
+        payload,
+        csrfToken,
+        fetchImpl,
+      });
+    },
+  };
 }
