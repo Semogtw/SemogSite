@@ -14,12 +14,15 @@ import { D1AuditDataSource } from "@semogtw/database/d1-audit";
 import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";
 import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";
 import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";
+import { D1CooperativeRunReadModel } from "@semogtw/database/d1-cooperative-run-read";
 import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";
 import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";
 import { D1EditorialRedirectRepository } from "@semogtw/database/d1-editorial-redirects";
 import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
+import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
+import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";
 import { D1RepositoryTargetRegistrationRepository } from "@semogtw/database/d1-repository-target-registration";
 import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
@@ -29,8 +32,6 @@ import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completi
 import { D1TodayDataSource } from "@semogtw/database/d1-today";
 import { D1VerificationObligationRepository } from "@semogtw/database/d1-verification-obligations";
 import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
-import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
-import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import {
   AttentionCaptureService,
   AttentionLifecycleService,
@@ -57,6 +58,7 @@ import {
   consoleRequestObserver,
   isRequestLoggingEnabled,
 } from "../middleware/request-observer";
+import { createPrivateRuntimeCapabilities } from "../private-capabilities";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -167,6 +169,7 @@ async function composeD1ApiRuntime(
   const privateCooperativeRuns = new CooperativeRunRegistrationService(
     new D1CooperativeRunRegistrationRepository(bindings.DB),
   );
+  const privateCooperativeRunQueries = new D1CooperativeRunReadModel(bindings.DB);
   const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
     new D1CooperativeRunTransitionRepository(bindings.DB),
   );
@@ -186,6 +189,9 @@ async function composeD1ApiRuntime(
   const roadmap = new RoadmapService(new D1RoadmapDataSource(database));
   const projects = new ProjectService(new D1ProjectDataSource(database));
   const privateWorkflows = new D1WorkflowOrchestrationReadModel(database);
+  const privateCapabilities = {
+    getCapabilities: () => createPrivateRuntimeCapabilities("cloudflare-worker-d1"),
+  };
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -226,6 +232,7 @@ async function composeD1ApiRuntime(
         list: () => publicProjects.listListed(),
         findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
       },
+      privateCapabilities,
       privateAttention,
       privateAttentionLifecycle,
       privateEvidence,
@@ -235,6 +242,7 @@ async function composeD1ApiRuntime(
       privateRepositoryTargetRegistration,
       privateBranchRecommendations,
       privateCooperativeRuns,
+      privateCooperativeRunQueries,
       privateCooperativeRunTransitions,
       privateVerificationObligations,
       privateScopeReservations,
