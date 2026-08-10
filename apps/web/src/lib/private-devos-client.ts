@@ -40,6 +40,11 @@ import {
   type RegisterRepositoryTargetResult,
 } from "./private-repository-commands";
 import {
+  recordPrivateSessionHandoff,
+  type RecordSessionHandoffInput,
+  type RecordSessionHandoffResult,
+} from "./private-session-handoff-commands";
+import {
   completePrivateStage,
   type StageCompletionMutationInput,
   type StageCompletionMutationResult,
@@ -61,6 +66,11 @@ export type PrivateDevosClient = {
     record(
       input: RecordManualEvidenceInput,
     ): Promise<RecordManualEvidenceResult>;
+  };
+  handoffs: {
+    record(
+      input: RecordSessionHandoffInput,
+    ): Promise<RecordSessionHandoffResult>;
   };
   stages: {
     complete(
@@ -117,6 +127,9 @@ export function createPrivateDevosClient(
     },
     evidence: {
       record: (input) => recordPrivateManualEvidence(api, input),
+    },
+    handoffs: {
+      record: (input) => recordPrivateSessionHandoff(api, input),
     },
     stages: {
       complete: (input) => completePrivateStage(api, input),
