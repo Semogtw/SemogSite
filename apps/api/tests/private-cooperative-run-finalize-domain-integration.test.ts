@@ -47,12 +47,12 @@ const initial: CooperativeRunSnapshot = {
   staleAfterSeconds: 1800,
   updatedAt: "2026-08-09T04:25:00.000Z",
 };
-const findRun = vi.fn(async () => initial);
-const transition = vi.fn(async () => "updated" as const);
-const repository = {
+const findRun = vi.fn<CooperativeRunTransitionRepository["findRun"]>(async () => initial);
+const apply = vi.fn<CooperativeRunTransitionRepository["apply"]>(async () => "updated" as const);
+const repository: CooperativeRunTransitionRepository = {
   findRun,
-  transition,
-} as unknown as CooperativeRunTransitionRepository;
+  apply,
+};
 
 it("passes finalization through the real domain service", async () => {
   const app = createApiApp({
@@ -63,7 +63,7 @@ it("passes finalization through the real domain service", async () => {
   });
   const csrf = await issueCsrfToken(sessionSecret, owner.sessionId);
   const response = await app.request(
-    "/api/v1/private/cooperative-runs/finalize",
+    "/api/v1/private/cooperative-runs/transition",
     {
       method: "POST",
       headers: {
@@ -75,20 +75,17 @@ it("passes finalization through the real domain service", async () => {
         idempotencyKey: "64e777e9-0215-4367-8dd1-d2fe530c8a0b",
         runId: initial.id,
         expectedUpdatedAt: initial.updatedAt,
-        status: "completed",
+        kind: "complete",
+        progress: 100,
         summary: "Port D1 concluído.",
-        phase: "done",
-        branch: "main",
-        blocker: null,
-        nextAction: "Nenhuma ação pendente.",
         confirmed: true,
       }),
     },
   );
 
   expect(response.status).toBe(200);
-  expect(transition).toHaveBeenCalledTimes(1);
-  const [before, after, event] = transition.mock.calls[0] ?? [];
+  expect(apply).toHaveBeenCalledTimes(1);
+  const [before, after, event] = apply.mock.calls[0] ?? [];
   expect(before).toEqual(initial);
   expect(after).toMatchObject({
     id: initial.id,
