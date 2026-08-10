@@ -1,17 +1,17 @@
 import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { recordSessionHandoffFn } from "../../server/devos-session-handoff";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+import type {
+  SessionHandoffResult,
+  SessionHandoffTestsStatus,
+} from "../../lib/private-session-handoff-commands";
 import { parseCommitList } from "./session-handoff-input";
 
-type TestsStatus = "not_run" | "partial" | "passed" | "failed" | "blocked";
-type SessionResult =
-  | "significant"
-  | "partial"
-  | "maintenance"
-  | "no_change"
-  | "failed";
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const validationMessages: Record<string, string> = {
   CONFIRMATION_REQUIRED: "Confirme conscientemente o registro do handoff.",
@@ -31,16 +31,22 @@ const validationMessages: Record<string, string> = {
   REASON_TOO_LONG: "A razão deve ter no máximo 500 caracteres.",
 };
 
+function validationErrors(details: unknown): readonly string[] {
+  return Array.isArray(details) && details.every((item) => typeof item === "string")
+    ? details
+    : [];
+}
+
 export function SessionHandoffForm() {
   const [title, setTitle] = useState("");
   const [branch, setBranch] = useState("");
   const [commitsText, setCommitsText] = useState("");
   const [completedSummary, setCompletedSummary] = useState("");
-  const [testsStatus, setTestsStatus] = useState<TestsStatus>("not_run");
+  const [testsStatus, setTestsStatus] = useState<SessionHandoffTestsStatus>("not_run");
   const [testsSummary, setTestsSummary] = useState("");
   const [blockers, setBlockers] = useState("");
   const [nextStep, setNextStep] = useState("");
-  const [result, setResult] = useState<SessionResult>("significant");
+  const [result, setResult] = useState<SessionHandoffResult>("significant");
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -57,43 +63,28 @@ export function SessionHandoffForm() {
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setSaved(false);
-      setMessage("Não foi possível validar esta sessão.");
-      return;
-    }
-
     setPending(true);
     setMessage(null);
     setErrors([]);
     setSaved(false);
     try {
-      const response = await recordSessionHandoffFn({
-        data: {
-          csrfToken,
-          projectId: null,
-          title,
-          branch: branch.trim().length === 0 ? null : branch,
-          commits: [...parseCommitList(commitsText)],
-          completedSummary,
-          testsStatus,
-          testsSummary,
-          blockers,
-          nextStep,
-          result,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.handoffs.record({
+        projectId: null,
+        title,
+        branch: branch.trim().length === 0 ? null : branch,
+        commits: [...parseCommitList(commitsText)],
+        completedSummary,
+        testsStatus,
+        testsSummary,
+        blockers,
+        nextStep,
+        result,
+        reason,
+        confirmed: true,
       });
-      if (!response.ok) {
-        setMessage(response.message);
-        setErrors("errors" in response ? response.errors : []);
-        return;
-      }
 
       setSaved(true);
-      setMessage(response.message);
+      setMessage("Handoff registrado com auditoria.");
       setTitle("");
       setBranch("");
       setCommitsText("");
@@ -105,8 +96,18 @@ export function SessionHandoffForm() {
       setResult("significant");
       setReason("");
       setConfirmed(false);
-    } catch {
-      setMessage("Não foi possível salvar este handoff.");
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setMessage(error.message);
+        setErrors(validationErrors(error.details));
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setMessage("Não foi possível validar esta sessão.");
+      } else {
+        setMessage("Não foi possível salvar este handoff.");
+      }
     } finally {
       setPending(false);
     }
@@ -165,7 +166,7 @@ export function SessionHandoffForm() {
           <select
             value={testsStatus}
             onChange={(event) =>
-              setTestsStatus(event.target.value as TestsStatus)
+              setTestsStatus(event.target.value as SessionHandoffTestsStatus)
             }
           >
             <option value="not_run">Não executados</option>
@@ -179,7 +180,7 @@ export function SessionHandoffForm() {
           Resultado da sessão
           <select
             value={result}
-            onChange={(event) => setResult(event.target.value as SessionResult)}
+            onChange={(event) => setResult(event.target.value as SessionHandoffResult)}
           >
             <option value="significant">Avanço significativo</option>
             <option value="partial">Avanço parcial</option>
