@@ -4,8 +4,12 @@ import type { CooperativeRunOrigin } from "@semogtw/domain";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { registerCooperativeRunFn } from "../../server/devos-run-registration";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const originOptions: ReadonlyArray<{
   value: CooperativeRunOrigin;
@@ -54,6 +58,17 @@ export function RunRegistrationForm({
     idempotencyKey.current = null;
   }
 
+  async function finishSuccessfulRegistration(message: string) {
+    setFeedback({ message, success: true });
+    idempotencyKey.current = null;
+    setTitle("");
+    setPhase("");
+    setInitialSummary("");
+    setNextAction("");
+    setConfirmed(false);
+    await router.invalidate();
+  }
+
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
@@ -65,51 +80,48 @@ export function RunRegistrationForm({
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     idempotencyKey.current ??= crypto.randomUUID();
     setPending(true);
     setFeedback(null);
     try {
-      const response = await registerCooperativeRunFn({
-        data: {
-          csrfToken,
-          idempotencyKey: idempotencyKey.current,
-          projectId: projectId.length === 0 ? null : projectId,
-          title,
-          actorLabel,
-          origin,
-          phase: phase.trim().length === 0 ? null : phase,
-          branch: branch.trim().length === 0 ? null : branch,
-          initialSummary,
-          nextAction,
-          staleAfterSeconds,
-          confirmed: true,
-        },
+      await privateDevos.runs.register({
+        idempotencyKey: idempotencyKey.current,
+        projectId: projectId.length === 0 ? null : projectId,
+        title,
+        actorLabel,
+        origin,
+        phase: phase.trim().length === 0 ? null : phase,
+        branch: branch.trim().length === 0 ? null : branch,
+        initialSummary,
+        nextAction,
+        staleAfterSeconds,
+        confirmed: true,
       });
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
-
-      idempotencyKey.current = null;
-      setTitle("");
-      setPhase("");
-      setInitialSummary("");
-      setNextAction("");
-      setConfirmed(false);
-      await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "O registro falhou. A mesma chave será reutilizada na próxima tentativa.",
-      });
+      await finishSuccessfulRegistration("Execução cooperativa registrada.");
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        if (error.code === "DUPLICATE") {
+          await finishSuccessfulRegistration(
+            "Esta execução já havia sido registrada com a mesma intenção.",
+          );
+          return;
+        }
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O registro falhou. A mesma chave será reutilizada na próxima tentativa.",
+        });
+      }
     } finally {
       setPending(false);
     }
