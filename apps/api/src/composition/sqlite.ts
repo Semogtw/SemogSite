@@ -33,6 +33,7 @@ import {
   SqliteVerificationObligationRepository,
   SqliteWorkflowOrchestrationReadModel,
 } from "@semogtw/database";
+import { SqliteCooperativeRunReadModel } from "@semogtw/database/sqlite-cooperative-run-read";
 import {
   AttentionCaptureService,
   AttentionLifecycleService,
@@ -61,6 +62,7 @@ import {
   consoleRequestObserver,
   isRequestLoggingEnabled,
 } from "../middleware/request-observer";
+import { createPrivateRuntimeCapabilities } from "../private-capabilities";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -152,6 +154,7 @@ export function createSqliteApiRuntime(
   const privateCooperativeRuns = new CooperativeRunRegistrationService(
     new SqliteCooperativeRunRegistrationRepository(database),
   );
+  const privateCooperativeRunQueries = new SqliteCooperativeRunReadModel(database);
   const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
     new SqliteCooperativeRunTransitionRepository(database),
   );
@@ -171,6 +174,9 @@ export function createSqliteApiRuntime(
   const roadmap = new RoadmapService(new SqliteRoadmapDataSource(database));
   const projects = new ProjectService(new SqliteProjectDataSource(database));
   const privateWorkflows = new SqliteWorkflowOrchestrationReadModel(database);
+  const privateCapabilities = {
+    getCapabilities: () => createPrivateRuntimeCapabilities("node-sqlite"),
+  };
   const privateRoadmap = {
     getRoadmap: () =>
       roadmap.query({
@@ -209,6 +215,7 @@ export function createSqliteApiRuntime(
       list: () => publicSource.listListed(),
       findBySlug: (slug) => publicSource.findPublishableBySlug(slug),
     },
+    privateCapabilities,
     privateAttention,
     privateAttentionLifecycle,
     privateEvidence,
@@ -218,6 +225,7 @@ export function createSqliteApiRuntime(
     privateRepositoryTargetRegistration,
     privateBranchRecommendations,
     privateCooperativeRuns,
+    privateCooperativeRunQueries,
     privateCooperativeRunTransitions,
     privateVerificationObligations,
     privateScopeReservations,
