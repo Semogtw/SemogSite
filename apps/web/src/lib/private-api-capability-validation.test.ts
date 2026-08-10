@@ -29,6 +29,14 @@ function base() {
       commandExecution: false,
       processControl: false,
     },
+    semantics: {
+      ownerSessionRequired: true,
+      sameOriginRequired: true,
+      csrfRequiredForMutations: true,
+      auditLedger: true,
+      optimisticConcurrency: true,
+      semanticIdempotency: true,
+    },
   };
 }
 
@@ -63,10 +71,7 @@ describe("private API capability validation", () => {
       response({
         ...base(),
         stateWrites: [stage.name, "stage.other"],
-        stateWriteEndpoints: [
-          stage,
-          { ...stage, name: "stage.other" },
-        ],
+        stateWriteEndpoints: [stage, { ...stage, name: "stage.other" }],
       }),
     );
     await expect(loadPrivateRuntimeCapabilities(fetchImpl)).rejects.toThrow(
@@ -94,6 +99,21 @@ describe("private API capability validation", () => {
     );
     await expect(loadPrivateRuntimeCapabilities(fetchImpl)).rejects.toThrow(
       "Invalid private capability endpoint entry",
+    );
+  });
+
+  it("rejects a runtime that weakens required private security semantics", async () => {
+    const fetchImpl = vi.fn(async () =>
+      response({
+        ...base(),
+        semantics: {
+          ...base().semantics,
+          csrfRequiredForMutations: false,
+        },
+      }),
+    );
+    await expect(loadPrivateRuntimeCapabilities(fetchImpl)).rejects.toThrow(
+      "security semantics are weaker than required",
     );
   });
 });
