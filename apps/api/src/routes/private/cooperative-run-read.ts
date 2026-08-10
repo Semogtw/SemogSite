@@ -1,5 +1,5 @@
 import type { CooperativeRunSnapshot } from "@semogtw/domain";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import type { ApiEnvironment } from "../../middleware/request-context";
 
@@ -37,7 +37,7 @@ const DetailQuerySchema = z.object({
 const RunIdSchema = z.string().min(1).max(200);
 
 function errorResponse(
-  context: Parameters<Parameters<Hono<ApiEnvironment>["get"]>[1]>[0],
+  context: Context<ApiEnvironment>,
   code: string,
   message: string,
   status: 400 | 404 | 503,
