@@ -34,39 +34,36 @@ const capabilities: PrivateRuntimeCapabilities = {
     commandExecution: false,
     processControl: false,
   },
+  semantics: {
+    ownerSessionRequired: true,
+    sameOriginRequired: true,
+    csrfRequiredForMutations: true,
+    auditLedger: true,
+    optimisticConcurrency: true,
+    semanticIdempotency: true,
+  },
 };
 
-function jsonResponse(
-  body: unknown,
-  init: ResponseInit = {},
-): Response {
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json");
   return new Response(JSON.stringify(body), {
+    ...init,
     status: init.status ?? 200,
-    headers: {
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
+    headers,
   });
 }
 
 describe("private API client", () => {
   it("loads and validates the capability registry from same origin", async () => {
     const fetchImpl = vi.fn(async () =>
-      jsonResponse({
-        ok: true,
-        data: capabilities,
-      }),
+      jsonResponse({ ok: true, data: capabilities }),
     );
 
-    await expect(loadPrivateRuntimeCapabilities(fetchImpl)).resolves.toEqual(
-      capabilities,
-    );
+    await expect(loadPrivateRuntimeCapabilities(fetchImpl)).resolves.toEqual(capabilities);
     expect(fetchImpl).toHaveBeenCalledWith(
       "/api/v1/private/capabilities",
-      expect.objectContaining({
-        method: "GET",
-        credentials: "same-origin",
-      }),
+      expect.objectContaining({ method: "GET", credentials: "same-origin" }),
     );
   });
 
@@ -76,10 +73,7 @@ describe("private API client", () => {
         ok: true,
         data: {
           ...capabilities,
-          externalEffects: {
-            ...capabilities.externalEffects,
-            commandExecution: true,
-          },
+          externalEffects: { ...capabilities.externalEffects, commandExecution: true },
         },
       }),
     );
@@ -90,15 +84,13 @@ describe("private API client", () => {
   });
 
   it("resolves a state write by stable operation name", () => {
-    expect(
-      findPrivateStateWriteCapability(capabilities, "stage.complete"),
-    ).toMatchObject({
+    expect(findPrivateStateWriteCapability(capabilities, "stage.complete")).toMatchObject({
       path: "/api/v1/private/stages/complete",
       retrySemantics: "optimistic-concurrency",
     });
-    expect(() =>
-      findPrivateStateWriteCapability(capabilities, "repository.push"),
-    ).toThrow("Private operation is not available");
+    expect(() => findPrivateStateWriteCapability(capabilities, "repository.push")).toThrow(
+      "Private operation is not available",
+    );
   });
 
   it("executes a registered write with CSRF and validates operation metadata", async () => {
@@ -118,11 +110,7 @@ describe("private API client", () => {
       executePrivateStateWrite<{ stageId: string }>({
         capabilities,
         operation: "stage.complete",
-        payload: {
-          stageId: "stage-1",
-          reason: "Gate validado.",
-          confirmed: true,
-        },
+        payload: { stageId: "stage-1", reason: "Gate validado.", confirmed: true },
         csrfToken: "csrf-token",
         fetchImpl,
       }),
