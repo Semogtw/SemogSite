@@ -1,5 +1,5 @@
 import type { CooperativeRunSnapshot } from "@semogtw/domain";
-import { createSqliteDatabase } from "../client";
+import { createSqliteDatabase } from "../adapters/sqlite";
 import type {
   CooperativeRunEventListOptions,
   CooperativeRunLedgerEvent,
