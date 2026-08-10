@@ -1,9 +1,15 @@
+import {
+  privateStateWriteCapabilities,
+  type PrivateStateWriteCapability,
+} from "./private-capability-registry";
+
 export type PrivateRuntimeKind = "cloudflare-worker-d1" | "node-sqlite";
 
 export type PrivateRuntimeCapabilities = {
   runtime: PrivateRuntimeKind;
   canonicalStorage: "d1" | "sqlite";
   stateWrites: readonly string[];
+  stateWriteEndpoints: readonly PrivateStateWriteCapability[];
   externalEffects: {
     repositoryCheckout: false;
     repositoryFetch: false;
@@ -21,36 +27,14 @@ export type PrivateRuntimeCapabilities = {
   };
 };
 
-const canonicalStateWrites = [
-  "attention.capture",
-  "attention.transition",
-  "evidence.record",
-  "session_handoff.create",
-  "stage.complete",
-  "repository.sync_target.register",
-  "repository.sync_target.change",
-  "repository.active_branch.accept",
-  "cooperative_run.register",
-  "cooperative_run.transition",
-  "verification_obligation.create",
-  "verification_obligation.result",
-  "verification_obligation.supersede",
-  "verification_obligation.waive",
-  "scope_reservation.acquire",
-  "scope_reservation.renew",
-  "scope_reservation.release",
-  "scope_reservation.override",
-  "editorial_redirect.create",
-  "editorial_redirect.revoke",
-] as const;
-
 export function createPrivateRuntimeCapabilities(
   runtime: PrivateRuntimeKind,
 ): PrivateRuntimeCapabilities {
   return {
     runtime,
     canonicalStorage: runtime === "cloudflare-worker-d1" ? "d1" : "sqlite",
-    stateWrites: canonicalStateWrites,
+    stateWrites: privateStateWriteCapabilities.map((capability) => capability.name),
+    stateWriteEndpoints: privateStateWriteCapabilities,
     externalEffects: {
       repositoryCheckout: false,
       repositoryFetch: false,
