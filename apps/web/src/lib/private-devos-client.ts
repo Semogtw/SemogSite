@@ -10,6 +10,9 @@ import {
 } from "./private-attention-commands";
 import {
   registerPrivateCooperativeRun,
+  transitionPrivateCooperativeRun,
+  type CooperativeRunTransitionInput,
+  type CooperativeRunTransitionResult,
   type RegisterCooperativeRunInput,
   type RegisterCooperativeRunResult,
 } from "./private-cooperative-run-commands";
@@ -102,6 +105,9 @@ export type PrivateDevosClient = {
     register(
       input: RegisterCooperativeRunInput,
     ): Promise<RegisterCooperativeRunResult>;
+    transition(
+      input: CooperativeRunTransitionInput,
+    ): Promise<CooperativeRunTransitionResult>;
   };
   editorial: {
     createRedirect(
@@ -155,6 +161,7 @@ export function createPrivateDevosClient(
     },
     runs: {
       register: (input) => registerPrivateCooperativeRun(api, input),
+      transition: (input) => transitionPrivateCooperativeRun(api, input),
     },
     editorial: {
       createRedirect: (input) => createPrivateEditorialRedirect(api, input),
