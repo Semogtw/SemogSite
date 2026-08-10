@@ -38,13 +38,17 @@ const event = {
   idempotencyKey: "editorial-redirect-create-stable",
   correlationId: "correlation-editorial-redirect-create-stable",
 };
-const create = vi.fn(async () => ({ ok: true as const, event, duplicate: false }));
-const revoke = vi.fn(async () => ({
+const create = vi.fn<PrivateEditorialRedirectCommands["create"]>(async () => ({
+  ok: true as const,
+  event,
+  duplicate: false,
+}));
+const revoke = vi.fn<PrivateEditorialRedirectCommands["revoke"]>(async () => ({
   ok: true as const,
   event: { ...event, id: "revoke", sequence: 2, action: "revoked" as const },
   duplicate: false,
 }));
-const commands = { create, revoke } as unknown as PrivateEditorialRedirectCommands;
+const commands: PrivateEditorialRedirectCommands = { create, revoke };
 
 function app() {
   return createApiApp({
