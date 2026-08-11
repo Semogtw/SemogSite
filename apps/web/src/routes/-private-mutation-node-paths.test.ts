@@ -6,6 +6,7 @@ const obsoleteServerActions = [
   "../server/devos-branch-recommendation.ts",
   "../server/devos-capture.ts",
   "../server/devos-evidence.ts",
+  "../server/devos-editorial-redirects.ts",
   "../server/devos-repository-target.ts",
   "../server/devos-run-registration.ts",
   "../server/devos-run-transitions.ts",
