@@ -15,6 +15,8 @@ import {
   changePrivateRepositoryTarget,
   registerPrivateRepositoryTarget,
 } from "./private-repository-commands";
+import { acquirePrivateScopeReservation } from "./private-scope-reservation-commands";
+import { createPrivateVerificationObligation } from "./private-verification-obligation-commands";
 
 function client() {
   const mutate = vi.fn(async () => ({ ok: true }));
@@ -122,6 +124,50 @@ describe("Worker-backed DevOS command wrappers", () => {
 
     await recordPrivateCooperativeRunCheckpoint(value, input);
     expect(mutate).toHaveBeenCalledWith("cooperative_run.checkpoint", input);
+  });
+
+  it("routes scope acquisition through canonical coordination state", async () => {
+    const { mutate, value } = client();
+    const input = {
+      idempotencyKey: "dd5476ff-0c64-43f3-aaf3-e43733a30612",
+      projectId: "project-1",
+      repositoryId: "repository-1",
+      runId: null,
+      branch: "main",
+      kind: "directory" as const,
+      patterns: ["apps/web/**"],
+      holderLabel: "ChatGPT",
+      purpose: "Migrar mutations.",
+      ttlSeconds: 3600,
+      acknowledgeOverlap: false,
+      confirmed: true as const,
+    };
+
+    await acquirePrivateScopeReservation(value, input);
+    expect(mutate).toHaveBeenCalledWith("scope_reservation.acquire", input);
+  });
+
+  it("routes verification creation without implying gate execution", async () => {
+    const { mutate, value } = client();
+    const input = {
+      idempotencyKey: "22d3baf9-8744-4c04-a874-855d01d1f95e",
+      projectId: "project-1",
+      repositoryId: "repository-1",
+      runId: null,
+      stageId: null,
+      branch: "main",
+      targetCommitSha: "0123456789abcdef0123456789abcdef01234567",
+      gateName: "typecheck",
+      command: "pnpm typecheck",
+      requiredCapabilities: ["node-22", "pnpm-10"],
+      responsibleActor: "ChatGPT",
+      nextAction: "Executar no toolchain.",
+      toolchainManifest: null,
+      confirmed: true as const,
+    };
+
+    await createPrivateVerificationObligation(value, input);
+    expect(mutate).toHaveBeenCalledWith("verification_obligation.create", input);
   });
 
   it("routes cooperative run registration without implying process start", async () => {
