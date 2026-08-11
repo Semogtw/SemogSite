@@ -12,10 +12,13 @@ import {
   type AttentionLifecycleMutationResult,
 } from "./private-attention-commands";
 import {
+  recordPrivateCooperativeRunCheckpoint,
   registerPrivateCooperativeRun,
   transitionPrivateCooperativeRun,
   type CooperativeRunTransitionInput,
   type CooperativeRunTransitionResult,
+  type RecordCooperativeRunCheckpointInput,
+  type RecordCooperativeRunCheckpointResult,
   type RegisterCooperativeRunInput,
   type RegisterCooperativeRunResult,
 } from "./private-cooperative-run-commands";
@@ -127,6 +130,9 @@ export type PrivateDevosClient = {
     transition(
       input: CooperativeRunTransitionInput,
     ): Promise<CooperativeRunTransitionResult>;
+    recordCheckpoint(
+      input: RecordCooperativeRunCheckpointInput,
+    ): Promise<RecordCooperativeRunCheckpointResult>;
   };
   verification: {
     create(
@@ -196,6 +202,8 @@ export function createPrivateDevosClient(
     runs: {
       register: (input) => registerPrivateCooperativeRun(api, input),
       transition: (input) => transitionPrivateCooperativeRun(api, input),
+      recordCheckpoint: (input) =>
+        recordPrivateCooperativeRunCheckpoint(api, input),
     },
     verification: {
       create: (input) => createPrivateVerificationObligation(api, input),
