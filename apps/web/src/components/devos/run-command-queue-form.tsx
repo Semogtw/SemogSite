@@ -1,10 +1,14 @@
 import { CSRF_COOKIE_NAME } from "@semogtw/auth";
-import type { CooperativeRunCommandKind } from "@semogtw/domain";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { queueCooperativeRunCommandFn } from "../../server/devos-run-commands";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+import type { CooperativeRunCommandKind } from "../../lib/private-cooperative-run-commands";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const commandOptions: ReadonlyArray<{
   value: CooperativeRunCommandKind;
@@ -70,15 +74,6 @@ export function RunCommandQueueForm({ runId }: { runId: string }) {
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     let normalizedExpiry: string | null = null;
     if (expiresAt.length > 0) {
       const parsed = new Date(expiresAt);
@@ -91,7 +86,6 @@ export function RunCommandQueueForm({ runId }: { runId: string }) {
 
     idempotencyKey.current ??= crypto.randomUUID();
     const common = {
-      csrfToken,
       runId,
       summary: summary.trim(),
       expiresAt: normalizedExpiry,
@@ -102,59 +96,64 @@ export function RunCommandQueueForm({ runId }: { runId: string }) {
     setPending(true);
     setFeedback(null);
     try {
-      const response =
-        kind === "continue"
-          ? await queueCooperativeRunCommandFn({
-              data: {
-                ...common,
-                kind,
-                note: detail.trim().length === 0 ? null : detail.trim(),
-              },
-            })
-          : kind === "pause" || kind === "cancel"
-            ? await queueCooperativeRunCommandFn({
-                data: {
-                  ...common,
-                  kind,
-                  reason: detail.trim(),
-                },
-              })
-            : kind === "reprioritize"
-              ? await queueCooperativeRunCommandFn({
-                  data: {
-                    ...common,
-                    kind,
-                    priority,
-                    note: detail.trim().length === 0 ? null : detail.trim(),
-                  },
-                })
-              : kind === "request_checkpoint"
-                ? await queueCooperativeRunCommandFn({
-                    data: { ...common, kind, include },
-                  })
-                : await queueCooperativeRunCommandFn({
-                    data: {
-                      ...common,
-                      kind,
-                      context: detail.trim(),
-                    },
-                  });
+      if (kind === "continue") {
+        await privateDevos.runs.queueCommand({
+          ...common,
+          kind,
+          note: detail.trim().length === 0 ? null : detail.trim(),
+        });
+      } else if (kind === "pause" || kind === "cancel") {
+        await privateDevos.runs.queueCommand({
+          ...common,
+          kind,
+          reason: detail.trim(),
+        });
+      } else if (kind === "reprioritize") {
+        await privateDevos.runs.queueCommand({
+          ...common,
+          kind,
+          priority,
+          note: detail.trim().length === 0 ? null : detail.trim(),
+        });
+      } else if (kind === "request_checkpoint") {
+        await privateDevos.runs.queueCommand({ ...common, kind, include });
+      } else {
+        await privateDevos.runs.queueCommand({
+          ...common,
+          kind,
+          context: detail.trim(),
+        });
+      }
 
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
-
+      setFeedback({
+        success: true,
+        message:
+          "Comando enfileirado. O agente só o receberá quando consultar o DevOS.",
+      });
       idempotencyKey.current = null;
       setSummary("");
       setDetail("");
       setExpiresAt("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "O comando não pôde ser enfileirado. A mesma chave será reutilizada na próxima tentativa.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O comando não pôde ser enfileirado. A mesma chave será reutilizada na próxima tentativa.",
+        });
+      }
     } finally {
       setPending(false);
     }
