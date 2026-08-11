@@ -95,6 +95,13 @@ export const privateStateWriteCapabilities = [
     retrySemantics: "semantic-idempotency",
   },
   {
+    name: "cooperative_run.checkpoint",
+    method: "POST",
+    path: "/api/v1/private/cooperative-runs/checkpoint",
+    externalEffect: false,
+    retrySemantics: "semantic-idempotency",
+  },
+  {
     name: "verification_obligation.create",
     method: "POST",
     path: "/api/v1/private/verification-obligations/create",

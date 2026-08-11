@@ -14,6 +14,7 @@ import { D1AuditDataSource } from "@semogtw/database/d1-audit";
 import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";
 import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";
 import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";
+import { D1CooperativeRunCheckpointRepository } from "@semogtw/database/d1-cooperative-run-checkpoint";
 import { D1CooperativeRunReadModel } from "@semogtw/database/d1-cooperative-run-read";
 import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";
 import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";
@@ -36,6 +37,7 @@ import {
   AttentionCaptureService,
   AttentionLifecycleService,
   BranchRecommendationAcceptanceService,
+  CooperativeRunCheckpointService,
   CooperativeRunRegistrationService,
   CooperativeRunTransitionService,
   EditorialRedirectService,
@@ -169,6 +171,9 @@ async function composeD1ApiRuntime(
   const privateCooperativeRuns = new CooperativeRunRegistrationService(
     new D1CooperativeRunRegistrationRepository(bindings.DB),
   );
+  const privateCooperativeRunCheckpoints = new CooperativeRunCheckpointService(
+    new D1CooperativeRunCheckpointRepository(bindings.DB),
+  );
   const privateCooperativeRunQueries = new D1CooperativeRunReadModel(bindings.DB);
   const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
     new D1CooperativeRunTransitionRepository(bindings.DB),
@@ -242,6 +247,7 @@ async function composeD1ApiRuntime(
       privateRepositoryTargetRegistration,
       privateBranchRecommendations,
       privateCooperativeRuns,
+      privateCooperativeRunCheckpoints,
       privateCooperativeRunQueries,
       privateCooperativeRunTransitions,
       privateVerificationObligations,

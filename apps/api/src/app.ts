@@ -42,6 +42,10 @@ import {
   type PrivateCapabilityQueries,
 } from "./routes/private/capabilities";
 import {
+  createPrivateCooperativeRunCheckpointRoutes,
+  type PrivateCooperativeRunCheckpointCommands,
+} from "./routes/private/cooperative-run-checkpoints";
+import {
   createPrivateCooperativeRunReadRoutes,
   type PrivateCooperativeRunQueries,
 } from "./routes/private/cooperative-run-read";
@@ -130,6 +134,7 @@ export type ApiDependencies = {
   privateRepositoryTargetRegistration?: PrivateRepositoryTargetRegistrationCommands;
   privateBranchRecommendations?: PrivateBranchRecommendationCommands;
   privateCooperativeRuns?: PrivateCooperativeRunCommands;
+  privateCooperativeRunCheckpoints?: PrivateCooperativeRunCheckpointCommands;
   privateCooperativeRunQueries?: PrivateCooperativeRunQueries;
   privateCooperativeRunTransitions?: PrivateCooperativeRunTransitionCommands;
   privateVerificationObligations?: PrivateVerificationObligationCommands;
@@ -220,6 +225,12 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.route(
     "/api/v1/private/cooperative-runs",
     createPrivateCooperativeRunRoutes(dependencies.privateCooperativeRuns),
+  );
+  api.route(
+    "/api/v1/private/cooperative-runs",
+    createPrivateCooperativeRunCheckpointRoutes(
+      dependencies.privateCooperativeRunCheckpoints,
+    ),
   );
   api.route(
     "/api/v1/private/cooperative-runs",
