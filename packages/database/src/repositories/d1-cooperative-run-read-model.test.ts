@@ -148,6 +148,129 @@ describe("D1CooperativeRunReadModel", () => {
     expect(binding.executed[0]?.params).toEqual([runRow.id, 50]);
   });
 
+  it("maps related checkpoints defensively and bounds the D1 query", async () => {
+    const binding = new CapturingD1();
+    binding.responses.push({
+      success: true,
+      results: [
+        {
+          id: "checkpoint-malformed",
+          event_id: "event-checkpoint-2",
+          sequence: 2,
+          phase: "validation",
+          progress: 80,
+          branch: "main",
+          summary: "Malformed historical commits.",
+          commits_json: "{broken",
+          tests_status: "not_run",
+          tests_summary: "Not run.",
+          blockers: "",
+          next_step: "Continue.",
+          captured_at: "2026-08-09T04:40:00.000Z",
+          source_hash: null,
+        },
+        {
+          id: "checkpoint-valid",
+          event_id: "event-checkpoint-1",
+          sequence: 1,
+          phase: "validation",
+          progress: 70,
+          branch: "main",
+          summary: "Valid checkpoint.",
+          commits_json: '["abcdef1"]',
+          tests_status: "partial",
+          tests_summary: "Focused checks only.",
+          blockers: "",
+          next_step: "Continue.",
+          captured_at: "2026-08-09T04:30:00.000Z",
+          source_hash: "source-1",
+        },
+      ],
+    });
+    const model = new D1CooperativeRunReadModel(binding);
+
+    await expect(model.listCheckpoints(runRow.id, 500)).resolves.toEqual([
+      expect.objectContaining({
+        id: "checkpoint-malformed",
+        commits: [],
+        malformedCommits: true,
+      }),
+      expect.objectContaining({
+        id: "checkpoint-valid",
+        commits: ["abcdef1"],
+        malformedCommits: false,
+      }),
+    ]);
+    expect(binding.executed[0]?.sql).toContain(
+      "ORDER BY sequence DESC, id DESC",
+    );
+    expect(binding.executed[0]?.params).toEqual([runRow.id, 100]);
+  });
+
+  it("maps command payloads defensively and derives queue availability at one observed time", async () => {
+    const binding = new CapturingD1();
+    binding.responses.push({
+      success: true,
+      results: [
+        {
+          id: "command-expired",
+          kind: "request_checkpoint",
+          status: "queued",
+          summary: "Expired command.",
+          payload_json: '{"include":["tests"]}',
+          reason: null,
+          queued_by: "semogtw-owner",
+          correlation_id: "correlation-command-expired",
+          queued_at: "2026-08-09T04:20:00.000Z",
+          acknowledged_at: null,
+          completed_at: null,
+          expires_at: "2026-08-09T04:29:00.000Z",
+          updated_at: "2026-08-09T04:20:00.000Z",
+        },
+        {
+          id: "command-malformed",
+          kind: "provide_context",
+          status: "rejected",
+          summary: "Malformed historical payload.",
+          payload_json: "[1,2,3]",
+          reason: "Rejected.",
+          queued_by: "semogtw-owner",
+          correlation_id: "correlation-command-malformed",
+          queued_at: "2026-08-09T04:10:00.000Z",
+          acknowledged_at: "2026-08-09T04:11:00.000Z",
+          completed_at: "2026-08-09T04:12:00.000Z",
+          expires_at: null,
+          updated_at: "2026-08-09T04:12:00.000Z",
+        },
+      ],
+    });
+    const model = new D1CooperativeRunReadModel(binding);
+
+    await expect(
+      model.listCommands(runRow.id, {
+        limit: 500,
+        observedAt: "2026-08-09T04:30:00.000Z",
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "command-expired",
+        payload: { include: ["tests"] },
+        malformedPayload: false,
+        queueAvailability: "expired",
+      }),
+      expect.objectContaining({
+        id: "command-malformed",
+        payload: null,
+        malformedPayload: true,
+        queueAvailability: "not_applicable",
+      }),
+    ]);
+    expect(binding.executed[0]?.sql).toContain(
+      "ORDER BY queued_at DESC, id DESC",
+    );
+    expect(binding.executed[0]?.params).toEqual([runRow.id, 100]);
+  });
+
   it("fails closed on a D1 query failure", async () => {
     const binding = new CapturingD1();
     binding.responses.push({
