@@ -7,6 +7,26 @@ function source(path: string): string {
 }
 
 describe("workflow orchestration controls", () => {
+  it("creates reservations and verification gates through the canonical private API", () => {
+    const form = source("../components/devos/workflow-orchestration-forms.tsx");
+    const scopeCommands = source(
+      "../lib/private-scope-reservation-commands.ts",
+    );
+    const verificationCommands = source(
+      "../lib/private-verification-obligation-commands.ts",
+    );
+
+    expect(form).toContain("createPrivateDevosBrowserClient");
+    expect(form).toContain("privateDevos.scopes.acquire");
+    expect(form).toContain("privateDevos.verification.create");
+    expect(form).toContain("idempotencyKey.current");
+    expect(form).not.toContain("acquireScopeReservationFn");
+    expect(form).not.toContain("createVerificationObligationFn");
+    expect(form).not.toContain("readCookie");
+    expect(scopeCommands).toContain('"scope_reservation.acquire"');
+    expect(verificationCommands).toContain('"verification_obligation.create"');
+  });
+
   it("exposes owner override only for persisted active reservations", () => {
     const route = source("devos.workflows.tsx");
     const form = source(
