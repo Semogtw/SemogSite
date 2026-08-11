@@ -34,6 +34,8 @@ describe("running-only cooperative run reads", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
@@ -58,6 +60,8 @@ describe("running-only cooperative run reads", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
@@ -77,6 +81,8 @@ describe("running-only cooperative run reads", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
