@@ -1,10 +1,14 @@
 import { CSRF_COOKIE_NAME } from "@semogtw/auth";
-import type { CooperativeRunCheckpointTestsStatus } from "@semogtw/domain";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import { recordCooperativeRunCheckpointFn } from "../../server/devos-run-checkpoints";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+import type { CooperativeRunCheckpointTestsStatus } from "../../lib/private-cooperative-run-commands";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 const testsStatusOptions: ReadonlyArray<{
   value: CooperativeRunCheckpointTestsStatus;
@@ -63,53 +67,54 @@ export function RunCheckpointForm({
     event.preventDefault();
     if (pending || !confirmed) return;
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({
-        success: false,
-        message: "Não foi possível validar esta sessão.",
-      });
-      return;
-    }
-
     idempotencyKey.current ??= crypto.randomUUID();
     setPending(true);
     setFeedback(null);
     try {
-      const response = await recordCooperativeRunCheckpointFn({
-        data: {
-          csrfToken,
-          runId: run.id,
-          expectedUpdatedAt: run.updatedAt,
-          idempotencyKey: idempotencyKey.current,
-          progress,
-          phase: phase.trim().length === 0 ? null : phase.trim(),
-          branch: branch.trim().length === 0 ? null : branch.trim(),
-          summary: summary.trim(),
-          commits: parseCommits(commitsText),
-          testsStatus,
-          testsSummary: testsSummary.trim(),
-          blockers: blockers.trim(),
-          nextStep: nextStep.trim(),
-          confirmed: true,
-        },
+      await privateDevos.runs.recordCheckpoint({
+        runId: run.id,
+        expectedUpdatedAt: run.updatedAt,
+        idempotencyKey: idempotencyKey.current,
+        progress,
+        phase: phase.trim().length === 0 ? null : phase.trim(),
+        branch: branch.trim().length === 0 ? null : branch.trim(),
+        summary: summary.trim(),
+        commits: parseCommits(commitsText),
+        testsStatus,
+        testsSummary: testsSummary.trim(),
+        blockers: blockers.trim(),
+        nextStep: nextStep.trim(),
+        confirmed: true,
       });
 
-      setFeedback({ message: response.message, success: response.ok });
-      if (!response.ok) return;
-
+      setFeedback({
+        message: "Checkpoint e evidência registrados atomicamente.",
+        success: true,
+      });
       idempotencyKey.current = null;
       setSummary("");
       setCommitsText("");
       setBlockers("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message:
-          "O checkpoint falhou. A mesma chave será reutilizada na próxima tentativa.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O checkpoint falhou. A mesma chave será reutilizada na próxima tentativa.",
+        });
+      }
     } finally {
       setPending(false);
     }
