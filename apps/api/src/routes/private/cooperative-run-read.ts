@@ -17,6 +17,42 @@ export type PrivateCooperativeRunLedgerEvent = {
   correlationId: string;
 };
 
+export type PrivateCooperativeRunCheckpoint = {
+  id: string;
+  eventId: string;
+  sequence: number;
+  phase: string | null;
+  progress: number;
+  branch: string | null;
+  summary: string;
+  commits: readonly string[];
+  testsStatus: string;
+  testsSummary: string;
+  blockers: string;
+  nextStep: string;
+  capturedAt: string;
+  sourceHash: string | null;
+  malformedCommits: boolean;
+};
+
+export type PrivateCooperativeRunCommand = {
+  id: string;
+  kind: string;
+  status: string;
+  summary: string;
+  payload: unknown;
+  reason: string | null;
+  queuedBy: string;
+  correlationId: string;
+  queuedAt: string;
+  acknowledgedAt: string | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+  updatedAt: string;
+  queueAvailability: string;
+  malformedPayload: boolean;
+};
+
 export type PrivateCooperativeRunListInput = {
   limit: number;
   projectId?: string;
@@ -42,6 +78,14 @@ export interface PrivateCooperativeRunQueries {
     runId: string,
     input: number | PrivateCooperativeRunEventListInput,
   ): Promise<readonly PrivateCooperativeRunLedgerEvent[]>;
+  listCheckpoints(
+    runId: string,
+    limit: number,
+  ): Promise<readonly PrivateCooperativeRunCheckpoint[]>;
+  listCommands(
+    runId: string,
+    input: { limit: number; observedAt: string },
+  ): Promise<readonly PrivateCooperativeRunCommand[]>;
 }
 
 const ListQuerySchema = z
@@ -63,6 +107,7 @@ const ListQuerySchema = z
 const DetailQuerySchema = z.object({
   eventLimit: z.coerce.number().int().min(1).max(200).default(100),
   beforeSequence: z.coerce.number().int().positive().optional(),
+  includeSnapshots: z.enum(["true", "false"]).default("false"),
 });
 const RunIdSchema = z.string().min(1).max(200);
 
@@ -119,6 +164,14 @@ function nextEventCursor(
 ): number | null {
   if (events.length !== requestedLimit) return null;
   return events.at(-1)?.sequence ?? null;
+}
+
+function publicEvents(
+  events: readonly PrivateCooperativeRunLedgerEvent[],
+  includeSnapshots: boolean,
+) {
+  if (includeSnapshots) return events;
+  return events.map(({ before: _before, after: _after, ...event }) => event);
 }
 
 export function createPrivateCooperativeRunReadRoutes(
@@ -196,19 +249,28 @@ export function createPrivateCooperativeRunReadRoutes(
           404,
         );
       }
-      const eventInput =
-        parsed.data.beforeSequence === undefined
-          ? parsed.data.eventLimit
-          : {
-              limit: parsed.data.eventLimit,
-              beforeSequence: parsed.data.beforeSequence,
-            };
-      const events = await queries.listEvents(runId.data, eventInput);
+      const includeSnapshots = parsed.data.includeSnapshots === "true";
+      const eventInput: PrivateCooperativeRunEventListInput = {
+        limit: parsed.data.eventLimit,
+        includeSnapshots,
+        ...(parsed.data.beforeSequence === undefined
+          ? {}
+          : { beforeSequence: parsed.data.beforeSequence }),
+      };
+      const observedAt = new Date().toISOString();
+      const [events, checkpoints, commands] = await Promise.all([
+        queries.listEvents(runId.data, eventInput),
+        queries.listCheckpoints(runId.data, 100),
+        queries.listCommands(runId.data, { limit: 100, observedAt }),
+      ]);
       return context.json({
         ok: true,
         data: {
           run,
-          events,
+          events: publicEvents(events, includeSnapshots),
+          checkpoints,
+          commands,
+          observedAt,
           nextEventCursor: nextEventCursor(events, parsed.data.eventLimit),
         },
       });
