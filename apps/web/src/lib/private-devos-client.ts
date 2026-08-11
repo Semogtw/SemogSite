@@ -57,8 +57,15 @@ import {
   type RecordSessionHandoffResult,
 } from "./private-session-handoff-commands";
 import {
+  acquirePrivateScopeReservation,
   overridePrivateScopeReservation,
+  releasePrivateScopeReservation,
+  renewPrivateScopeReservation,
+  type AcquireScopeReservationInput,
+  type AcquireScopeReservationResult,
   type OverrideScopeReservationInput,
+  type ReleaseScopeReservationInput,
+  type RenewScopeReservationInput,
   type ScopeReservationMutationResult,
 } from "./private-scope-reservation-commands";
 import {
@@ -106,6 +113,15 @@ export type PrivateDevosClient = {
     ): Promise<RecordSessionHandoffResult>;
   };
   scopes: {
+    acquire(
+      input: AcquireScopeReservationInput,
+    ): Promise<AcquireScopeReservationResult>;
+    renew(
+      input: RenewScopeReservationInput,
+    ): Promise<ScopeReservationMutationResult>;
+    release(
+      input: ReleaseScopeReservationInput,
+    ): Promise<ScopeReservationMutationResult>;
     override(
       input: OverrideScopeReservationInput,
     ): Promise<ScopeReservationMutationResult>;
@@ -194,6 +210,9 @@ export function createPrivateDevosClient(
       record: (input) => recordPrivateSessionHandoff(api, input),
     },
     scopes: {
+      acquire: (input) => acquirePrivateScopeReservation(api, input),
+      renew: (input) => renewPrivateScopeReservation(api, input),
+      release: (input) => releasePrivateScopeReservation(api, input),
       override: (input) => overridePrivateScopeReservation(api, input),
     },
     stages: {
