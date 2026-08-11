@@ -2,11 +2,12 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button } from "@semogtw/ui";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
-import { readCookie } from "../../client/cookies";
-import {
-  acquireScopeReservationFn,
-  createVerificationObligationFn,
-} from "../../server/devos-workflow-mutations";
+import { PrivateApiError } from "../../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../../lib/private-devos-browser-client";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 type WorkflowRepositoryOption = {
   id: string;
@@ -16,7 +17,14 @@ type WorkflowRepositoryOption = {
 };
 
 function splitValues(value: string): string[] {
-  return [...new Set(value.split(/[\n,]/u).map((item) => item.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      value
+        .split(/[\n,]/u)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function feedbackClass(success: boolean): string {
@@ -33,7 +41,9 @@ export function ScopeReservationForm({
   const router = useRouter();
   const idempotencyKey = useRef<string | null>(null);
   const [repositoryId, setRepositoryId] = useState(repositories[0]?.id ?? "");
-  const selectedRepository = repositories.find((item) => item.id === repositoryId);
+  const selectedRepository = repositories.find(
+    (item) => item.id === repositoryId,
+  );
   const [branch, setBranch] = useState(selectedRepository?.branch ?? "");
   const [kind, setKind] = useState<
     "repository" | "directory" | "files" | "issue" | "stage" | "custom"
@@ -57,14 +67,13 @@ export function ScopeReservationForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !confirmed || selectedRepository === undefined) return;
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({ success: false, message: "Não foi possível validar esta sessão." });
-      return;
-    }
-    const normalizedPatterns = kind === "repository" ? ["**"] : splitValues(patterns);
+    const normalizedPatterns =
+      kind === "repository" ? ["**"] : splitValues(patterns);
     if (normalizedPatterns.length === 0) {
-      setFeedback({ success: false, message: "Informe ao menos um caminho ou identificador de escopo." });
+      setFeedback({
+        success: false,
+        message: "Informe ao menos um caminho ou identificador de escopo.",
+      });
       return;
     }
 
@@ -72,36 +81,48 @@ export function ScopeReservationForm({
     setPending(true);
     setFeedback(null);
     try {
-      const response = await acquireScopeReservationFn({
-        data: {
-          csrfToken,
-          idempotencyKey: idempotencyKey.current,
-          projectId: selectedRepository.projectId,
-          repositoryId: selectedRepository.id,
-          runId: null,
-          branch,
-          kind,
-          patterns: normalizedPatterns,
-          holderLabel,
-          purpose,
-          ttlSeconds,
-          acknowledgeOverlap,
-          confirmed: true,
-        },
+      await privateDevos.scopes.acquire({
+        idempotencyKey: idempotencyKey.current,
+        projectId: selectedRepository.projectId,
+        repositoryId: selectedRepository.id,
+        runId: null,
+        branch,
+        kind,
+        patterns: normalizedPatterns,
+        holderLabel,
+        purpose,
+        ttlSeconds,
+        acknowledgeOverlap,
+        confirmed: true,
       });
-      setFeedback({ success: response.ok, message: response.message });
-      if (!response.ok) return;
+      setFeedback({
+        success: true,
+        message: "Escopo reservado de forma cooperativa.",
+      });
       idempotencyKey.current = null;
       setPatterns("");
       setPurpose("");
       setAcknowledgeOverlap(false);
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message: "A reserva falhou. A próxima tentativa reutilizará a mesma identidade.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "A reserva falhou. A próxima tentativa reutilizará a mesma identidade.",
+        });
+      }
     } finally {
       setPending(false);
     }
@@ -246,7 +267,8 @@ export function ScopeReservationForm({
           }}
         />
         <span>
-          Permitir sobreposição consciente quando outra reserva cobrir este escopo.
+          Permitir sobreposição consciente quando outra reserva cobrir este
+          escopo.
         </span>
       </label>
       <label className="capture-confirmation">
@@ -257,7 +279,8 @@ export function ScopeReservationForm({
           onChange={(event) => setConfirmed(event.target.checked)}
         />
         <span>
-          Confirmo que esta é uma reserva cooperativa e não um lock do Git ou do sistema operacional.
+          Confirmo que esta é uma reserva cooperativa e não um lock do Git ou
+          do sistema operacional.
         </span>
       </label>
 
@@ -292,7 +315,9 @@ export function VerificationObligationForm({
   const router = useRouter();
   const idempotencyKey = useRef<string | null>(null);
   const [repositoryId, setRepositoryId] = useState(repositories[0]?.id ?? "");
-  const selectedRepository = repositories.find((item) => item.id === repositoryId);
+  const selectedRepository = repositories.find(
+    (item) => item.id === repositoryId,
+  );
   const [branch, setBranch] = useState(selectedRepository?.branch ?? "");
   const [targetCommitSha, setTargetCommitSha] = useState("");
   const [gateName, setGateName] = useState("");
@@ -315,38 +340,31 @@ export function VerificationObligationForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !confirmed || selectedRepository === undefined) return;
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setFeedback({ success: false, message: "Não foi possível validar esta sessão." });
-      return;
-    }
-
     idempotencyKey.current ??= crypto.randomUUID();
     setPending(true);
     setFeedback(null);
     try {
-      const response = await createVerificationObligationFn({
-        data: {
-          csrfToken,
-          idempotencyKey: idempotencyKey.current,
-          projectId: selectedRepository.projectId,
-          repositoryId: selectedRepository.id,
-          runId: null,
-          stageId: null,
-          branch,
-          targetCommitSha: targetCommitSha.toLowerCase(),
-          gateName,
-          command,
-          requiredCapabilities: splitValues(capabilities),
-          responsibleActor,
-          nextAction,
-          toolchainManifest:
-            toolchainManifest.trim().length === 0 ? null : toolchainManifest,
-          confirmed: true,
-        },
+      await privateDevos.verification.create({
+        idempotencyKey: idempotencyKey.current,
+        projectId: selectedRepository.projectId,
+        repositoryId: selectedRepository.id,
+        runId: null,
+        stageId: null,
+        branch,
+        targetCommitSha: targetCommitSha.toLowerCase(),
+        gateName,
+        command,
+        requiredCapabilities: splitValues(capabilities),
+        responsibleActor,
+        nextAction,
+        toolchainManifest:
+          toolchainManifest.trim().length === 0 ? null : toolchainManifest,
+        confirmed: true,
       });
-      setFeedback({ success: response.ok, message: response.message });
-      if (!response.ok) return;
+      setFeedback({
+        success: true,
+        message: "Gate pendente registrado para o commit exato.",
+      });
       idempotencyKey.current = null;
       setTargetCommitSha("");
       setGateName("");
@@ -354,11 +372,24 @@ export function VerificationObligationForm({
       setNextAction("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setFeedback({
-        success: false,
-        message: "O gate falhou. A próxima tentativa reutilizará a mesma identidade.",
-      });
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setFeedback({ success: false, message: error.message });
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setFeedback({
+          success: false,
+          message: "Não foi possível validar esta sessão.",
+        });
+      } else {
+        setFeedback({
+          success: false,
+          message:
+            "O gate falhou. A próxima tentativa reutilizará a mesma identidade.",
+        });
+      }
     } finally {
       setPending(false);
     }
@@ -516,7 +547,8 @@ export function VerificationObligationForm({
           onChange={(event) => setConfirmed(event.target.checked)}
         />
         <span>
-          Confirmo que o status inicial é pendente e que nenhum teste será marcado como aprovado por este registro.
+          Confirmo que o status inicial é pendente e que nenhum teste será
+          marcado como aprovado por este registro.
         </span>
       </label>
 
