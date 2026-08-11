@@ -59,6 +59,8 @@ function app() {
     listRecent: vi.fn(async () => []),
     findRun: vi.fn(async () => run),
     listEvents: vi.fn(async () => [event]),
+    listCheckpoints: vi.fn(async () => []),
+    listCommands: vi.fn(async () => []),
   };
   return createApiApp({ authProvider, privateCooperativeRunQueries: queries });
 }
