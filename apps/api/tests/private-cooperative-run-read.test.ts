@@ -56,10 +56,16 @@ const event = {
 const listRecent = vi.fn<PrivateCooperativeRunQueries["listRecent"]>();
 const findRun = vi.fn<PrivateCooperativeRunQueries["findRun"]>();
 const listEvents = vi.fn<PrivateCooperativeRunQueries["listEvents"]>();
+const listCheckpoints = vi.fn<
+  PrivateCooperativeRunQueries["listCheckpoints"]
+>();
+const listCommands = vi.fn<PrivateCooperativeRunQueries["listCommands"]>();
 const queries: PrivateCooperativeRunQueries = {
   listRecent,
   findRun,
   listEvents,
+  listCheckpoints,
+  listCommands,
 };
 
 function app() {
@@ -82,6 +88,10 @@ beforeEach(() => {
   findRun.mockResolvedValue(run);
   listEvents.mockReset();
   listEvents.mockResolvedValue([event]);
+  listCheckpoints.mockReset();
+  listCheckpoints.mockResolvedValue([]);
+  listCommands.mockReset();
+  listCommands.mockResolvedValue([]);
 });
 
 describe("private cooperative run reads", () => {
@@ -102,7 +112,19 @@ describe("private cooperative run reads", () => {
     expect(listRecent).toHaveBeenCalledWith({ limit: 25 });
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
-      data: { runs: [{ id: run.id, progress: 70 }] },
+      data: {
+        runs: [
+          {
+            id: run.id,
+            progress: 70,
+            freshness: {
+              heartbeatAgeSeconds: expect.any(Number),
+              heartbeatExpired: expect.any(Boolean),
+            },
+          },
+        ],
+        asOf: expect.any(String),
+      },
     });
   });
 
@@ -123,12 +145,29 @@ describe("private cooperative run reads", () => {
 
     expect(response.status).toBe(200);
     expect(findRun).toHaveBeenCalledWith(run.id);
-    expect(listEvents).toHaveBeenCalledWith(run.id, 50);
+    expect(listEvents).toHaveBeenCalledWith(run.id, {
+      limit: 50,
+      includeSnapshots: false,
+    });
+    expect(listCheckpoints).toHaveBeenCalledWith(run.id, 100);
+    expect(listCommands).toHaveBeenCalledWith(run.id, {
+      limit: 100,
+      observedAt: expect.any(String),
+    });
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
       data: {
-        run: { id: run.id },
+        run: {
+          id: run.id,
+          freshness: {
+            heartbeatAgeSeconds: expect.any(Number),
+            heartbeatExpired: expect.any(Boolean),
+          },
+        },
         events: [{ id: event.id, sequence: 2 }],
+        checkpoints: [],
+        commands: [],
+        observedAt: expect.any(String),
       },
     });
   });
