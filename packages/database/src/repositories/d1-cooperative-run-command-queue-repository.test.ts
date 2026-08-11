@@ -148,7 +148,7 @@ describe("D1CooperativeRunCommandQueueRepository", () => {
     expect(insertEvent?.sql).toContain("MAX(sequence)");
   });
 
-  it("recognizes only an exact persisted replay as duplicate", async () => {
+  it("recognizes a semantic replay even when server timestamps differ", async () => {
     const binding = new CapturingD1();
     binding.batchResults = [
       { results: [], success: true, meta: { changes: 0 } },
@@ -159,6 +159,11 @@ describe("D1CooperativeRunCommandQueueRepository", () => {
         queued_at: "2026-08-11T09:21:00.000Z",
         command_updated_at: "2026-08-11T09:21:00.000Z",
         occurred_at: "2026-08-11T09:21:00.000Z",
+        after_json: JSON.stringify({
+          ...command,
+          queuedAt: "2026-08-11T09:21:00.000Z",
+          updatedAt: "2026-08-11T09:21:00.000Z",
+        }),
       }),
     );
     const repository = new D1CooperativeRunCommandQueueRepository(binding);
