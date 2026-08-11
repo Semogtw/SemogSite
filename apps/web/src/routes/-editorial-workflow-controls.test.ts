@@ -7,20 +7,22 @@ function source(path: string): string {
 }
 
 describe("editorial workflow controls", () => {
-  it("manages audited aliases only from the owner document detail", () => {
+  it("manages audited aliases through the canonical private API", () => {
     const route = source("devos.content.$documentId.tsx");
-    const server = source("../server/devos-editorial-redirects.ts");
     const controls = source(
       "../components/devos/editorial-redirect-controls.tsx",
     );
+    const commands = source("../lib/private-editorial-redirect-commands.ts");
 
     expect(route).toContain("EditorialRedirectControls");
     expect(route).toContain("redirects={detail.redirects}");
-    expect(server).toContain("createEditorialRedirectFn");
-    expect(server).toContain("revokeEditorialRedirectFn");
+    expect(controls).toContain("privateDevos.editorial.createRedirect");
+    expect(controls).toContain("privateDevos.editorial.revokeRedirect");
     expect(controls).toContain("Criar alias auditado");
     expect(controls).toContain("Revogar alias");
     expect(controls).toContain("Histórico de aliases");
+    expect(commands).toContain('"editorial_redirect.create"');
+    expect(commands).toContain('"editorial_redirect.revoke"');
   });
 
   it("renders an owner-only diff for immutable revisions", () => {
