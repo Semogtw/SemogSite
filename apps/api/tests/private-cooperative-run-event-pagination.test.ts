@@ -65,6 +65,8 @@ function appWith(listEvents: PrivateCooperativeRunQueries["listEvents"]) {
       listRecent: vi.fn(async () => []),
       findRun: vi.fn(async () => run),
       listEvents,
+      listCheckpoints: vi.fn(async () => []),
+      listCommands: vi.fn(async () => []),
     },
   });
 }
@@ -82,6 +84,7 @@ describe("cooperative run event pagination", () => {
     expect(listEvents).toHaveBeenCalledWith(run.id, {
       limit: 1,
       beforeSequence: 10,
+      includeSnapshots: false,
     });
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
