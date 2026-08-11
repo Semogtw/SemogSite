@@ -17,22 +17,52 @@ export type PrivateCooperativeRunLedgerEvent = {
   correlationId: string;
 };
 
+export type PrivateCooperativeRunListInput = {
+  limit: number;
+  projectId?: string;
+  status?: CooperativeRunSnapshot["status"];
+  cursor?: {
+    updatedAt: string;
+    id: string;
+  };
+};
+
+export type PrivateCooperativeRunEventListInput = {
+  limit: number;
+  beforeSequence?: number;
+  includeSnapshots?: boolean;
+};
+
 export interface PrivateCooperativeRunQueries {
-  listRecent(input: {
-    limit: number;
-  }): Promise<readonly CooperativeRunSnapshot[]>;
+  listRecent(
+    input: PrivateCooperativeRunListInput,
+  ): Promise<readonly CooperativeRunSnapshot[]>;
   findRun(runId: string): Promise<CooperativeRunSnapshot | null>;
   listEvents(
     runId: string,
-    limit: number,
+    input: number | PrivateCooperativeRunEventListInput,
   ): Promise<readonly PrivateCooperativeRunLedgerEvent[]>;
 }
 
-const ListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(50),
-});
+const ListQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    projectId: z.string().trim().min(1).max(200).optional(),
+    runningOnly: z.enum(["true", "false"]).optional(),
+    beforeUpdatedAt: z.string().datetime({ offset: true }).optional(),
+    beforeId: z.string().trim().min(1).max(200).optional(),
+  })
+  .superRefine((value, context) => {
+    if ((value.beforeUpdatedAt === undefined) !== (value.beforeId === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Run pagination cursor requires updatedAt and id.",
+      });
+    }
+  });
 const DetailQuerySchema = z.object({
   eventLimit: z.coerce.number().int().min(1).max(200).default(100),
+  beforeSequence: z.coerce.number().int().positive().optional(),
 });
 const RunIdSchema = z.string().min(1).max(200);
 
@@ -54,6 +84,41 @@ function errorResponse(
     },
     status,
   );
+}
+
+function listInput(
+  query: z.infer<typeof ListQuerySchema>,
+): PrivateCooperativeRunListInput {
+  return {
+    limit: query.limit,
+    ...(query.projectId === undefined ? {} : { projectId: query.projectId }),
+    ...(query.runningOnly === "true" ? { status: "running" as const } : {}),
+    ...(query.beforeUpdatedAt === undefined || query.beforeId === undefined
+      ? {}
+      : {
+          cursor: {
+            updatedAt: query.beforeUpdatedAt,
+            id: query.beforeId,
+          },
+        }),
+  };
+}
+
+function nextRunCursor(
+  runs: readonly CooperativeRunSnapshot[],
+  requestedLimit: number,
+): { updatedAt: string; id: string } | null {
+  if (runs.length !== requestedLimit) return null;
+  const last = runs.at(-1);
+  return last === undefined ? null : { updatedAt: last.updatedAt, id: last.id };
+}
+
+function nextEventCursor(
+  events: readonly PrivateCooperativeRunLedgerEvent[],
+  requestedLimit: number,
+): number | null {
+  if (events.length !== requestedLimit) return null;
+  return events.at(-1)?.sequence ?? null;
 }
 
 export function createPrivateCooperativeRunReadRoutes(
@@ -82,8 +147,14 @@ export function createPrivateCooperativeRunReadRoutes(
     }
 
     try {
-      const runs = await queries.listRecent({ limit: parsed.data.limit });
-      return context.json({ ok: true, data: { runs } });
+      const runs = await queries.listRecent(listInput(parsed.data));
+      return context.json({
+        ok: true,
+        data: {
+          runs,
+          nextCursor: nextRunCursor(runs, parsed.data.limit),
+        },
+      });
     } catch {
       return errorResponse(
         context,
@@ -125,8 +196,22 @@ export function createPrivateCooperativeRunReadRoutes(
           404,
         );
       }
-      const events = await queries.listEvents(runId.data, parsed.data.eventLimit);
-      return context.json({ ok: true, data: { run, events } });
+      const eventInput =
+        parsed.data.beforeSequence === undefined
+          ? parsed.data.eventLimit
+          : {
+              limit: parsed.data.eventLimit,
+              beforeSequence: parsed.data.beforeSequence,
+            };
+      const events = await queries.listEvents(runId.data, eventInput);
+      return context.json({
+        ok: true,
+        data: {
+          run,
+          events,
+          nextEventCursor: nextEventCursor(events, parsed.data.eventLimit),
+        },
+      });
     } catch {
       return errorResponse(
         context,
