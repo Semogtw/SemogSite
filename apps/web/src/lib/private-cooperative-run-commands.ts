@@ -98,6 +98,55 @@ export type CooperativeRunCheckpointTestsStatus =
   | "failed"
   | "blocked";
 
+export type CooperativeRunCommandKind =
+  | "continue"
+  | "pause"
+  | "cancel"
+  | "reprioritize"
+  | "request_checkpoint"
+  | "provide_context";
+
+type QueueCooperativeRunCommandCommonInput = {
+  idempotencyKey: string;
+  runId: string;
+  summary: string;
+  expiresAt: string | null;
+  confirmed: true;
+};
+
+export type QueueCooperativeRunCommandInput =
+  | (QueueCooperativeRunCommandCommonInput & {
+      kind: "continue";
+      note: string | null;
+    })
+  | (QueueCooperativeRunCommandCommonInput & {
+      kind: "pause" | "cancel";
+      reason: string;
+    })
+  | (QueueCooperativeRunCommandCommonInput & {
+      kind: "reprioritize";
+      priority: "low" | "normal" | "high";
+      note: string | null;
+    })
+  | (QueueCooperativeRunCommandCommonInput & {
+      kind: "request_checkpoint";
+      include: readonly ("commits" | "tests" | "blockers" | "next_step")[];
+    })
+  | (QueueCooperativeRunCommandCommonInput & {
+      kind: "provide_context";
+      context: string;
+    });
+
+export type QueueCooperativeRunCommandResult = {
+  commandId: string;
+  runId: string;
+  kind: CooperativeRunCommandKind;
+  status: "queued";
+  queuedAt: string;
+  delivered: false;
+  processControlTriggered: false;
+};
+
 export type RecordCooperativeRunCheckpointInput = {
   idempotencyKey: string;
   runId: string;
@@ -150,6 +199,16 @@ export function recordPrivateCooperativeRunCheckpoint(
 ): Promise<RecordCooperativeRunCheckpointResult> {
   return client.mutate<RecordCooperativeRunCheckpointResult>(
     "cooperative_run.checkpoint",
+    input,
+  );
+}
+
+export function queuePrivateCooperativeRunCommand(
+  client: PrivateMutationClient,
+  input: QueueCooperativeRunCommandInput,
+): Promise<QueueCooperativeRunCommandResult> {
+  return client.mutate<QueueCooperativeRunCommandResult>(
+    "cooperative_run.command.queue",
     input,
   );
 }
