@@ -1,5 +1,14 @@
 import type { CooperativeRunSnapshot } from "@semogtw/domain";
 import type { D1DatabaseBinding, D1QueryResult } from "../adapters/d1";
+import {
+  mapCooperativeRunCheckpoint,
+  mapCooperativeRunCommand,
+  normalizeCooperativeRunReadLimit,
+  type CooperativeRunCheckpointRead,
+  type CooperativeRunCheckpointRow,
+  type CooperativeRunCommandRead,
+  type CooperativeRunCommandRow,
+} from "./cooperative-run-related-read";
 
 type RunRow = {
   id: string;
@@ -205,5 +214,49 @@ export class D1CooperativeRunReadModel {
       .all<EventRow>();
     assertQuerySucceeded(result, "cooperative run event list");
     return result.results.map(toEvent);
+  }
+
+  async listCheckpoints(
+    runId: string,
+    limit = 100,
+  ): Promise<readonly CooperativeRunCheckpointRead[]> {
+    const result = await this.database
+      .prepare(
+        `SELECT
+          id, event_id, sequence, phase, progress, branch, summary,
+          commits_json, tests_status, tests_summary, blockers, next_step,
+          captured_at, source_hash
+        FROM cooperative_run_checkpoints
+        WHERE run_id = ?
+        ORDER BY sequence DESC, id DESC
+        LIMIT ?`,
+      )
+      .bind(runId, normalizeCooperativeRunReadLimit(limit, 100))
+      .all<CooperativeRunCheckpointRow>();
+    assertQuerySucceeded(result, "cooperative run checkpoint list");
+    return result.results.map(mapCooperativeRunCheckpoint);
+  }
+
+  async listCommands(
+    runId: string,
+    input: { limit: number; observedAt: string },
+  ): Promise<readonly CooperativeRunCommandRead[]> {
+    const result = await this.database
+      .prepare(
+        `SELECT
+          id, kind, status, summary, payload_json, reason, queued_by,
+          correlation_id, queued_at, acknowledged_at, completed_at,
+          expires_at, updated_at
+        FROM cooperative_run_commands
+        WHERE run_id = ?
+        ORDER BY queued_at DESC, id DESC
+        LIMIT ?`,
+      )
+      .bind(runId, normalizeCooperativeRunReadLimit(input.limit, 100))
+      .all<CooperativeRunCommandRow>();
+    assertQuerySucceeded(result, "cooperative run command list");
+    return result.results.map((row) =>
+      mapCooperativeRunCommand(row, input.observedAt),
+    );
   }
 }

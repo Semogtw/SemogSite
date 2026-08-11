@@ -5,6 +5,15 @@ import type {
   CooperativeRunLedgerEvent,
   CooperativeRunListRecentInput,
 } from "./d1-cooperative-run-read-model";
+import {
+  mapCooperativeRunCheckpoint,
+  mapCooperativeRunCommand,
+  normalizeCooperativeRunReadLimit,
+  type CooperativeRunCheckpointRead,
+  type CooperativeRunCheckpointRow,
+  type CooperativeRunCommandRead,
+  type CooperativeRunCommandRow,
+} from "./cooperative-run-related-read";
 
 type SqliteDatabase = ReturnType<typeof createSqliteDatabase>;
 
@@ -167,5 +176,49 @@ export class SqliteCooperativeRunReadModel {
       )
       .all(...params) as EventRow[];
     return rows.map(toEvent);
+  }
+
+  async listCheckpoints(
+    runId: string,
+    limit = 100,
+  ): Promise<readonly CooperativeRunCheckpointRead[]> {
+    const rows = this.database.$client
+      .prepare(
+        `SELECT
+          id, event_id, sequence, phase, progress, branch, summary,
+          commits_json, tests_status, tests_summary, blockers, next_step,
+          captured_at, source_hash
+        FROM cooperative_run_checkpoints
+        WHERE run_id = ?
+        ORDER BY sequence DESC, id DESC
+        LIMIT ?`,
+      )
+      .all(
+        runId,
+        normalizeCooperativeRunReadLimit(limit, 100),
+      ) as CooperativeRunCheckpointRow[];
+    return rows.map(mapCooperativeRunCheckpoint);
+  }
+
+  async listCommands(
+    runId: string,
+    input: { limit: number; observedAt: string },
+  ): Promise<readonly CooperativeRunCommandRead[]> {
+    const rows = this.database.$client
+      .prepare(
+        `SELECT
+          id, kind, status, summary, payload_json, reason, queued_by,
+          correlation_id, queued_at, acknowledged_at, completed_at,
+          expires_at, updated_at
+        FROM cooperative_run_commands
+        WHERE run_id = ?
+        ORDER BY queued_at DESC, id DESC
+        LIMIT ?`,
+      )
+      .all(
+        runId,
+        normalizeCooperativeRunReadLimit(input.limit, 100),
+      ) as CooperativeRunCommandRow[];
+    return rows.map((row) => mapCooperativeRunCommand(row, input.observedAt));
   }
 }
