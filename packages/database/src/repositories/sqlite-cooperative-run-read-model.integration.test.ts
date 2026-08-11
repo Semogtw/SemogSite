@@ -139,6 +139,87 @@ describe("SqliteCooperativeRunReadModel integration", () => {
     });
   });
 
+  it("reads checkpoints and commands from the migrated schema with defensive JSON", async () => {
+    const db = database();
+    insertRun(db, {
+      id: "run-related",
+      updatedAt: "2026-08-09T04:30:00.000Z",
+    });
+    insertEvent(db, "run-related", 1);
+    db.$client
+      .prepare(
+        `INSERT INTO cooperative_run_checkpoints (
+          id, run_id, event_id, sequence, phase, progress, branch, summary,
+          commits_json, tests_status, tests_summary, blockers, next_step,
+          captured_at, source_hash
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "checkpoint-related",
+        "run-related",
+        "event-run-related-1",
+        1,
+        "validation",
+        60,
+        "main",
+        "Checkpoint related.",
+        "{broken",
+        "partial",
+        "Focused checks only.",
+        "",
+        "Continue.",
+        "2026-08-09T04:30:00.000Z",
+        "source-related",
+      );
+    db.$client
+      .prepare(
+        `INSERT INTO cooperative_run_commands (
+          id, run_id, kind, status, summary, payload_json, reason, queued_by,
+          idempotency_key, correlation_id, queued_at, acknowledged_at,
+          completed_at, expires_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        "command-related",
+        "run-related",
+        "request_checkpoint",
+        "queued",
+        "Send checkpoint.",
+        '{"include":["commits"]}',
+        null,
+        "semogtw-owner",
+        "command-related-key",
+        "correlation-command-related",
+        "2026-08-09T04:25:00.000Z",
+        null,
+        null,
+        "2026-08-09T04:29:00.000Z",
+        "2026-08-09T04:25:00.000Z",
+      );
+    const model = new SqliteCooperativeRunReadModel(db);
+
+    await expect(model.listCheckpoints("run-related", 500)).resolves.toEqual([
+      expect.objectContaining({
+        id: "checkpoint-related",
+        commits: [],
+        malformedCommits: true,
+      }),
+    ]);
+    await expect(
+      model.listCommands("run-related", {
+        limit: 500,
+        observedAt: "2026-08-09T04:30:00.000Z",
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "command-related",
+        payload: { include: ["commits"] },
+        malformedPayload: false,
+        queueAvailability: "expired",
+      }),
+    ]);
+  });
+
   it("paginates the immutable event sequence on the real ledger table", async () => {
     const db = database();
     insertRun(db, {
