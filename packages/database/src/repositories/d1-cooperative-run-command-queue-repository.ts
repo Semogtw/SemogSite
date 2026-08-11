@@ -97,11 +97,26 @@ function toSnapshot(row: RunRow): CooperativeRunSnapshot {
   };
 }
 
+function parseObject(value: string | null): Record<string, unknown> | null {
+  if (value === null) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function sameStoredIntent(
   existing: ExistingReplayRow,
   command: CooperativeRunCommand,
   event: CooperativeRunCommandQueuedEvent,
 ): boolean {
+  const after = parseObject(existing.after_json);
+  if (after === null) return false;
+
   return (
     existing.command_id === command.id &&
     existing.command_run_id === command.runId &&
@@ -121,8 +136,20 @@ function sameStoredIntent(
     existing.event_source === event.source &&
     existing.event_summary === event.summary &&
     existing.before_json === null &&
-    existing.after_json === JSON.stringify(command) &&
-    existing.event_correlation_id === event.correlationId
+    existing.event_correlation_id === event.correlationId &&
+    after.id === command.id &&
+    after.runId === command.runId &&
+    after.kind === command.kind &&
+    after.status === command.status &&
+    after.summary === command.summary &&
+    JSON.stringify(after.payload) === JSON.stringify(command.payload) &&
+    after.reason === command.reason &&
+    after.queuedBy === command.queuedBy &&
+    after.idempotencyKey === command.idempotencyKey &&
+    after.correlationId === command.correlationId &&
+    after.acknowledgedAt === command.acknowledgedAt &&
+    after.completedAt === command.completedAt &&
+    after.expiresAt === command.expiresAt
   );
 }
 
