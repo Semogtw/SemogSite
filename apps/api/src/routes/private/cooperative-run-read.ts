@@ -2,6 +2,7 @@ import type { CooperativeRunSnapshot } from "@semogtw/domain";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import type { ApiEnvironment } from "../../middleware/request-context";
+import { deriveCooperativeRunFreshness } from "./cooperative-run-freshness";
 
 export type PrivateCooperativeRunLedgerEvent = {
   id: string;
@@ -174,6 +175,13 @@ function publicEvents(
   return events.map(({ before: _before, after: _after, ...event }) => event);
 }
 
+function runWithFreshness(run: CooperativeRunSnapshot, asOf: string) {
+  return {
+    ...run,
+    freshness: deriveCooperativeRunFreshness(run, new Date(asOf)),
+  };
+}
+
 export function createPrivateCooperativeRunReadRoutes(
   queries?: PrivateCooperativeRunQueries,
 ) {
@@ -201,10 +209,12 @@ export function createPrivateCooperativeRunReadRoutes(
 
     try {
       const runs = await queries.listRecent(listInput(parsed.data));
+      const asOf = new Date().toISOString();
       return context.json({
         ok: true,
         data: {
-          runs,
+          runs: runs.map((run) => runWithFreshness(run, asOf)),
+          asOf,
           nextCursor: nextRunCursor(runs, parsed.data.limit),
         },
       });
@@ -266,7 +276,7 @@ export function createPrivateCooperativeRunReadRoutes(
       return context.json({
         ok: true,
         data: {
-          run,
+          run: runWithFreshness(run, observedAt),
           events: publicEvents(events, includeSnapshots),
           checkpoints,
           commands,
