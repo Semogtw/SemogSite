@@ -91,6 +91,39 @@ export type CooperativeRunTransitionResult = {
   processStarted: false;
 };
 
+export type CooperativeRunCheckpointTestsStatus =
+  | "not_run"
+  | "partial"
+  | "passed"
+  | "failed"
+  | "blocked";
+
+export type RecordCooperativeRunCheckpointInput = {
+  idempotencyKey: string;
+  runId: string;
+  expectedUpdatedAt: string;
+  progress: number;
+  phase: string | null;
+  branch: string | null;
+  summary: string;
+  commits: readonly string[];
+  testsStatus: CooperativeRunCheckpointTestsStatus;
+  testsSummary: string;
+  blockers: string;
+  nextStep: string;
+  confirmed: true;
+};
+
+export type RecordCooperativeRunCheckpointResult = {
+  runId: string;
+  checkpointId: string;
+  progress: number;
+  testsStatus: CooperativeRunCheckpointTestsStatus;
+  capturedAt: string;
+  updatedAt: string;
+  processStarted: false;
+};
+
 export function registerPrivateCooperativeRun(
   client: PrivateMutationClient,
   input: RegisterCooperativeRunInput,
@@ -107,6 +140,16 @@ export function transitionPrivateCooperativeRun(
 ): Promise<CooperativeRunTransitionResult> {
   return client.mutate<CooperativeRunTransitionResult>(
     "cooperative_run.transition",
+    input,
+  );
+}
+
+export function recordPrivateCooperativeRunCheckpoint(
+  client: PrivateMutationClient,
+  input: RecordCooperativeRunCheckpointInput,
+): Promise<RecordCooperativeRunCheckpointResult> {
+  return client.mutate<RecordCooperativeRunCheckpointResult>(
+    "cooperative_run.checkpoint",
     input,
   );
 }
