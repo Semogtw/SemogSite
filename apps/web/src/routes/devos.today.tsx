@@ -2,11 +2,15 @@ import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { Button, EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { readCookie } from "../client/cookies";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { transitionAttentionFn } from "../server/devos-attention-lifecycle";
+import { PrivateApiError } from "../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { getTodayQueueFn } from "../server/devos-today";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export const Route = createFileRoute("/devos/today")({
   beforeLoad: async ({ location }) => ({
@@ -41,34 +45,30 @@ function AttentionActions({ attentionId }: { attentionId: string }) {
       return;
     }
 
-    const csrfToken = readCookie(CSRF_COOKIE_NAME);
-    if (csrfToken === null) {
-      setMessage("Não foi possível validar esta sessão.");
-      return;
-    }
-
     setPending(true);
     setMessage(null);
     try {
-      const result = await transitionAttentionFn({
-        data: {
-          csrfToken,
-          attentionId,
-          targetStatus,
-          reason,
-          confirmed: true,
-        },
+      await privateDevos.attention.transition({
+        attentionId,
+        targetStatus,
+        reason,
+        confirmed: true,
       });
-      if (!result.ok) {
-        setMessage(result.message);
-        return;
-      }
 
       setReason("");
       setConfirmed(false);
       await router.invalidate();
-    } catch {
-      setMessage("Não foi possível salvar esta alteração.");
+    } catch (error) {
+      if (error instanceof PrivateApiError) {
+        setMessage(error.message);
+      } else if (
+        error instanceof Error &&
+        error.message === "Private mutation requires a CSRF token."
+      ) {
+        setMessage("Não foi possível validar esta sessão.");
+      } else {
+        setMessage("Não foi possível salvar esta alteração.");
+      }
     } finally {
       setPending(false);
     }
