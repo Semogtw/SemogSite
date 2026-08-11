@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { transitionPrivateAttention } from "./private-attention-commands";
 import {
+  queuePrivateCooperativeRunCommand,
   recordPrivateCooperativeRunCheckpoint,
   registerPrivateCooperativeRun,
 } from "./private-cooperative-run-commands";
@@ -83,6 +84,22 @@ describe("Worker-backed DevOS command wrappers", () => {
       "repository.active_branch.accept",
       input,
     );
+  });
+
+  it("routes cooperative run commands without implying external delivery", async () => {
+    const { mutate, value } = client();
+    const input = {
+      idempotencyKey: "5e011102-38ef-4918-8af9-f6971639e63d",
+      runId: "run-1",
+      kind: "request_checkpoint" as const,
+      summary: "Envie evidência.",
+      expiresAt: null,
+      include: ["commits", "tests"] as const,
+      confirmed: true as const,
+    };
+
+    await queuePrivateCooperativeRunCommand(value, input);
+    expect(mutate).toHaveBeenCalledWith("cooperative_run.command.queue", input);
   });
 
   it("routes cooperative run checkpoints through the evidence-preserving operation", async () => {
