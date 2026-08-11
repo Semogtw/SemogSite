@@ -55,6 +55,8 @@ describe("cooperative run keyset pagination", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
@@ -75,6 +77,8 @@ describe("cooperative run keyset pagination", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
@@ -112,6 +116,8 @@ describe("cooperative run keyset pagination", () => {
         listRecent,
         findRun: vi.fn(),
         listEvents: vi.fn(),
+        listCheckpoints: vi.fn(async () => []),
+        listCommands: vi.fn(async () => []),
       },
     });
 
