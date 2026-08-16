@@ -2,7 +2,8 @@ import { Button, Surface } from "@semogtw/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { loginOwnerFn } from "../server/auth";
+import { loginPrivateOwner } from "../lib/private-auth-client";
+import { safeReturnTo } from "../server/auth-navigation";
 
 const SearchSchema = z.object({
   returnTo: z.string().optional(),
@@ -34,13 +35,8 @@ function LoginPage() {
     setMessage(null);
 
     try {
-      const data = returnTo === undefined ? { password } : { password, returnTo };
-      const result = await loginOwnerFn({ data });
-      if (!result.ok) {
-        setMessage(result.message);
-        return;
-      }
-      await navigate({ to: result.redirectTo });
+      await loginPrivateOwner(password);
+      await navigate({ to: safeReturnTo(returnTo) });
     } catch {
       setMessage("Não foi possível autenticar.");
     } finally {
