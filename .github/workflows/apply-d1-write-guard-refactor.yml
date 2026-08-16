@@ -1,0 +1,85 @@
+name: Apply validated D1 write guard refactor
+
+on:
+  push:
+    branches:
+      - ops/apply-d1-write-guard-refactor-a50c
+    paths:
+      - .github/workflows/apply-d1-write-guard-refactor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact validated codemod
+        shell: bash
+        env:
+          EXPECTED_PARENT: a50c28064fb726f3007ccddcfe106f91ed154622
+          EXPECTED_TREE: 754926de38a6239480e88606ca721793bb90b094
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PARENT"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('packages/database/src/repositories')
+          files = {
+              'd1-attention-lifecycle-repository.ts': 'attention lifecycle',
+              'd1-branch-recommendation-acceptance-repository.ts': 'branch recommendation acceptance',
+              'd1-cooperative-run-registration-repository.ts': 'cooperative run registration',
+              'd1-cooperative-run-transition-repository.ts': 'cooperative run transition',
+              'd1-editorial-redirect-repository.ts': 'editorial redirect',
+              'd1-repository-target-lifecycle-repository.ts': 'repository target lifecycle',
+              'd1-repository-target-registration-repository.ts': 'repository target registration',
+              'd1-scope-reservation-repository.ts': 'scope reservation',
+          }
+
+          for name, label in files.items():
+              path = root / name
+              text = path.read_text()
+              marker = '} from "../adapters/d1";\n'
+              if marker not in text:
+                  raise SystemExit(f'missing adapter import: {name}')
+              text = text.replace(
+                  marker,
+                  marker + 'import {\n  assertD1BatchSucceeded,\n  readD1SingleRowChange,\n} from "./d1-write-result";\n',
+                  1,
+              )
+              pattern = r'\nfunction assertBatchSucceeded\(results: readonly D1QueryResult\[\]\): void \{.*?\n\}\n\nfunction readChangeCount\(result: D1QueryResult \| undefined(?:, operation: string)?\): number \{.*?\n  return changes;\n\}\n'
+              text, count = re.subn(pattern, '\n', text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'helper removal failed: {name}')
+              text = text.replace('assertBatchSucceeded(results);', f'assertD1BatchSucceeded(results, "{label}");')
+              text = text.replace('readChangeCount(results[0])', f'readD1SingleRowChange(results[0], "{label}")')
+              text = text.replace('readChangeCount(results[0], "acquire")', 'readD1SingleRowChange(results[0], "scope reservation acquire")')
+              text = text.replace('readChangeCount(results[0], "update")', 'readD1SingleRowChange(results[0], "scope reservation update")')
+              text = text.replace('readChangeCount(results[1], "event insert")', 'readD1SingleRowChange(results[1], "scope reservation event insert")')
+              text = text.replace('readChangeCount(results[2], "audit insert")', 'readD1SingleRowChange(results[2], "scope reservation audit insert")')
+              text = text.replace('readChangeCount(results[1])', 'readD1SingleRowChange(results[1], "editorial redirect audit insert")')
+              text = re.sub(r'\n\s*if \(changed > 1\) \{\n\s*throw new Error\([^\n]+\);\n\s*\}', '', text)
+              text = re.sub(r'\n\s*if \(changed > 1\) throw new Error\([^\n]+\);', '', text)
+              path.write_text(text)
+          PY
+
+          git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 8
+          git add packages/database/src/repositories/d1-*.ts
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+
+          git config user.name 'Arthur Almeida'
+          git config user.email 'arthurgva1602@gmail.com'
+          git commit -m 'refactor(database): centralize D1 write result guards'
+          git push origin HEAD:main
