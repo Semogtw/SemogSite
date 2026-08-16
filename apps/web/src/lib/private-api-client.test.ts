@@ -57,8 +57,9 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 
 describe("private API client", () => {
   it("reads canonical private data without CSRF and disables fetch caching", async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse({ ok: true, data: { runs: [] } }),
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        jsonResponse({ ok: true, data: { runs: [] } }),
     );
 
     await expect(
