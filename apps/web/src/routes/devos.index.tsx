@@ -1,14 +1,21 @@
+import type { DevOSOverview } from "@semogtw/domain";
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { getDevOSOverviewFn } from "../server/devos-overview";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export const Route = createFileRoute("/devos/")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: () => getDevOSOverviewFn(),
+  loader: () =>
+    privateDevos.read<DevOSOverview>("/api/v1/private/overview"),
   head: () => ({
     meta: [
       { title: "Início — Semogtw DevOS" },

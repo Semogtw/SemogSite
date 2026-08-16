@@ -1,11 +1,11 @@
 import { CSRF_COOKIE_NAME } from "@semogtw/auth";
+import type { TodayQueue } from "@semogtw/domain";
 import { Button, EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { PrivateApiError } from "../lib/private-api-client";
 import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
-import { getTodayQueueFn } from "../server/devos-today";
 import { requireOwner } from "../server/require-owner";
 
 const privateDevos = createPrivateDevosBrowserClient({
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/devos/today")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: () => getTodayQueueFn(),
+  loader: () => privateDevos.read<TodayQueue>("/api/v1/private/today"),
   head: () => ({
     meta: [
       { title: "Hoje — Semogtw DevOS" },
