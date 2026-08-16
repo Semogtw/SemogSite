@@ -223,6 +223,24 @@ async function readEnvelope<T>(response: Response): Promise<ApiEnvelope<T>> {
   };
 }
 
+export async function executePrivateRead<T>(
+  path: `/api/v1/private/${string}`,
+  fetchImpl: FetchLike = fetch,
+): Promise<T> {
+  const response = await fetchImpl(path, {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: { accept: "application/json" },
+  });
+  const envelope = await readEnvelope<T>(response);
+  if (!envelope.ok) throw new PrivateApiError(response.status, envelope.error);
+  if (!response.ok) {
+    throw new Error("Private API returned success data with a failing status.");
+  }
+  return envelope.data;
+}
+
 export async function loadPrivateRuntimeCapabilities(
   fetchImpl: FetchLike = fetch,
 ): Promise<PrivateRuntimeCapabilities> {
@@ -339,6 +357,9 @@ export function createPrivateApiClient(options: {
     getCapabilities,
     clearCapabilities() {
       capabilitiesPromise = null;
+    },
+    read<T>(path: `/api/v1/private/${string}`): Promise<T> {
+      return executePrivateRead<T>(path, fetchImpl);
     },
     async mutate<T>(operation: string, payload: unknown): Promise<T> {
       const capabilities = await resolveCapability(operation);

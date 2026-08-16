@@ -1,18 +1,28 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { RunCommandQueueForm } from "../components/devos/run-command-queue-form";
 import { RunTransitionForm } from "../components/devos/run-transition-form";
-import { getCooperativeRunDetailFn } from "../server/devos-runs";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
 
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
+
 export const Route = createFileRoute("/devos/runs/$runId")({
+  ssr: false,
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
   loader: ({ params }) =>
-    getCooperativeRunDetailFn({ data: { runId: params.runId } }),
+    privateDevos.runs.get({
+      runId: params.runId,
+      eventLimit: 100,
+      includeSnapshots: true,
+    }),
   head: () => ({
     meta: [
       { title: "Histórico da execução — Semogtw DevOS" },
@@ -117,8 +127,8 @@ function CooperativeRunDetailPage() {
           <Status tone={runTone(run.status)}>
             {statusLabels[run.status]}
           </Status>
-          <Status tone={run.freshness === "stale" ? "warning" : "neutral"}>
-            {run.freshness === "stale"
+          <Status tone={run.freshness.heartbeatExpired ? "warning" : "neutral"}>
+            {run.freshness.heartbeatExpired
               ? "possivelmente inativa"
               : "atual no último relato"}
           </Status>
@@ -158,8 +168,8 @@ function CooperativeRunDetailPage() {
             <strong>Bloqueio:</strong> {run.blocker ?? "Nenhum relatado"}
           </p>
           <p className="muted-copy">
-            Limite de freshness: {run.staleAfterSeconds} segundos · stale em:{" "}
-            {formatTimestamp(run.staleAt)}
+            Limite de freshness: {run.staleAfterSeconds} segundos · idade do
+            heartbeat: {run.freshness.heartbeatAgeSeconds} segundos.
           </p>
         </Surface>
       </div>
@@ -336,11 +346,6 @@ function CooperativeRunDetailPage() {
                 <p className="muted-copy">
                   {event.actor} · correlação {event.correlationId}
                 </p>
-                {event.malformedJson.length > 0 ? (
-                  <p role="status" className="run-card__blocker">
-                    Snapshot histórico malformado: {event.malformedJson.join(", ")}.
-                  </p>
-                ) : null}
                 <details>
                   <summary>Ver snapshots</summary>
                   <div className="run-event-snapshots">

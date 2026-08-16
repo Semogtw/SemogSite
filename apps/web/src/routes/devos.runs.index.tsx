@@ -1,24 +1,28 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import type { StatusTone } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { RunRegistrationForm } from "../components/devos/run-registration-form";
-import {
-  getCooperativeRunRegistrationOptionsFn,
-  getCooperativeRunsFn,
-} from "../server/devos-runs";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
+import { getCooperativeRunRegistrationOptionsFn } from "../server/devos-runs";
 import { requireOwner } from "../server/require-owner";
 
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
+
 export const Route = createFileRoute("/devos/runs/")({
+  ssr: false,
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
   loader: async () => {
-    const [runs, projects] = await Promise.all([
-      getCooperativeRunsFn({ data: { limit: 100 } }),
+    const [runPage, projects] = await Promise.all([
+      privateDevos.runs.list({ limit: 100 }),
       getCooperativeRunRegistrationOptionsFn(),
     ]);
-    return { runs, projects };
+    return { runs: runPage.runs, projects };
   },
   head: () => ({
     meta: [
@@ -59,7 +63,7 @@ function statusTone(status: keyof typeof statusLabels): StatusTone {
 
 function CooperativeRunsPage() {
   const { runs, projects } = Route.useLoaderData();
-  const staleCount = runs.filter((run) => run.freshness === "stale").length;
+  const staleCount = runs.filter((run) => run.freshness.heartbeatExpired).length;
 
   return (
     <DevOSShell activePath="/devos/runs">
@@ -110,9 +114,9 @@ function CooperativeRunsPage() {
                     {statusLabels[run.status]}
                   </Status>
                   <Status
-                    tone={run.freshness === "stale" ? "warning" : "neutral"}
+                    tone={run.freshness.heartbeatExpired ? "warning" : "neutral"}
                   >
-                    {run.freshness === "stale"
+                    {run.freshness.heartbeatExpired
                       ? "possivelmente inativa"
                       : "atual no último relato"}
                   </Status>

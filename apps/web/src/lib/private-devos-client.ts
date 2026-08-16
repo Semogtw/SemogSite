@@ -4,6 +4,14 @@ import {
   type PrivateRuntimeCapabilities,
 } from "./private-api-client";
 import {
+  getPrivateCooperativeRun,
+  listPrivateCooperativeRuns,
+  type PrivateCooperativeRunDetailInput,
+  type PrivateCooperativeRunDetailResult,
+  type PrivateCooperativeRunListInput,
+  type PrivateCooperativeRunListResult,
+} from "./private-cooperative-run-reads";
+import {
   capturePrivateAttention,
   transitionPrivateAttention,
   type AttentionCaptureMutationInput,
@@ -92,6 +100,7 @@ export type PrivateDevosClientOptions = Parameters<typeof createPrivateApiClient
 export type PrivateDevosClient = {
   getCapabilities(refresh?: boolean): Promise<PrivateRuntimeCapabilities>;
   clearCapabilities(): void;
+  read<T>(path: `/api/v1/private/${string}`): Promise<T>;
   mutate<T>(operation: string, payload: unknown): Promise<T>;
   getRetryPolicy(operation: string): Promise<PrivateMutationRetryPolicy>;
   attention: {
@@ -143,6 +152,12 @@ export type PrivateDevosClient = {
     ): Promise<AcceptBranchRecommendationResult>;
   };
   runs: {
+    list(
+      input?: PrivateCooperativeRunListInput,
+    ): Promise<PrivateCooperativeRunListResult>;
+    get(
+      input: PrivateCooperativeRunDetailInput,
+    ): Promise<PrivateCooperativeRunDetailResult | null>;
     register(
       input: RegisterCooperativeRunInput,
     ): Promise<RegisterCooperativeRunResult>;
@@ -187,6 +202,7 @@ export function createPrivateDevosClient(
   return {
     getCapabilities: api.getCapabilities,
     clearCapabilities: api.clearCapabilities,
+    read: api.read,
     mutate: api.mutate,
     async getRetryPolicy(operation) {
       let capabilities = await api.getCapabilities();
@@ -225,6 +241,8 @@ export function createPrivateDevosClient(
         acceptPrivateBranchRecommendation(api, input),
     },
     runs: {
+      list: (input) => listPrivateCooperativeRuns(api, input),
+      get: (input) => getPrivateCooperativeRun(api, input),
       register: (input) => registerPrivateCooperativeRun(api, input),
       transition: (input) => transitionPrivateCooperativeRun(api, input),
       recordCheckpoint: (input) =>

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   PrivateApiError,
+  executePrivateRead,
   executePrivateStateWrite,
   findPrivateStateWriteCapability,
   loadPrivateRuntimeCapabilities,
@@ -55,6 +56,30 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 }
 
 describe("private API client", () => {
+  it("reads canonical private data without CSRF and disables fetch caching", async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse({ ok: true, data: { runs: [] } }),
+    );
+
+    await expect(
+      executePrivateRead<{ runs: unknown[] }>(
+        "/api/v1/private/cooperative-runs?limit=10",
+        fetchImpl,
+      ),
+    ).resolves.toEqual({ runs: [] });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/v1/private/cooperative-runs?limit=10",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+      }),
+    );
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty(
+      "x-csrf-token",
+    );
+  });
+
   it("loads and validates the capability registry from same origin", async () => {
     const fetchImpl = vi.fn(async () =>
       jsonResponse({ ok: true, data: capabilities }),
