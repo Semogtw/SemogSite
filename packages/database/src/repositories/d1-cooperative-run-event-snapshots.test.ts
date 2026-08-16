@@ -55,9 +55,8 @@ describe("D1 cooperative run event snapshot minimization", () => {
     await model.listEvents("cooperative-run-1", { limit: 25 });
 
     const query = binding.executed[0];
-    expect(query?.sql).toContain(
-      "NULL AS before_json, NULL AS after_json",
-    );
+    expect(query?.sql).not.toContain("before_json");
+    expect(query?.sql).not.toContain("after_json");
     expect(query?.params).toEqual(["cooperative-run-1", 25]);
   });
 
@@ -72,9 +71,8 @@ describe("D1 cooperative run event snapshot minimization", () => {
 
     const query = binding.executed[0];
     expect(query?.sql).toContain("before_json, after_json");
-    expect(query?.sql).not.toContain(
-      "NULL AS before_json, NULL AS after_json",
-    );
+    expect(query?.sql).not.toContain("NULL AS before_json");
+    expect(query?.sql).not.toContain("NULL AS after_json");
     expect(query?.params).toEqual(["cooperative-run-1", 25]);
   });
 });

@@ -190,9 +190,9 @@ export class D1CooperativeRunReadModel {
   ): Promise<readonly CooperativeRunLedgerEvent[]> {
     const options: CooperativeRunEventListOptions =
       typeof input === "number" ? { limit: input } : input;
-    const snapshotColumns = options.includeSnapshots === false
-      ? ""
-      : ", before_json, after_json";
+    const snapshotColumns = options.includeSnapshots === true
+      ? ", before_json, after_json"
+      : "";
     const cursorClause = options.beforeSequence === undefined
       ? ""
       : " AND sequence < ?";

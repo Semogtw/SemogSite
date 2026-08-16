@@ -25,7 +25,7 @@ const capabilities: PrivateRuntimeCapabilities = {
       method: "POST",
       path: "/api/v1/private/cooperative-runs/transition",
       externalEffect: false,
-      retrySemantics: "semantic-idempotency",
+      retrySemantics: "optimistic-concurrency",
     },
   ],
   externalEffects: {

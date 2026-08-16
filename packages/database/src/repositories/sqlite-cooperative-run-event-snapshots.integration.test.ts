@@ -55,7 +55,7 @@ function seedRunWithEvent(db: ReturnType<typeof createSqliteDatabase>) {
       "cooperative-run-event-snapshots",
       "cooperative-run-snapshots",
       1,
-      "progress.updated",
+      "run.checkpoint",
       "semogtw-owner",
       "chatgpt",
       "Snapshot-bearing event.",

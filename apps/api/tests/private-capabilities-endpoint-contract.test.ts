@@ -64,7 +64,7 @@ describe("private capability endpoint mutation contracts", () => {
       method: "POST",
       path: "/api/v1/private/cooperative-runs/transition",
       externalEffect: false,
-      retrySemantics: "semantic-idempotency",
+      retrySemantics: "optimistic-concurrency",
     });
     expect(endpoints.get("repository.sync_target.register")).toMatchObject({
       method: "POST",

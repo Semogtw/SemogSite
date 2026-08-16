@@ -57,7 +57,7 @@ describe("private operation retry headers", () => {
     );
   });
 
-  it("labels semantic-idempotency writes before route validation", async () => {
+  it("labels optimistic-concurrency run transitions before route validation", async () => {
     const response = await app().request(
       "/api/v1/private/cooperative-runs/transition",
       {
@@ -72,7 +72,7 @@ describe("private operation retry headers", () => {
       "cooperative_run.transition",
     );
     expect(response.headers.get("x-semogtw-retry-semantics")).toBe(
-      "semantic-idempotency",
+      "optimistic-concurrency",
     );
   });
 });
