@@ -8,6 +8,10 @@ import type {
   D1DatabaseBinding,
   D1QueryResult,
 } from "../adapters/d1";
+import {
+  assertD1BatchSucceeded,
+  readD1SingleRowChange,
+} from "./d1-write-result";
 
 type ExistingRegistrationEvent = {
   id: string;
@@ -18,24 +22,6 @@ type ExistingRegistrationEvent = {
   correlation_id: string;
 };
 
-function assertBatchSucceeded(results: readonly D1QueryResult[]): void {
-  const failed = results.find(
-    (result) => result.success === false || (result.error?.length ?? 0) > 0,
-  );
-  if (failed !== undefined) {
-    throw new Error("D1 cooperative run registration batch failed.");
-  }
-}
-
-function readChangeCount(result: D1QueryResult | undefined): number {
-  const changes = result?.meta?.["changes"];
-  if (typeof changes !== "number" || !Number.isInteger(changes) || changes < 0) {
-    throw new Error(
-      "D1 cooperative run registration result is missing changes metadata.",
-    );
-  }
-  return changes;
-}
 
 function parseRun(value: string | null): Record<string, unknown> | null {
   if (value === null) return null;
@@ -162,11 +148,8 @@ export class D1CooperativeRunRegistrationRepository
       );
 
     const results = await this.database.batch([insertRun, insertEvent]);
-    assertBatchSucceeded(results);
-    const changed = readChangeCount(results[0]);
-    if (changed > 1) {
-      throw new Error("D1 cooperative run registration inserted multiple runs.");
-    }
+    assertD1BatchSucceeded(results, "cooperative run registration");
+    const changed = readD1SingleRowChange(results[0], "cooperative run registration");
     if (changed === 1) return "created";
 
     const replay = await this.database

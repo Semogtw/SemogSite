@@ -8,25 +8,11 @@ import type {
   D1DatabaseBinding,
   D1QueryResult,
 } from "../adapters/d1";
+import {
+  assertD1BatchSucceeded,
+  readD1SingleRowChange,
+} from "./d1-write-result";
 
-function assertBatchSucceeded(results: readonly D1QueryResult[]): void {
-  const failed = results.find(
-    (result) => result.success === false || (result.error?.length ?? 0) > 0,
-  );
-  if (failed !== undefined) {
-    throw new Error("D1 repository target registration batch failed.");
-  }
-}
-
-function readChangeCount(result: D1QueryResult | undefined): number {
-  const changes = result?.meta?.["changes"];
-  if (typeof changes !== "number" || !Number.isInteger(changes) || changes < 0) {
-    throw new Error(
-      "D1 repository target registration result is missing changes metadata.",
-    );
-  }
-  return changes;
-}
 
 export class D1RepositoryTargetRegistrationRepository
   implements RepositorySyncTargetRegistrationRepository
@@ -101,11 +87,8 @@ export class D1RepositoryTargetRegistrationRepository
       );
 
     const results = await this.database.batch([insert, auditInsert]);
-    assertBatchSucceeded(results);
-    const changed = readChangeCount(results[0]);
-    if (changed > 1) {
-      throw new Error("D1 repository target registration inserted multiple rows.");
-    }
+    assertD1BatchSucceeded(results, "repository target registration");
+    const changed = readD1SingleRowChange(results[0], "repository target registration");
     if (changed === 1) return "created";
 
     const project = await this.database

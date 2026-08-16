@@ -9,6 +9,10 @@ import type {
   D1DatabaseBinding,
   D1QueryResult,
 } from "../adapters/d1";
+import {
+  assertD1BatchSucceeded,
+  readD1SingleRowChange,
+} from "./d1-write-result";
 
 type RedirectRow = {
   id: string;
@@ -63,20 +67,6 @@ function toTarget(row: TargetRow): EditorialRedirectTargetSnapshot {
   };
 }
 
-function assertBatchSucceeded(results: readonly D1QueryResult[]): void {
-  const failed = results.find(
-    (result) => result.success === false || (result.error?.length ?? 0) > 0,
-  );
-  if (failed !== undefined) throw new Error("D1 editorial redirect batch failed.");
-}
-
-function readChangeCount(result: D1QueryResult | undefined): number {
-  const changes = result?.meta?.["changes"];
-  if (typeof changes !== "number" || !Number.isInteger(changes) || changes < 0) {
-    throw new Error("D1 editorial redirect result is missing changes metadata.");
-  }
-  return changes;
-}
 
 function sameDraft(
   replay: EditorialRedirectEventSnapshot,
@@ -303,15 +293,14 @@ export class D1EditorialRedirectRepository implements EditorialRedirectRepositor
     let results: readonly D1QueryResult[];
     try {
       results = await this.database.batch([boundEvent, auditInsert]);
-      assertBatchSucceeded(results);
+      assertD1BatchSucceeded(results, "editorial redirect");
     } catch {
       return this.classifyFailedAppend(event, expectation);
     }
 
-    const changed = readChangeCount(results[0]);
-    if (changed > 1) throw new Error("D1 editorial redirect inserted multiple rows.");
+    const changed = readD1SingleRowChange(results[0], "editorial redirect");
     if (changed === 1) {
-      if (readChangeCount(results[1]) !== 1) {
+      if (readD1SingleRowChange(results[1], "editorial redirect audit insert") !== 1) {
         throw new Error("D1 editorial redirect audit is incomplete.");
       }
       const stored = await this.findReplay(event.idempotencyKey);
