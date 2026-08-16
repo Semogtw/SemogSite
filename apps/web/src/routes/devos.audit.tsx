@@ -1,18 +1,43 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
+import type { AuditPage as AuditPageData } from "@semogtw/database";
 import { Button, EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { getAuditPageFn } from "../server/devos-audit";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
+
+type AuditFilters = {
+  page: number;
+  pageSize: number;
+  action: string | null;
+  entityType: string | null;
+};
+
+function loadAuditPage(input: AuditFilters): Promise<AuditPageData> {
+  const query = new URLSearchParams({
+    page: String(input.page),
+    pageSize: String(input.pageSize),
+  });
+  const action = input.action?.trim();
+  const entityType = input.entityType?.trim();
+  if (action) query.set("action", action);
+  if (entityType) query.set("entityType", entityType);
+  return privateDevos.read<AuditPageData>(
+    `/api/v1/private/audit?${query.toString()}` as `/api/v1/private/${string}`,
+  );
+}
 
 export const Route = createFileRoute("/devos/audit")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
   loader: () =>
-    getAuditPageFn({
-      data: { page: 1, pageSize: 25, action: null, entityType: null },
-    }),
+    loadAuditPage({ page: 1, pageSize: 25, action: null, entityType: null }),
   head: () => ({
     meta: [
       { title: "Auditoria — Semogtw DevOS" },
@@ -57,13 +82,11 @@ function AuditPage() {
     setPending(true);
     setMessage(null);
     try {
-      const result = await getAuditPageFn({
-        data: {
-          page,
-          pageSize: pageData.pageSize,
-          action: action.trim().length === 0 ? null : action,
-          entityType: entityType.trim().length === 0 ? null : entityType,
-        },
+      const result = await loadAuditPage({
+        page,
+        pageSize: pageData.pageSize,
+        action: action.trim().length === 0 ? null : action,
+        entityType: entityType.trim().length === 0 ? null : entityType,
       });
       setPageData(result);
     } catch {

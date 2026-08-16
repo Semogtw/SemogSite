@@ -33,4 +33,15 @@ describe("canonical private read boundary", () => {
     expect(existsSync(resolve(import.meta.dirname, "../server/devos-projects.ts"))).toBe(false);
     expect(existsSync(resolve(import.meta.dirname, "../server/devos-projects.server.ts"))).toBe(false);
   });
+
+  it("reads audit pages from the D1-backed private API", () => {
+    const audit = source("devos.audit.tsx");
+
+    expect(audit).toContain('privateDevos.read<AuditPageData>(');
+    expect(audit).toContain('/api/v1/private/audit?${query.toString()}');
+    expect(audit).toContain('query.set("action", action)');
+    expect(audit).toContain('query.set("entityType", entityType)');
+    expect(existsSync(resolve(import.meta.dirname, "../server/devos-audit.ts"))).toBe(false);
+  });
+
 });
