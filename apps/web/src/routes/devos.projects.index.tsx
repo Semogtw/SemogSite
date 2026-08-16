@@ -1,14 +1,21 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
+import type { OperationalPortfolio } from "@semogtw/domain";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { getOperationalPortfolioFn } from "../server/devos-projects";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export const Route = createFileRoute("/devos/projects/")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: () => getOperationalPortfolioFn(),
+  loader: () =>
+    privateDevos.read<OperationalPortfolio>("/api/v1/private/projects"),
   head: () => ({
     meta: [
       { title: "Projetos — Semogtw DevOS" },

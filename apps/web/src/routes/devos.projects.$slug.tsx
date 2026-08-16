@@ -1,16 +1,34 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
+import type { ProjectHub } from "@semogtw/domain";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
 import { EvidenceCaptureForm } from "../components/devos/evidence-capture-form";
 import { StageCompletionForm } from "../components/devos/stage-completion-form";
-import { getProjectHubFn } from "../server/devos-projects";
+import { PrivateApiError } from "../lib/private-api-client";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
+
+async function loadProjectHub(slug: string): Promise<ProjectHub | null> {
+  try {
+    return await privateDevos.read<ProjectHub>(
+      `/api/v1/private/projects/${encodeURIComponent(slug)}` as `/api/v1/private/${string}`,
+    );
+  } catch (error) {
+    if (error instanceof PrivateApiError && error.code === "NOT_FOUND") return null;
+    throw error;
+  }
+}
 
 export const Route = createFileRoute("/devos/projects/$slug")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: ({ params }) => getProjectHubFn({ data: { slug: params.slug } }),
+  loader: ({ params }) => loadProjectHub(params.slug),
   head: () => ({
     meta: [
       { title: "Hub do projeto — Semogtw DevOS" },

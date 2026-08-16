@@ -1,14 +1,20 @@
+import { CSRF_COOKIE_NAME } from "@semogtw/auth";
+import type { RoadmapResult } from "@semogtw/domain";
 import { EmptyState, Status, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DevOSShell } from "../components/devos/devos-shell";
-import { getRoadmapFn } from "../server/devos-roadmap";
+import { createPrivateDevosBrowserClient } from "../lib/private-devos-browser-client";
 import { requireOwner } from "../server/require-owner";
+
+const privateDevos = createPrivateDevosBrowserClient({
+  csrfCookieName: CSRF_COOKIE_NAME,
+});
 
 export const Route = createFileRoute("/devos/roadmap")({
   beforeLoad: async ({ location }) => ({
     owner: await requireOwner(location.href),
   }),
-  loader: () => getRoadmapFn(),
+  loader: () => privateDevos.read<RoadmapResult>("/api/v1/private/roadmap"),
   head: () => ({
     meta: [
       { title: "Roadmap — Semogtw DevOS" },

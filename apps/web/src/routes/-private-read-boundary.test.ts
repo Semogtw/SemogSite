@@ -18,4 +18,19 @@ describe("canonical private read boundary", () => {
     expect(existsSync(resolve(import.meta.dirname, "../server/devos-today.ts"))).toBe(false);
     expect(existsSync(resolve(import.meta.dirname, "../server/devos-today.server.ts"))).toBe(false);
   });
+
+  it("reads roadmap and projects from the D1-backed private API", () => {
+    const roadmap = source("devos.roadmap.tsx");
+    const projects = source("devos.projects.index.tsx");
+    const project = source("devos.projects.$slug.tsx");
+
+    expect(roadmap).toContain('privateDevos.read<RoadmapResult>("/api/v1/private/roadmap")');
+    expect(projects).toContain('privateDevos.read<OperationalPortfolio>("/api/v1/private/projects")');
+    expect(project).toContain('privateDevos.read<ProjectHub>(');
+    expect(project).toContain('error.code === "NOT_FOUND"');
+    expect(existsSync(resolve(import.meta.dirname, "../server/devos-roadmap.ts"))).toBe(false);
+    expect(existsSync(resolve(import.meta.dirname, "../server/devos-roadmap.server.ts"))).toBe(false);
+    expect(existsSync(resolve(import.meta.dirname, "../server/devos-projects.ts"))).toBe(false);
+    expect(existsSync(resolve(import.meta.dirname, "../server/devos-projects.server.ts"))).toBe(false);
+  });
 });
