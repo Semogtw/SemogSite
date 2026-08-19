@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import { createEditorialDocumentFn } from "../../server/devos-editorial";
+import { PROJECT_CASE_STUDY_MARKDOWN_TEMPLATE } from "./editorial-project-case-study-template";
 
 const kindOptions: ReadonlyArray<{
   value: EditorialDocumentKind;
@@ -34,6 +35,14 @@ export function EditorialDocumentForm() {
 
   function invalidateRetryIdentity() {
     idempotencyKey.current = null;
+  }
+
+  function applyProjectCaseStudyPreset() {
+    if (pending || bodyMarkdown.trim().length > 0) return;
+    setKind("project");
+    setBodyMarkdown(PROJECT_CASE_STUDY_MARKDOWN_TEMPLATE);
+    setFeedback(null);
+    invalidateRetryIdentity();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -94,6 +103,23 @@ export function EditorialDocumentForm() {
 
   return (
     <form className="editorial-form" onSubmit={submit}>
+      <div className="editorial-form__preset" aria-labelledby="project-preset-title">
+        <div>
+          <strong id="project-preset-title">Projeto para o portfólio</strong>
+          <p>
+            Inicia um rascunho privado com a estrutura de case study do Portfolio V1.
+            Nada é aprovado ou publicado automaticamente.
+          </p>
+        </div>
+        <Button
+          type="button"
+          disabled={pending || bodyMarkdown.trim().length > 0}
+          onClick={applyProjectCaseStudyPreset}
+        >
+          Usar estrutura de case study
+        </Button>
+      </div>
+
       <div className="editorial-form__grid">
         <label>
           Tipo de documento
@@ -122,7 +148,7 @@ export function EditorialDocumentForm() {
             autoComplete="off"
             value={slug}
             disabled={pending}
-            placeholder="primeira-nota"
+            placeholder="meu-projeto"
             onChange={(event) => {
               setSlug(event.target.value.toLowerCase());
               invalidateRetryIdentity();
@@ -166,7 +192,7 @@ export function EditorialDocumentForm() {
           maxLength={1_000}
           value={tags}
           disabled={pending}
-          placeholder="typescript, devos, privacidade"
+          placeholder="typescript, react, automação"
           onChange={(event) => {
             setTags(event.target.value);
             invalidateRetryIdentity();
@@ -178,7 +204,7 @@ export function EditorialDocumentForm() {
         Corpo em Markdown seguro
         <textarea
           required
-          rows={14}
+          rows={18}
           maxLength={100_000}
           value={bodyMarkdown}
           disabled={pending}
