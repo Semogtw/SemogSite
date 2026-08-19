@@ -1,17 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/stack")({
-  head: () => ({
-    meta: [
-      { title: "Habilidades — Semogtw" },
-      {
-        name: "description",
-        content:
-          "Habilidades técnicas da Semogtw apresentadas por uso real em projetos, decisões de arquitetura, testes e entrega.",
-      },
-    ],
-  }),
+  head: () =>
+    publicPortfolioHead({
+      title: "Habilidades — Semogtw",
+      description:
+        "Habilidades técnicas da Semogtw apresentadas por uso real em projetos, decisões de arquitetura, testes e entrega.",
+      path: "/stack",
+    }),
   component: SkillsPage,
 });
 
