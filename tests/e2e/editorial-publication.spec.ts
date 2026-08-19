@@ -62,7 +62,7 @@ test.describe.serial("editorial publication lifecycle", () => {
 
     await page.getByLabel("Tipo de documento").selectOption("note");
     await page.getByLabel("Slug canônico").fill(slug);
-    await page.getByLabel("Título").fill("Nota editorial original");
+    await page.getByLabel("Título", { exact: true }).fill("Nota editorial original");
     await page
       .getByLabel("Resumo editorial")
       .fill("Resumo público da revisão original.");
@@ -153,7 +153,9 @@ test.describe.serial("editorial publication lifecycle", () => {
 
     await page.getByText("Criar nova revisão imutável").click();
     const revisionForm = page.locator("details.editorial-revision-form form");
-    await revisionForm.getByLabel("Título").fill("Nota editorial atualizada");
+    await revisionForm
+      .getByLabel("Título", { exact: true })
+      .fill("Nota editorial atualizada");
     await revisionForm
       .getByLabel("Resumo editorial")
       .fill("Resumo público da revisão atualizada.");
