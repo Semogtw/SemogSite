@@ -33,15 +33,34 @@ describe("public portfolio discovery", () => {
     expect(sitemap).not.toContain("/notes");
   });
 
-  it("escapes dynamic project slugs instead of interpolating raw path content", () => {
-    const sitemap = buildPortfolioSitemap("https://portfolio.example.test", [
-      { slug: "projeto & revisão" },
-    ]);
+  it("adds the notes index and details only when notes are published", () => {
+    const sitemap = buildPortfolioSitemap(
+      "https://portfolio.example.test",
+      [],
+      [{ slug: "arquitetura-portatil" }],
+    );
+
+    expect(sitemap).toContain("<loc>https://portfolio.example.test/notes</loc>");
+    expect(sitemap).toContain(
+      "<loc>https://portfolio.example.test/notes/arquitetura-portatil</loc>",
+    );
+  });
+
+  it("escapes dynamic editorial slugs instead of interpolating raw path content", () => {
+    const sitemap = buildPortfolioSitemap(
+      "https://portfolio.example.test",
+      [{ slug: "projeto & revisão" }],
+      [{ slug: "nota & decisão" }],
+    );
 
     expect(sitemap).toContain(
       "https://portfolio.example.test/projects/projeto%20%26%20revis%C3%A3o",
     );
+    expect(sitemap).toContain(
+      "https://portfolio.example.test/notes/nota%20%26%20decis%C3%A3o",
+    );
     expect(sitemap).not.toContain("projeto & revisão");
+    expect(sitemap).not.toContain("nota & decisão");
   });
 
   it("allows the portfolio while discouraging crawler access to private routes", () => {
