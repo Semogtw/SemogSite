@@ -6,7 +6,10 @@ import { getPublicEditorialFn } from "../server/public-editorial";
 
 export const Route = createFileRoute("/notes/")({
   loader: () => getPublicEditorialFn({ data: { kind: "note", limit: 50 } }),
-  head: () => publicEditorialListHead("note"),
+  head: ({ loaderData }) =>
+    publicEditorialListHead("note", {
+      index: (loaderData?.length ?? 0) > 0,
+    }),
   component: NotesPage,
 });
 
