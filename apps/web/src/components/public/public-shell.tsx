@@ -1,4 +1,5 @@
 import { PublicHeader } from "@semogtw/ui";
+import { useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 const items = [
@@ -10,10 +11,15 @@ const items = [
 ] as const;
 
 export function PublicShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeHref = items.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  )?.href;
+
   return (
     <div className="public-shell">
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <PublicHeader items={items} />
+      <PublicHeader items={items} activeHref={activeHref} />
       <main id="conteudo" className="public-main">{children}</main>
       <footer className="public-footer">
         <span>Semogtw</span>
