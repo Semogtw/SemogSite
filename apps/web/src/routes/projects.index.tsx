@@ -1,12 +1,19 @@
 import { EmptyState, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
-import { publicEditorialListHead } from "./-public-editorial-head";
 import { getPublicProjectsFn } from "../server/public-projects";
+import publicProjectsCss from "../styles/public-projects.css?url";
+import { publicEditorialListHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/projects/")({
   loader: () => getPublicProjectsFn(),
-  head: () => publicEditorialListHead("project"),
+  head: () => {
+    const head = publicEditorialListHead("project");
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: publicProjectsCss }],
+    };
+  },
   component: ProjectsPage,
 });
 
