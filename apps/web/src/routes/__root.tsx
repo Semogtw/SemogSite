@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
-import publicProjectsCss from "../styles/public-projects.css?url";
 import surfacesCss from "../styles/surfaces.css?url";
 
 type RouterContext = {
@@ -34,7 +33,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: surfacesCss },
-      { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
       { rel: "stylesheet", href: portfolioCss },
     ],
