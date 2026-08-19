@@ -14,6 +14,16 @@ describe("public editorial head metadata", () => {
     ]);
   });
 
+  it("keeps an empty editorial index out of search discovery", () => {
+    const head = publicEditorialListHead("note", { index: false });
+
+    expect(head.meta).toContainEqual({
+      name: "robots",
+      content: "noindex, follow",
+    });
+    expect(head.links).toEqual([{ rel: "canonical", href: "/notes" }]);
+  });
+
   it("adds canonical and social metadata only for a published detail projection", () => {
     const head = publicEditorialDetailHead({
       kind: "note",
