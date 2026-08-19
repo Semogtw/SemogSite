@@ -3,6 +3,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicEditorialDocumentRouteFn } from "../server/public-editorial";
+import publicEditorialCss from "../styles/public-editorial.css?url";
 import { publicEditorialDetailHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/notes/$slug")({
@@ -20,12 +21,17 @@ export const Route = createFileRoute("/notes/$slug")({
     }
     return resolution.document;
   },
-  head: ({ loaderData, params }) =>
-    publicEditorialDetailHead({
+  head: ({ loaderData, params }) => {
+    const head = publicEditorialDetailHead({
       kind: "note",
       slug: params.slug,
       document: loaderData ?? null,
-    }),
+    });
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: publicEditorialCss }],
+    };
+  },
   component: NotePage,
 });
 
