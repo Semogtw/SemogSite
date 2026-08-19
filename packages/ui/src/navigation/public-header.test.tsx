@@ -29,4 +29,16 @@ describe("PublicHeader", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(navigation).toHaveAttribute("data-open", "false");
   });
+
+  it("marks the active public destination semantically", () => {
+    render(<PublicHeader items={items} activeHref="/projects" />);
+
+    expect(screen.getByRole("link", { name: "Projetos" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Notas" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
 });
