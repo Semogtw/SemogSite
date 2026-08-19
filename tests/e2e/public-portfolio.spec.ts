@@ -48,6 +48,31 @@ test("public portfolio home exposes the professional navigation and factual stru
   expect(structuredData.knowsAbout).toContain("Engenharia de software");
 });
 
+test("public header keeps internal navigation client-side", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    (window as Window & { __semogtwNavigationMarker?: string }).__semogtwNavigationMarker =
+      "preserved";
+  });
+
+  await page.getByRole("link", { name: "Habilidades", exact: true }).click();
+  await expect(page).toHaveURL(/\/stack$/u);
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Tecnologia explicada pelo que foi feito com ela.",
+    }),
+  ).toBeVisible();
+
+  expect(
+    await page.evaluate(
+      () =>
+        (window as Window & { __semogtwNavigationMarker?: string })
+          .__semogtwNavigationMarker,
+    ),
+  ).toBe("preserved");
+});
+
 test("keyboard users can skip repeated public navigation", async ({ page }) => {
   await page.goto("/");
 
