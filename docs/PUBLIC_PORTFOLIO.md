@@ -59,12 +59,14 @@ Implemented on `develop/public-portfolio-v1`:
 - primary navigation reduced to Projects, Skills, Credentials, About and Contact;
 - active navigation semantics with `aria-current="page"` on desktop/mobile;
 - mobile navigation closes with Escape and restores focus to its trigger;
+- keyboard skip navigation moves focus explicitly to the public main content and is covered by Playwright;
 - complementary Journey surface with current context and formation sourced from the same typed credential model;
 - unfinished Lab/Notes surfaces removed from global navigation while remaining routable;
 - evidence-led skill groups covering frontend/product, backend/APIs, data/persistence and software-engineering automation;
 - typed public credential content model with explicit in-progress/completed states, related skills, issue date and optional verification URL;
 - dedicated formation/credentials page that separates active study from completed certificates;
 - project index copy reframed around case studies rather than repository listing;
+- intentional empty project state that offers useful Skills/Journey paths without fabricating sample case studies;
 - project detail layout reframed as a case study with public metadata, technical themes, reading context and portfolio cross-links;
 - reusable case-study authoring template for problem, role, solution, decisions, trade-offs, verification, result and public links;
 - private owner-editor preset that fills the case-study structure without approving or publishing anything;
@@ -121,7 +123,7 @@ Course enrollment is never promoted automatically to a completed credential. The
 
 ### Public navigation and secondary surfaces
 
-The primary header favors recruiter/reviewer tasks. `Journey` is kept as a complementary surface, while empty Lab/Notes routes are not advertised globally. The active primary destination is exposed semantically through `aria-current` and has distinct desktop/mobile states.
+The primary header favors recruiter/reviewer tasks. `Journey` is kept as a complementary surface, while empty Lab/Notes routes are not advertised globally. The active primary destination is exposed semantically through `aria-current` and has distinct desktop/mobile states. Keyboard users can skip repeated public navigation directly to an explicitly focusable main region.
 
 ### Discovery and sharing foundation
 
@@ -180,12 +182,11 @@ Observed Portfolio V1 checkpoints:
 
 - `0cfcc1d57875ef4f449555c9fbec60d5ca3260f7`: checkout and several focused checks ran, then `pnpm check` correctly rejected the public credential field name `completedAt` because it collides with protected run-lifecycle vocabulary. The public field was renamed to `issuedOn`; the guardrail was not weakened.
 - `7fb9b427d7cd745ed4b43e2a65cd072bef2ab2e8`: the prior confidentiality failure was resolved; the next failure was a TypeScript `exactOptionalPropertyTypes` mismatch on the optional public navigation `activeHref`. The component contract was corrected.
-- `4da3f672c0109e2331c6a0f652e6317e96ae1911`: **fully verified V1 checkpoint**. Both public-hub jobs checked out this exact private commit and completed successfully:
-  - shared gate run `32259159710`: frozen install, native SQLite verification, boundary/confidentiality gates, focused tests, recursive typechecks, complete `pnpm check`, production web build and workflow/privacy E2E all passed; the full Vitest workspace reported 260 test files and 964 passing tests, and workflow/privacy E2E reported 6/6 passing;
-  - specialized portfolio run `32259159691`: auth topology 2/2, workflow privacy 6/6, editorial publication 2/2 and public portfolio 6/6 all passed. The specialized job log confirms checkout of this exact private SHA.
+- `4da3f672c0109e2331c6a0f652e6317e96ae1911`: **fully verified V1 checkpoint**. Both public-hub jobs checked out this exact private commit and completed successfully. The shared gate reported 260 test files / 964 passing tests plus build/workflow checks; the specialized run passed auth topology 2/2, workflow privacy 6/6, editorial publication 2/2 and public portfolio 6/6.
+- `1d311da7c66c80dd0678b463342858dbb08c6980`: **latest fully verified portfolio checkpoint**. Public-hub run `32260949001`, specialized job `96093847567`, checked out this exact private SHA. Frozen install, native SQLite verification, guardrails/boundaries/confidentiality checks, recursive typecheck, full Vitest workspace (**260 files / 964 tests**), aggregated `pnpm check` and production web build all passed. E2E outcomes were auth topology **2/2**, workflow privacy **6/6**, editorial publication **2/2** and public portfolio **6/6**; all sanitized failure markers remained skipped and the private checkout was removed after verification.
 
 The public CI receipt intentionally omits the private resolved SHA and logs; exact-head attribution is verified from the protected job checkout while the public issue exposes only sanitized outcomes.
 
-Any commit after `4da3f672c0109e2331c6a0f652e6317e96ae1911` must be treated as newer than that green checkpoint until reverified.
+Any commit after `1d311da7c66c80dd0678b463342858dbb08c6980` must be treated as newer than that green checkpoint until reverified.
 
 If a runner or external dependency blocks a gate, record the limitation and continue with code tasks that can still be resolved.
