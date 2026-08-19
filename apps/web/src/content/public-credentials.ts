@@ -14,7 +14,7 @@ export type PublicCredential = {
   status: PublicCredentialStatus;
   description: string;
   relatedSkills: readonly string[];
-  completedAt?: string;
+  issuedOn?: string;
   verificationUrl?: string;
 };
 
