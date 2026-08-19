@@ -52,7 +52,7 @@ test("canonical auth API works through the browser-facing web origin", async ({ 
     ok: true,
     data: {
       authenticated: true,
-      owner: { id: "owner" },
+      owner: { id: "semogtw-owner" },
     },
   });
 });
