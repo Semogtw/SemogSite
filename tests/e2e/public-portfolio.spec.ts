@@ -8,7 +8,7 @@ const primaryNavigation = [
   ["Contato", "/contact"],
 ] as const;
 
-test("public portfolio home exposes the professional navigation", async ({ page }) => {
+test("public portfolio home exposes the professional navigation and factual structured data", async ({ page }) => {
   await page.goto("/");
 
   await expect(
@@ -31,6 +31,21 @@ test("public portfolio home exposes the professional navigation", async ({ page 
   );
   await expect(page.getByRole("link", { name: "Laboratório", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Notas", exact: true })).toHaveCount(0);
+
+  const structuredDataText = await page
+    .locator('script[type="application/ld+json"]')
+    .textContent();
+  expect(structuredDataText).not.toBeNull();
+  const structuredData = JSON.parse(structuredDataText ?? "{}") as {
+    "@type"?: string;
+    name?: string;
+    sameAs?: string[];
+    knowsAbout?: string[];
+  };
+  expect(structuredData["@type"]).toBe("Person");
+  expect(structuredData.name).toBe("Semogtw");
+  expect(structuredData.sameAs).toContain("https://github.com/Semogtw");
+  expect(structuredData.knowsAbout).toContain("Engenharia de software");
 });
 
 test("portfolio pages are reachable without owner authentication", async ({ page }) => {
@@ -83,7 +98,7 @@ test("portfolio mobile menu navigates and exposes current destination at 360px",
   await expect(
     page.getByRole("heading", {
       level: 2,
-      name: "Portfólio profissional orientado por evidência",
+      name: "Engenharia de software aplicada a projetos próprios",
     }),
   ).toBeVisible();
 
