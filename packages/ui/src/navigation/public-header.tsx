@@ -1,5 +1,12 @@
 import { Menu, X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 export type PublicNavItem = { href: string; label: string };
 
@@ -8,11 +15,13 @@ export function PublicHeader({
   brand = "Semogtw",
   trailing,
   activeHref,
+  onNavigate,
 }: {
   items: readonly PublicNavItem[];
   brand?: string;
   trailing?: ReactNode;
   activeHref?: string | undefined;
+  onNavigate?: ((href: string) => void) | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
@@ -35,9 +44,33 @@ export function PublicHeader({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  function handleNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    setOpen(false);
+
+    if (
+      !onNavigate ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    onNavigate(href);
+  }
+
   return (
     <header className="sem-public-header">
-      <a className="sem-wordmark" href="/" aria-label="Semogtw — início">
+      <a
+        className="sem-wordmark"
+        href="/"
+        aria-label="Semogtw — início"
+        onClick={(event) => handleNavigation(event, "/")}
+      >
         {brand}
       </a>
       <nav
@@ -52,7 +85,7 @@ export function PublicHeader({
               <a
                 href={item.href}
                 aria-current={activeHref === item.href ? "page" : undefined}
-                onClick={() => setOpen(false)}
+                onClick={(event) => handleNavigation(event, item.href)}
               >
                 {item.label}
               </a>
