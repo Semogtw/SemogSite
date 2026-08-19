@@ -8,10 +8,6 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import captureCss from "../styles/capture.css?url";
-import editorialCss from "../styles/editorial.css?url";
-import editorialPortfolioCss from "../styles/editorial-portfolio.css?url";
-import evidenceCss from "../styles/evidence.css?url";
 import globalCss from "../styles/global.css?url";
 import journeyCss from "../styles/journey.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
@@ -39,10 +35,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: surfacesCss },
-      { rel: "stylesheet", href: captureCss },
-      { rel: "stylesheet", href: evidenceCss },
-      { rel: "stylesheet", href: editorialCss },
-      { rel: "stylesheet", href: editorialPortfolioCss },
       { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
       { rel: "stylesheet", href: portfolioCss },
