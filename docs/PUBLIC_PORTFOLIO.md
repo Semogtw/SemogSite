@@ -28,7 +28,7 @@ The primary public navigation is intentionally compact:
 /contact      explicitly public contact channels
 ```
 
-`/lab`, `/notes` and `/journey` remain valid secondary editorial surfaces, but they are not primary navigation in Portfolio V1.
+`/journey` is a useful complementary surface and is discoverable from the footer. `/lab` and `/notes` remain valid routes, but they are not promoted globally while they do not yet provide meaningful public content.
 
 ## Evidence-first presentation
 
@@ -57,16 +57,22 @@ Implemented on `develop/public-portfolio-v1`:
 
 - Home reframed from platform/infrastructure explanation to professional portfolio;
 - primary navigation reduced to Projects, Skills, Credentials, About and Contact;
+- active navigation semantics with `aria-current="page"` on desktop/mobile;
+- complementary Journey surface with current context and formation sourced from the same typed credential model;
+- unfinished Lab/Notes surfaces removed from global discovery while remaining routable;
 - evidence-led skill groups covering frontend/product, backend/APIs, data/persistence and software-engineering automation;
-- typed public credential content model with explicit in-progress/completed states, related skills and optional verification metadata;
+- typed public credential content model with explicit in-progress/completed states, related skills, issue date and optional verification URL;
 - dedicated formation/credentials page that separates active study from completed certificates;
 - project index copy reframed around case studies rather than repository listing;
 - project detail layout reframed as a case study with public metadata, technical themes, reading context and portfolio cross-links;
 - reusable case-study authoring template for problem, role, solution, decisions, trade-offs, verification, result and public links;
+- private owner-editor preset that fills the case-study structure without approving or publishing anything;
+- deterministic slug suggestion from title, which stops updating after manual slug edits;
 - About placeholder replaced by a concise professional profile and working approach;
 - Contact placeholder replaced by an allowlisted public GitHub channel;
 - responsive portfolio-specific layout styles and updated root metadata;
-- Playwright coverage for primary portfolio navigation, anonymous page reachability and a 360 px viewport.
+- Playwright coverage for primary portfolio navigation, anonymous page reachability, Journey and a 360 px viewport;
+- unit coverage for active public-navigation semantics and canonical slug suggestion.
 
 No private DevOS data is used as public portfolio content.
 
@@ -77,7 +83,8 @@ The existing editorial boundary remains authoritative for project/note publicati
 - unpublished drafts remain private;
 - public project content comes only from the approved/published projection;
 - operational repository status, branches, blockers, runs, reviewer notes and owner-only workflow state remain private;
-- a portfolio redesign does not weaken confidentiality guardrails.
+- a portfolio redesign does not weaken confidentiality guardrails;
+- the case-study preset creates only a private draft and does not bypass review/approval/publication.
 
 Static professional/profile copy may be committed directly when it is deliberately public and contains no inferred private integration data. Dynamic project content continues to use the editorial publication path.
 
@@ -85,43 +92,47 @@ Static professional/profile copy may be committed directly when it is deliberate
 
 ### Project case-study anatomy
 
-Portfolio V1 now provides a stable public case-study shell without expanding the public DTO. The semantic depth lives in the reviewed Markdown body, using `docs/editorial/PROJECT_CASE_STUDY_TEMPLATE.md` as the authoring convention.
+Portfolio V1 provides a stable public case-study shell without expanding the public DTO. The semantic depth lives in the reviewed Markdown body, using `docs/editorial/PROJECT_CASE_STUDY_TEMPLATE.md` as the authoring convention.
 
-This keeps problem/context, role, solution, architecture decisions, technologies, trade-offs, verification, result and public links expressible without coupling the route to private DevOS state.
+The owner editor can preload the same structure into a new private `project` draft. This keeps problem/context, role, solution, architecture decisions, technologies, trade-offs, verification, result and public links expressible without coupling the public route to private DevOS state.
 
 ### Credential content model
 
-Public credentials now use a small typed content module supporting:
+Public credentials use a small typed content module supporting:
 
 - title;
 - issuer;
 - kind;
 - completion/status;
-- completion date when relevant;
+- issue/completion date when relevant;
 - verification URL when available;
 - related skills.
 
-Course enrollment is never promoted automatically to a completed credential.
+Course enrollment is never promoted automatically to a completed credential. The public date field is intentionally named `issuedOn`, avoiding collision with protected private run-lifecycle vocabulary.
+
+### Public navigation and secondary surfaces
+
+The primary header favors recruiter/reviewer tasks. `Journey` is kept as a complementary surface, while empty Lab/Notes routes are not advertised globally. The active primary destination is exposed semantically through `aria-current` and has distinct desktop/mobile states.
 
 ## Next implementation slices
 
-### 1. Portfolio visual refinement
+### 1. Real public content
 
-After the information hierarchy is stable, perform a dedicated public-only polish pass:
+Prepare and publish the first reviewed project case studies through the existing editorial flow. Do not bypass publication review merely to avoid an empty project list.
+
+Populate completed credentials only from exact, deliberately public information with issuer/date/verification metadata when available.
+
+### 2. Portfolio visual refinement
+
+Continue a dedicated public-only polish pass:
 
 - desktop and 360 px review;
 - typography and section rhythm;
 - hover/focus/keyboard states;
 - project media treatment;
 - reduced-motion behavior;
-- empty states that still look intentional;
+- intentional empty states;
 - no visual regressions in private DevOS surfaces.
-
-### 2. Real public content
-
-Prepare and publish the first reviewed project case studies through the existing editorial flow. Do not bypass publication review merely to avoid an empty project list.
-
-Populate completed credentials only from exact, deliberately public information with issuer/date/verification metadata when available.
 
 ### 3. Discovery and sharing
 
@@ -147,6 +158,12 @@ production web build
 isolated Playwright privacy/mobile navigation
 ```
 
-Portfolio-specific Playwright coverage now also checks the five primary public destinations and a 360 px path through Home, Credentials and Contact.
+Observed Portfolio V1 checkpoints:
+
+- `0cfcc1d57875ef4f449555c9fbec60d5ca3260f7`: checkout and several focused checks ran, then `pnpm check` correctly rejected the public credential field name `completedAt` because it collides with protected run-lifecycle vocabulary. The public field was renamed to `issuedOn`; the guardrail was not weakened.
+- `7fb9b427d7cd745ed4b43e2a65cd072bef2ab2e8`: the prior confidentiality failure was resolved; the next failure was a TypeScript `exactOptionalPropertyTypes` mismatch on the optional public navigation `activeHref`. The component contract was corrected.
+- later checkpoints include additional portfolio/editor/Journey changes and must not reuse either historical result. A new exact-head run is required before declaring the branch fully verified.
+
+Portfolio-specific Playwright coverage checks the five primary public destinations, the useful Journey surface, hidden unfinished secondary links and a 360 px path through the main public flow.
 
 If a runner or external dependency blocks a gate, record the limitation and continue with code tasks that can still be resolved.
