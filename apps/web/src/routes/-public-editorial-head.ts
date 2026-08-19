@@ -44,12 +44,18 @@ function socialMeta(title: string, description: string) {
   ];
 }
 
-export function publicEditorialListHead(kind: PublicEditorialKind) {
+export function publicEditorialListHead(
+  kind: PublicEditorialKind,
+  options: { index?: boolean } = {},
+) {
   const value = config[kind];
   return {
     meta: [
       { title: value.listTitle },
       { name: "description", content: value.listDescription },
+      ...(options.index === false
+        ? [{ name: "robots", content: "noindex, follow" }]
+        : []),
       ...socialMeta(value.listTitle, value.listDescription),
     ],
     links: [{ rel: "canonical", href: value.basePath }],
