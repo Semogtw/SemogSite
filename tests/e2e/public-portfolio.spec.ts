@@ -48,6 +48,17 @@ test("public portfolio home exposes the professional navigation and factual stru
   expect(structuredData.knowsAbout).toContain("Engenharia de software");
 });
 
+test("keyboard users can skip repeated public navigation", async ({ page }) => {
+  await page.goto("/");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "Pular para o conteúdo" });
+  await expect(skipLink).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#conteudo")).toBeFocused();
+});
+
 test("portfolio pages are reachable without owner authentication", async ({ page }) => {
   const destinations = [
     ["/stack", "Tecnologia explicada pelo que foi feito com ela."],
