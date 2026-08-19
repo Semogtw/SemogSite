@@ -36,25 +36,25 @@ const capabilityHighlights = [
     title: "Aplicações web full-stack",
     description:
       "React, TypeScript e TanStack conectando interface, domínio, APIs e persistência em produtos utilizáveis.",
-    proof: "Evidência em projetos publicados",
+    proof: "Aplicado no SemogSite",
   },
   {
     title: "Backend e dados",
     description:
       "APIs com Hono e Zod, SQLite/D1, Drizzle, migrations, autenticação, segurança e modelos de leitura e escrita.",
-    proof: "Evidência no SemogSite",
+    proof: "Aplicado no SemogSite",
   },
   {
     title: "Automação e engenharia",
     description:
       "Workflows GitHub, MCP, agentes, gates de verificação, recuperação e documentação para tornar desenvolvimento reproduzível.",
-    proof: "Evidência no SemogSite e Offline-Toolchains",
+    proof: "SemogSite + Offline-Toolchains",
   },
   {
     title: "Qualidade e entrega",
     description:
       "Typecheck, testes, builds, smoke tests, validação de migrations e processos de rollback tratados como parte do produto.",
-    proof: "Evidência nos pipelines dos projetos",
+    proof: "Verificado nos projetos",
   },
 ] as const;
 
@@ -91,9 +91,9 @@ function HomePage() {
             <h2 id="capabilities-title">Competência ligada a evidência.</h2>
           </div>
           <p>
-            Cada área abaixo deve apontar para algo que foi realmente construído,
-            testado ou documentado. O objetivo é mostrar profundidade sem
-            transformar tecnologia em uma coleção de logos.
+            As áreas abaixo aparecem junto do contexto em que foram aplicadas:
+            sistemas construídos, decisões técnicas e verificações. A tecnologia
+            entra como parte do trabalho, não como uma coleção de logos.
           </p>
         </div>
 
@@ -126,7 +126,7 @@ function HomePage() {
           </div>
           <p>
             {featuredProjects.length === 0
-              ? "Um projeto só entra nesta vitrine quando há contexto suficiente para explicar problema, solução, stack e decisões técnicas sem expor informações privadas do processo de desenvolvimento."
+              ? "Os primeiros case studies entram aqui quando estiverem completos o bastante para explicar problema, solução, stack, decisões técnicas e aprendizados com clareza."
               : "A vitrine privilegia o que foi construído e aprendido, não apenas o nome do repositório ou uma lista de tecnologias."}
           </p>
         </div>
