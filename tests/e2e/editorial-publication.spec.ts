@@ -260,7 +260,9 @@ test.describe.serial("editorial publication lifecycle", () => {
       expect(hasOverflow).toBe(false);
 
       const robots = page.locator('meta[name="robots"]');
-      if ((await robots.count()) > 0) {
+      if (path === "/notes") {
+        await expect(robots).toHaveAttribute("content", /noindex/u);
+      } else if ((await robots.count()) > 0) {
         await expect(robots).not.toHaveAttribute("content", /noindex/u);
       }
 
