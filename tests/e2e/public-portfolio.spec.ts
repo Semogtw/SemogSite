@@ -92,3 +92,35 @@ test("portfolio mobile menu navigates and exposes current destination at 360px",
   await expect(githubLink).toBeVisible();
   await expect(githubLink).toHaveAttribute("href", "https://github.com/Semogtw");
 });
+
+test("portfolio discovery endpoints expose only intentional public surfaces", async ({ request }) => {
+  const robotsResponse = await request.get("/robots.txt");
+  expect(robotsResponse.status()).toBe(200);
+  expect(robotsResponse.headers()["content-type"]).toContain("text/plain");
+  const robots = await robotsResponse.text();
+  expect(robots).toContain("Allow: /");
+  expect(robots).toContain("Disallow: /devos");
+  expect(robots).toContain("Disallow: /api/v1/private/");
+  expect(robots).toContain("Sitemap:");
+
+  const sitemapResponse = await request.get("/sitemap.xml");
+  expect(sitemapResponse.status()).toBe(200);
+  expect(sitemapResponse.headers()["content-type"]).toContain("application/xml");
+  const sitemap = await sitemapResponse.text();
+
+  for (const path of [
+    "/projects",
+    "/stack",
+    "/credentials",
+    "/about",
+    "/contact",
+    "/journey",
+  ]) {
+    expect(sitemap).toContain(path);
+  }
+
+  expect(sitemap).not.toContain("/devos");
+  expect(sitemap).not.toContain("/api/v1/private/");
+  expect(sitemap).not.toContain("/lab");
+  expect(sitemap).not.toContain("/notes");
+});
