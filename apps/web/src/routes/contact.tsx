@@ -43,6 +43,7 @@ function ContactPage() {
             rel="noreferrer"
           >
             Abrir GitHub
+            <span className="sem-visually-hidden"> (abre em nova aba)</span>
           </a>
         </article>
       </section>
