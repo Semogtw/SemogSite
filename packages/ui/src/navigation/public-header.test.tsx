@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicHeader } from "./public-header";
 
 const items = [
@@ -45,6 +45,27 @@ describe("PublicHeader", () => {
     expect(button).toHaveAccessibleName("Abrir menu");
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(button).toHaveFocus();
+  });
+
+  it("delegates ordinary internal clicks to client-side navigation", () => {
+    const onNavigate = vi.fn();
+    render(<PublicHeader items={items} onNavigate={onNavigate} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Projetos" }));
+
+    expect(onNavigate).toHaveBeenCalledOnce();
+    expect(onNavigate).toHaveBeenCalledWith("/projects");
+  });
+
+  it("does not intercept modified clicks", () => {
+    const onNavigate = vi.fn();
+    render(<PublicHeader items={items} onNavigate={onNavigate} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Projetos" }), {
+      ctrlKey: true,
+    });
+
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 
   it("marks the active public destination semantically", () => {
