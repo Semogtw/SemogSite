@@ -1,15 +1,21 @@
 import { EmptyState, Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
-import { publicEditorialListHead } from "./-public-editorial-head";
 import { getPublicEditorialFn } from "../server/public-editorial";
+import publicEditorialCss from "../styles/public-editorial.css?url";
+import { publicEditorialListHead } from "./-public-editorial-head";
 
 export const Route = createFileRoute("/notes/")({
   loader: () => getPublicEditorialFn({ data: { kind: "note", limit: 50 } }),
-  head: ({ loaderData }) =>
-    publicEditorialListHead("note", {
+  head: ({ loaderData }) => {
+    const head = publicEditorialListHead("note", {
       index: (loaderData?.length ?? 0) > 0,
-    }),
+    });
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: publicEditorialCss }],
+    };
+  },
   component: NotesPage,
 });
 
