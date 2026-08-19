@@ -131,6 +131,7 @@ function CredentialRow({ credential }: { credential: PublicCredential }) {
             rel="noreferrer"
           >
             Verificar credencial
+            <span className="sem-visually-hidden"> (abre em nova aba)</span>
           </a>
         ) : null}
       </div>
