@@ -58,11 +58,15 @@ Implemented on `develop/public-portfolio-v1`:
 - Home reframed from platform/infrastructure explanation to professional portfolio;
 - primary navigation reduced to Projects, Skills, Credentials, About and Contact;
 - evidence-led skill groups covering frontend/product, backend/APIs, data/persistence and software-engineering automation;
+- typed public credential content model with explicit in-progress/completed states, related skills and optional verification metadata;
 - dedicated formation/credentials page that separates active study from completed certificates;
 - project index copy reframed around case studies rather than repository listing;
+- project detail layout reframed as a case study with public metadata, technical themes, reading context and portfolio cross-links;
+- reusable case-study authoring template for problem, role, solution, decisions, trade-offs, verification, result and public links;
 - About placeholder replaced by a concise professional profile and working approach;
 - Contact placeholder replaced by an allowlisted public GitHub channel;
-- responsive portfolio-specific layout styles and updated root metadata.
+- responsive portfolio-specific layout styles and updated root metadata;
+- Playwright coverage for primary portfolio navigation, anonymous page reachability and a 360 px viewport.
 
 No private DevOS data is used as public portfolio content.
 
@@ -77,40 +81,31 @@ The existing editorial boundary remains authoritative for project/note publicati
 
 Static professional/profile copy may be committed directly when it is deliberately public and contains no inferred private integration data. Dynamic project content continues to use the editorial publication path.
 
-## Next implementation slices
+## Completed implementation slices
 
-### 1. Project case-study anatomy
+### Project case-study anatomy
 
-Extend the public project representation so a case study can clearly express:
+Portfolio V1 now provides a stable public case-study shell without expanding the public DTO. The semantic depth lives in the reviewed Markdown body, using `docs/editorial/PROJECT_CASE_STUDY_TEMPLATE.md` as the authoring convention.
 
-- problem/context;
-- role and scope;
-- solution;
-- architecture/technical decisions;
-- technologies actually used;
-- challenges/trade-offs;
-- verification/tests;
-- result/current status;
-- screenshots/demo assets;
-- relevant public repository/demo links.
+This keeps problem/context, role, solution, architecture decisions, technologies, trade-offs, verification, result and public links expressible without coupling the route to private DevOS state.
 
-Do this without coupling the public DTO to private DevOS state.
+### Credential content model
 
-### 2. Credential content model
-
-Replace manually curated credential copy with a small public content model supporting:
+Public credentials now use a small typed content module supporting:
 
 - title;
 - issuer;
 - kind;
 - completion/status;
-- issue/completion date when relevant;
+- completion date when relevant;
 - verification URL when available;
-- related skills/projects.
+- related skills.
 
-Do not auto-promote course enrollment to a completed certificate.
+Course enrollment is never promoted automatically to a completed credential.
 
-### 3. Portfolio visual refinement
+## Next implementation slices
+
+### 1. Portfolio visual refinement
 
 After the information hierarchy is stable, perform a dedicated public-only polish pass:
 
@@ -122,7 +117,13 @@ After the information hierarchy is stable, perform a dedicated public-only polis
 - empty states that still look intentional;
 - no visual regressions in private DevOS surfaces.
 
-### 4. Discovery and sharing
+### 2. Real public content
+
+Prepare and publish the first reviewed project case studies through the existing editorial flow. Do not bypass publication review merely to avoid an empty project list.
+
+Populate completed credentials only from exact, deliberately public information with issuer/date/verification metadata when available.
+
+### 3. Discovery and sharing
 
 Add after content stabilizes:
 
@@ -145,5 +146,7 @@ full pnpm check
 production web build
 isolated Playwright privacy/mobile navigation
 ```
+
+Portfolio-specific Playwright coverage now also checks the five primary public destinations and a 360 px path through Home, Credentials and Contact.
 
 If a runner or external dependency blocks a gate, record the limitation and continue with code tasks that can still be resolved.
