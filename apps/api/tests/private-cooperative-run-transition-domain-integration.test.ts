@@ -1,121 +1,107 @@
-import {
-  CSRF_COOKIE_NAME,
-  SESSION_COOKIE_NAME,
-  issueCsrfToken,
-  type AuthProvider,
-} from "@semogtw/auth";
-import {
-  CooperativeRunTransitionService,
-  type CooperativeRunSnapshot,
-  type CooperativeRunTransitionRepository,
-} from "@semogtw/domain";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type {
+  CooperativeRunEvent,
+  CooperativeRunSnapshot,
+  CooperativeRunTransitionRepository,
+} from "@semogtw/domain/runs";
 import { createApiApp } from "../src/app";
+import { createTestAuth } from "./support/auth";
 
-const sessionSecret = "run-transition-domain-integration-secret";
 const owner = {
   id: "semogtw-owner",
-  sessionId: "run-transition-domain-session",
-  expiresAt: "2026-08-20T00:00:00.000Z",
-};
-const authProvider: AuthProvider = {
-  authenticate: vi.fn(async () => ({
-    ok: false as const,
-    reason: "INVALID_CREDENTIALS" as const,
-  })),
-  resolveSession: vi.fn(async (token) =>
-    token === "run-transition-domain-token" ? owner : null,
-  ),
-  revokeSession: vi.fn(async () => undefined),
-};
+  username: "semogtw",
+} as const;
 
 const initial: CooperativeRunSnapshot = {
   id: "cooperative-run-domain-1",
   projectId: "project-1",
-  title: "Validar rota e domínio",
-  actorLabel: "ChatGPT",
-  origin: "chatgpt",
-  status: "running",
-  phase: "implementation",
-  progress: 25,
+  repositoryId: "repository-1",
   branch: "main",
+  state: "running",
+  progress: 25,
+  phase: "implementation",
   summary: "Implementação em andamento.",
-  blocker: null,
-  nextAction: "Validar integração.",
-  startedAt: "2026-08-09T04:00:00.000Z",
-  lastHeartbeatAt: "2026-08-09T04:05:00.000Z",
-  finishedAt: null,
-  staleAfterSeconds: 1800,
-  updatedAt: "2026-08-09T04:05:00.000Z",
+  blockers: [],
+  nextAction: "Continuar implementação.",
+  source: "manual",
+  startedAt: "2026-08-01T10:00:00.000Z",
+  updatedAt: "2026-08-01T10:30:00.000Z",
+  completedAt: null,
+  pausedAt: null,
+  cancelledAt: null,
+  failedAt: null,
+  version: 2,
 };
 
-const findRun = vi.fn<CooperativeRunTransitionRepository["findRun"]>(async () => initial);
-const apply = vi.fn<CooperativeRunTransitionRepository["apply"]>(async () => "updated" as const);
-const repository: CooperativeRunTransitionRepository = {
-  findRun,
-  apply,
-};
+const apply = vi.fn<CooperativeRunTransitionRepository["apply"]>();
+
+function repository(): CooperativeRunTransitionRepository {
+  return {
+    findById: vi.fn(async (id) => (id === initial.id ? initial : null)),
+    apply,
+  };
+}
 
 function app() {
+  apply.mockReset();
+  apply.mockImplementation(
+    async (
+      before: CooperativeRunSnapshot,
+      after: CooperativeRunSnapshot,
+      _event: CooperativeRunEvent,
+    ) => ({
+      status: "applied",
+      before,
+      after,
+    }),
+  );
+  const auth = createTestAuth(owner);
   return createApiApp({
-    auth: { provider: authProvider, sessionSecret, nodeEnv: "test" },
-    privateCooperativeRunTransitions: new CooperativeRunTransitionService(
-      repository,
-    ),
+    auth,
+    cooperativeRunTransitionRepository: repository(),
   });
 }
 
 async function headers() {
-  const csrf = await issueCsrfToken(sessionSecret, owner.sessionId);
-  return {
-    cookie: `${SESSION_COOKIE_NAME}=run-transition-domain-token; ${CSRF_COOKIE_NAME}=${csrf}`,
-    "x-csrf-token": csrf,
-    "content-type": "application/json",
-  };
+  const auth = createTestAuth(owner);
+  return auth.authenticatedMutationHeaders();
 }
 
-beforeEach(() => {
-  findRun.mockClear();
-  apply.mockClear();
-});
-
 describe("cooperative run route/domain integration", () => {
-  it("passes heartbeat data through the real domain transition service", async () => {
+  it("passes terminal transition through the domain service", async () => {
     const response = await app().request(
       "/api/v1/private/cooperative-runs/transition",
       {
         method: "POST",
         headers: await headers(),
         body: JSON.stringify({
-          idempotencyKey: "04013acb-c9c7-4a36-8605-a7c297507fad",
+          idempotencyKey: "7f27b89f-ad11-4533-a98b-b4dd215ddbc4",
           runId: initial.id,
           expectedUpdatedAt: initial.updatedAt,
-          kind: "heartbeat",
-          summary: "Heartbeat confirmado.",
-          phase: "validation",
+          kind: "complete",
+          progress: 100,
+          summary: "Implementação concluída.",
+          phase: "done",
           branch: "main",
-          nextAction: "Continuar validação.",
+          nextAction: "Nenhuma.",
           confirmed: true,
         }),
       },
     );
 
     expect(response.status).toBe(200);
-    expect(findRun).toHaveBeenCalledWith(initial.id);
     expect(apply).toHaveBeenCalledTimes(1);
     const [before, after, event] = apply.mock.calls[0] ?? [];
     expect(before).toEqual(initial);
     expect(after).toMatchObject({
-      id: initial.id,
-      status: "running",
-      phase: "validation",
-      summary: "Heartbeat confirmado.",
-      nextAction: "Continuar validação.",
+      state: "completed",
+      progress: 100,
+      summary: "Implementação concluída.",
     });
     expect(event).toMatchObject({
       runId: initial.id,
       actor: owner.id,
-      kind: "run.heartbeat",
+      kind: "run.completed",
     });
   });
 
@@ -151,7 +137,7 @@ describe("cooperative run route/domain integration", () => {
     expect(event).toMatchObject({
       runId: initial.id,
       actor: owner.id,
-      kind: "progress.updated",
+      kind: "run.checkpoint",
     });
   });
 });
