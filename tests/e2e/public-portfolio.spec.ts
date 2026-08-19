@@ -103,6 +103,7 @@ test("portfolio mobile menu navigates and exposes current destination at 360px",
   await expect(menuButton).toHaveAttribute("aria-expanded", "false");
 
   await menuButton.click();
+  await expect(page.getByRole("link", { name: "Projetos", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: "Fechar menu" })).toHaveAttribute(
     "aria-expanded",
     "true",
