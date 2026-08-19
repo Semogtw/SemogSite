@@ -125,7 +125,7 @@ test.describe("authenticated workflow orchestration", () => {
     await targetForm.getByRole("checkbox").check();
     await targetForm.getByRole("button", { name: "Cadastrar alvo privado" }).click();
     await expect(targetForm.getByRole("status")).toHaveText(
-      "Semogtw/E2EWorkflow foi cadastrado como alvo privado de sincronização.",
+      "Alvo privado cadastrado. Os metadados do GitHub serão verificados em leitura posterior.",
     );
 
     await page.goto("/devos/workflows");
