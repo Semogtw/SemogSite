@@ -8,6 +8,11 @@ import type {
   D1DatabaseBinding,
   D1QueryResult,
 } from "../adapters/d1";
+import {
+  assertD1BatchSucceeded,
+  readD1ChangeCount,
+  readD1SingleRowChange,
+} from "./d1-write-result";
 
 type ReservationRow = {
   id: string;
@@ -132,21 +137,6 @@ function sameStoredIntent(
   );
 }
 
-function assertBatchSucceeded(results: readonly D1QueryResult[]): void {
-  const failed = results.find(
-    (result) => result.success === false || (result.error?.length ?? 0) > 0,
-  );
-  if (failed !== undefined) throw new Error("D1 scope reservation batch failed.");
-}
-
-function readChangeCount(result: D1QueryResult | undefined, operation: string): number {
-  const changes = result?.meta?.["changes"];
-  if (typeof changes !== "number" || !Number.isInteger(changes) || changes < 0) {
-    throw new Error(`D1 scope reservation ${operation} is missing changes metadata.`);
-  }
-  return changes;
-}
-
 export class D1ScopeReservationRepository implements ScopeReservationRepository {
   constructor(private readonly database: D1DatabaseBinding) {}
 
@@ -249,9 +239,11 @@ export class D1ScopeReservationRepository implements ScopeReservationRepository 
       );
     const [event, genericAudit] = this.ledgerStatements(audit, 1);
     const results = await this.database.batch([insert, event, genericAudit]);
-    assertBatchSucceeded(results);
-    const changed = readChangeCount(results[0], "acquire");
-    if (changed > 1) throw new Error("D1 scope reservation inserted multiple rows.");
+    assertD1BatchSucceeded(results, "scope reservation");
+    const changed = readD1SingleRowChange(
+      results[0],
+      "scope reservation acquire",
+    );
     if (changed === 1) {
       this.assertLedgerWritten(results);
       return "created";
@@ -363,9 +355,11 @@ export class D1ScopeReservationRepository implements ScopeReservationRepository 
       );
     const genericAudit = this.auditStatement(audit);
     const results = await this.database.batch([update, event, genericAudit]);
-    assertBatchSucceeded(results);
-    const changed = readChangeCount(results[0], "update");
-    if (changed > 1) throw new Error("D1 scope reservation updated multiple rows.");
+    assertD1BatchSucceeded(results, "scope reservation");
+    const changed = readD1SingleRowChange(
+      results[0],
+      "scope reservation update",
+    );
     if (changed === 1) {
       this.assertLedgerWritten(results);
       return "updated";
@@ -440,8 +434,8 @@ export class D1ScopeReservationRepository implements ScopeReservationRepository 
 
   private assertLedgerWritten(results: readonly D1QueryResult[]): void {
     if (
-      readChangeCount(results[1], "event insert") !== 1 ||
-      readChangeCount(results[2], "audit insert") !== 1
+      readD1ChangeCount(results[1], "scope reservation event insert") !== 1 ||
+      readD1ChangeCount(results[2], "scope reservation audit insert") !== 1
     ) {
       throw new Error("D1 scope reservation ledger is incomplete.");
     }
