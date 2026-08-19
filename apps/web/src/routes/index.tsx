@@ -101,24 +101,19 @@ function HomePage() {
 
       <section className="featured-editorial" aria-labelledby="projects-title">
         <div className="featured-editorial-heading">
-          <p className="eyebrow">Projetos selecionados</p>
-          <h2 id="projects-title">
+          <div>
+            <p className="eyebrow">Projetos selecionados</p>
+            <h2 id="projects-title">
+              {featuredProjects.length === 0
+                ? "Case studies em preparação."
+                : "Projetos com contexto, decisões e resultados."}
+            </h2>
+          </div>
+          <p>
             {featuredProjects.length === 0
-              ? "Case studies em preparação."
-              : "Projetos com contexto, decisões e resultados."}
-          </h2>
-          {featuredProjects.length === 0 ? (
-            <p>
-              Um projeto só entra nesta vitrine quando há contexto suficiente
-              para explicar problema, solução, stack e decisões técnicas sem
-              expor informações privadas do processo de desenvolvimento.
-            </p>
-          ) : (
-            <p>
-              A vitrine privilegia o que foi construído e aprendido, não apenas
-              o nome do repositório ou uma lista de tecnologias.
-            </p>
-          )}
+              ? "Um projeto só entra nesta vitrine quando há contexto suficiente para explicar problema, solução, stack e decisões técnicas sem expor informações privadas do processo de desenvolvimento."
+              : "A vitrine privilegia o que foi construído e aprendido, não apenas o nome do repositório ou uma lista de tecnologias."}
+          </p>
         </div>
 
         {featuredProjects.length > 0 ? (
