@@ -33,11 +33,15 @@ const config = {
   }
 >;
 
-function socialMeta(title: string, description: string) {
+function socialMeta(
+  title: string,
+  description: string,
+  type: "website" | "article",
+) {
   return [
     { property: "og:title", content: title },
     { property: "og:description", content: description },
-    { property: "og:type", content: "website" },
+    { property: "og:type", content: type },
     { name: "twitter:card", content: "summary" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
@@ -56,7 +60,7 @@ export function publicEditorialListHead(
       ...(options.index === false
         ? [{ name: "robots", content: "noindex, follow" }]
         : []),
-      ...socialMeta(value.listTitle, value.listDescription),
+      ...socialMeta(value.listTitle, value.listDescription, "website"),
     ],
     links: [{ rel: "canonical", href: value.basePath }],
   };
@@ -87,7 +91,7 @@ export function publicEditorialDetailHead({
     meta: [
       { title },
       { name: "description", content: document.excerpt },
-      ...socialMeta(title, document.excerpt),
+      ...socialMeta(title, document.excerpt, "article"),
     ],
     links: [
       {
