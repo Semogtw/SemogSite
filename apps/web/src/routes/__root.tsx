@@ -14,6 +14,7 @@ import editorialCss from "../styles/editorial.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
+import journeyCss from "../styles/journey.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
@@ -57,6 +58,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
       { rel: "stylesheet", href: portfolioCss },
+      { rel: "stylesheet", href: journeyCss },
     ],
   }),
   component: RootComponent,
