@@ -1,0 +1,6 @@
+.editorial-form__hint {
+  color: var(--sem-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
