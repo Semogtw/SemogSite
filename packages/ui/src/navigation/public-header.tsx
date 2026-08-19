@@ -16,11 +16,14 @@ export function PublicHeader({
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
+  const navigationRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const MenuIcon = open ? X : Menu;
 
   useEffect(() => {
     if (!open) return;
+
+    navigationRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
@@ -38,6 +41,7 @@ export function PublicHeader({
         {brand}
       </a>
       <nav
+        ref={navigationRef}
         id={navigationId}
         aria-label="Navegação pública"
         data-open={String(open)}
