@@ -1,5 +1,5 @@
 import { Menu, X } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export type PublicNavItem = { href: string; label: string };
 
@@ -16,7 +16,21 @@ export function PublicHeader({
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const MenuIcon = open ? X : Menu;
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      menuButtonRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
     <header className="sem-public-header">
@@ -44,6 +58,7 @@ export function PublicHeader({
       </nav>
       {trailing}
       <button
+        ref={menuButtonRef}
         className="sem-menu-button"
         type="button"
         aria-label={open ? "Fechar menu" : "Abrir menu"}
