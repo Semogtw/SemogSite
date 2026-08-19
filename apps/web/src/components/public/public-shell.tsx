@@ -1,5 +1,5 @@
 import { PublicHeader } from "@semogtw/ui";
-import { useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 const items = [
@@ -8,6 +8,12 @@ const items = [
   { href: "/credentials", label: "Certificados" },
   { href: "/about", label: "Sobre" },
   { href: "/contact", label: "Contato" },
+] as const;
+
+const secondaryItems = [
+  { to: "/journey", label: "Trajetória" },
+  { to: "/lab", label: "Laboratório" },
+  { to: "/notes", label: "Notas" },
 ] as const;
 
 export function PublicShell({ children }: { children: ReactNode }) {
@@ -22,8 +28,17 @@ export function PublicShell({ children }: { children: ReactNode }) {
       <PublicHeader items={items} activeHref={activeHref} />
       <main id="conteudo" className="public-main">{children}</main>
       <footer className="public-footer">
-        <span>Semogtw</span>
-        <span>Projetos, habilidades e aprendizado demonstrados por trabalho real.</span>
+        <div className="public-footer__identity">
+          <strong>Semogtw</strong>
+          <span>Projetos, habilidades e aprendizado demonstrados por trabalho real.</span>
+        </div>
+        <nav className="public-footer__nav" aria-label="Navegação editorial secundária">
+          {secondaryItems.map((item) => (
+            <Link key={item.to} to={item.to}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </footer>
     </div>
   );
