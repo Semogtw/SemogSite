@@ -17,24 +17,25 @@ function ProjectsPage() {
     <PublicShell>
       <header className="editorial-page-header">
         <p className="eyebrow">Projetos</p>
-        <h1>Produtos e sistemas apresentados por uma projeção editorial.</h1>
+        <h1>Projetos explicados como trabalho, não como uma lista de repositórios.</h1>
         <p>
-          Esta vitrine não lê status, branches, bloqueios ou próximas ações do
-          DevOS. Apenas revisões aprovadas e publicadas chegam à área pública.
+          Cada case study público existe para mostrar contexto, decisões técnicas,
+          stack, verificações e aprendizados. Informações operacionais privadas do
+          processo de desenvolvimento continuam fora da vitrine.
         </p>
       </header>
 
       {projects.length === 0 ? (
         <EmptyState
-          title="Nenhum projeto publicado"
-          description="Projetos operacionais e rascunhos editoriais permanecem privados até aprovação e publicação explícitas."
+          title="Case studies em preparação"
+          description="Os primeiros projetos serão publicados quando tiverem contexto suficiente para explicar problema, solução, decisões e resultados sem preencher a página com conteúdo de exemplo."
         />
       ) : (
-        <section className="public-project-grid" aria-label="Projetos publicados">
+        <section className="public-project-grid" aria-label="Case studies publicados">
           {projects.map((project) => (
             <Surface key={project.slug} className="public-project-card">
               <div className="public-project-card__eyebrow">
-                <span>Projeto publicado</span>
+                <span>Case study</span>
                 <time dateTime={project.updatedAt}>
                   {new Intl.DateTimeFormat("pt-BR", {
                     dateStyle: "medium",
@@ -44,13 +45,13 @@ function ProjectsPage() {
               </div>
               <h2>{project.title}</h2>
               <p>{project.excerpt}</p>
-              <div className="public-editorial-tags" aria-label="Marcadores">
+              <div className="public-editorial-tags" aria-label="Tecnologias e temas">
                 {project.tags.map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
               </div>
               <Link to="/projects/$slug" params={{ slug: project.slug }}>
-                Abrir projeto
+                Abrir case study
               </Link>
             </Surface>
           ))}
