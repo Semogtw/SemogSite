@@ -33,7 +33,7 @@ function ContactPage() {
             <h2>Semogtw</h2>
             <p>
               Repositórios públicos, histórico de contribuições e projetos que
-              complementam os case studies deste portfólio.
+              complementam o contexto técnico apresentado neste portfólio.
             </p>
           </div>
           <a
@@ -54,8 +54,9 @@ function ContactPage() {
         </div>
         <div>
           <p>
-            Os projetos públicos reúnem decisões, stack, aprendizados e links
-            relevantes para entender melhor o trabalho antes de conversar.
+            A área de Projetos concentra os case studies revisados à medida que
+            são publicados, sempre com contexto suficiente para explicar decisões,
+            stack, aprendizados e links públicos relevantes.
           </p>
           <Link className="button button-primary" to="/projects">
             Ver projetos
