@@ -52,8 +52,10 @@ function parseE2eApiProxyOrigin(value, nodeEnv) {
   }
 
   const url = new URL(value);
+  const loopbackHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
   if (
     url.protocol !== "http:" ||
+    !loopbackHosts.has(url.hostname) ||
     url.username.length > 0 ||
     url.password.length > 0 ||
     url.pathname !== "/" ||
