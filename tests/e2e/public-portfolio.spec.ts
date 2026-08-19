@@ -49,16 +49,35 @@ test("portfolio pages are reachable without owner authentication", async ({ page
   }
 });
 
-test("portfolio remains navigable at 360px", async ({ page }) => {
+test("portfolio mobile menu navigates and exposes current destination at 360px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver projetos", exact: true })).toBeVisible();
 
-  await page.goto("/credentials");
+  const menuButton = page.getByRole("button", { name: "Abrir menu" });
+  await expect(menuButton).toBeVisible();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+  await menuButton.click();
+  await expect(page.getByRole("button", { name: "Fechar menu" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+
+  const credentialsLink = page.getByRole("link", { name: "Certificados", exact: true });
+  await expect(credentialsLink).toBeVisible();
+  await credentialsLink.click();
+  await expect(page).toHaveURL(/\/credentials$/u);
   await expect(page.getByText("Ciência da Computação", { exact: true })).toBeVisible();
   await expect(page.getByText("Trilha de Analista de Dados", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await expect(page.getByRole("link", { name: "Certificados", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 
   await page.goto("/journey");
   await expect(
