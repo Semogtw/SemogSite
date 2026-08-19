@@ -8,7 +8,7 @@ export const Route = createFileRoute("/journey")({
     publicPortfolioHead({
       title: "Trajetória — Semogtw",
       description:
-        "Formação, aprendizado e marcos técnicos que ajudam a contextualizar a evolução do portfólio Semogtw.",
+        "Formação, aprendizado e marcos técnicos que ajudam a contextualizar a evolução profissional da Semogtw.",
       path: "/journey",
     }),
   component: JourneyPage,
@@ -16,18 +16,18 @@ export const Route = createFileRoute("/journey")({
 
 const currentMilestones = [
   {
-    label: "Agora",
-    title: "Portfólio profissional orientado por evidência",
+    label: "Foco atual",
+    title: "Engenharia de software aplicada a projetos próprios",
     description:
-      "O SemogSite está sendo organizado para conectar habilidades a projetos, decisões técnicas, verificações e formação, mantendo o DevOS operacional fora da superfície pública.",
+      "Aplicações web, automações e ferramentas são usadas para aprofundar arquitetura, backend, interfaces, persistência e entrega em sistemas que precisam ser executáveis e verificáveis.",
     href: "/projects" as const,
     action: "Ver projetos",
   },
   {
-    label: "Agora",
-    title: "Projetos pessoais como laboratório de engenharia",
+    label: "Foco atual",
+    title: "Expandir repertório sem separar estudo de prática",
     description:
-      "Aplicações, automações e experimentos são usados para aprofundar desenvolvimento web, backend, dados, infraestrutura e qualidade de software em situações concretas.",
+      "Fundamentos da graduação e formação complementar são conectados a implementação, análise, documentação e testes, para que o aprendizado apareça em trabalho concreto e não apenas em uma lista de cursos.",
     href: "/stack" as const,
     action: "Ver habilidades",
   },
@@ -44,9 +44,9 @@ function JourneyPage() {
         <p className="eyebrow">Trajetória</p>
         <h1>Formação e projetos vistos como uma evolução contínua.</h1>
         <p>
-          Esta página contextualiza o que está sendo estudado e construído agora,
-          sem inventar datas, níveis ou marcos que ainda não tenham uma evidência
-          pública adequada.
+          O foco é mostrar como estudo e prática se encontram hoje. Datas e marcos
+          históricos só entram quando houver contexto público suficiente para
+          apresentá-los com precisão.
         </p>
       </header>
 
