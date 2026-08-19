@@ -213,6 +213,20 @@ a {
   line-height: 1.75;
 }
 
+.public-editorial-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.public-editorial-tags span {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
 .public-footer {
   min-height: 96px;
   border-bottom: 0;
