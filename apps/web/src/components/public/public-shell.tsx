@@ -20,7 +20,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
     <div className="public-shell">
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
       <PublicHeader items={items} activeHref={activeHref} />
-      <main id="conteudo" className="public-main">{children}</main>
+      <main id="conteudo" className="public-main" tabIndex={-1}>{children}</main>
       <footer className="public-footer">
         <div className="public-footer__identity">
           <strong>Semogtw</strong>
