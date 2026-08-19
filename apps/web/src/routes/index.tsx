@@ -12,6 +12,21 @@ export const Route = createFileRoute("/")({
       description:
         "Portfólio técnico da Semogtw com projetos, habilidades, formação e evidências de trabalho em software, automação e sistemas.",
       path: "/",
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: "Semogtw",
+        description:
+          "Portfólio técnico com projetos e evidências de trabalho em engenharia de software, aplicações web, backend, dados e automação.",
+        sameAs: ["https://github.com/Semogtw"],
+        knowsAbout: [
+          "Engenharia de software",
+          "Aplicações web full-stack",
+          "Backend e APIs",
+          "Dados e persistência",
+          "Automação de desenvolvimento",
+        ],
+      },
     }),
   component: HomePage,
 });
