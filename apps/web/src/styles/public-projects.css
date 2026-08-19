@@ -6,6 +6,7 @@
 .featured-editorial-heading {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
   gap: clamp(32px, 8vw, 120px);
   margin-bottom: 48px;
 }
@@ -17,9 +18,8 @@
   line-height: 1.04;
 }
 
-.featured-editorial-heading > p:last-child {
-  grid-column: 2;
-  margin: -84px 0 0;
+.featured-editorial-heading > p {
+  margin: 0;
   color: var(--color-muted);
   line-height: 1.75;
 }
@@ -136,11 +136,6 @@
   .public-project-facts,
   .home-project-grid {
     grid-template-columns: 1fr;
-  }
-
-  .featured-editorial-heading > p:last-child {
-    grid-column: auto;
-    margin: 0;
   }
 
   .public-project-grid {
