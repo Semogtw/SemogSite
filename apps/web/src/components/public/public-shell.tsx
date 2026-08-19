@@ -10,12 +10,6 @@ const items = [
   { href: "/contact", label: "Contato" },
 ] as const;
 
-const secondaryItems = [
-  { to: "/journey", label: "Trajetória" },
-  { to: "/lab", label: "Laboratório" },
-  { to: "/notes", label: "Notas" },
-] as const;
-
 export function PublicShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activeHref = items.find(
@@ -32,12 +26,8 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <strong>Semogtw</strong>
           <span>Projetos, habilidades e aprendizado demonstrados por trabalho real.</span>
         </div>
-        <nav className="public-footer__nav" aria-label="Navegação editorial secundária">
-          {secondaryItems.map((item) => (
-            <Link key={item.to} to={item.to}>
-              {item.label}
-            </Link>
-          ))}
+        <nav className="public-footer__nav" aria-label="Navegação complementar">
+          <Link to="/journey">Trajetória</Link>
         </nav>
       </footer>
     </div>
