@@ -56,20 +56,6 @@
   font-weight: 700;
 }
 
-.public-editorial-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.public-editorial-tags span {
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  padding: 6px 10px;
-  color: var(--color-muted);
-  font-size: 0.8rem;
-}
-
 .public-editorial-detail {
   display: grid;
   gap: 28px;
@@ -118,85 +104,4 @@
   .public-editorial-detail {
     padding-bottom: 72px;
   }
-}
-
-.public-markdown {
-  min-width: 0;
-  font-size: clamp(1rem, 1.4vw, 1.12rem);
-  line-height: 1.85;
-  overflow-wrap: anywhere;
-}
-
-.public-markdown > :first-child {
-  margin-top: 0;
-}
-
-.public-markdown > :last-child {
-  margin-bottom: 0;
-}
-
-.public-markdown h1,
-.public-markdown h2,
-.public-markdown h3 {
-  margin: 1.8em 0 0.65em;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-}
-
-.public-markdown h1 {
-  font-size: clamp(1.8rem, 4vw, 3rem);
-}
-
-.public-markdown h2 {
-  font-size: clamp(1.45rem, 3vw, 2.2rem);
-}
-
-.public-markdown h3 {
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
-}
-
-.public-markdown p,
-.public-markdown ul,
-.public-markdown ol,
-.public-markdown blockquote,
-.public-markdown pre {
-  margin: 0 0 1.25em;
-}
-
-.public-markdown ul,
-.public-markdown ol {
-  padding-left: 1.5em;
-}
-
-.public-markdown li + li {
-  margin-top: 0.35em;
-}
-
-.public-markdown blockquote {
-  border-left: 3px solid var(--color-primary);
-  padding-left: 1rem;
-  color: var(--color-muted);
-}
-
-.public-markdown a {
-  color: var(--color-primary);
-  text-decoration-thickness: 0.08em;
-  text-underline-offset: 0.18em;
-}
-
-.public-markdown :not(pre) > code {
-  border: 1px solid var(--color-border);
-  border-radius: 0.35rem;
-  padding: 0.08em 0.35em;
-  font-size: 0.92em;
-}
-
-.public-markdown__code {
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  white-space: pre;
-  line-height: 1.65;
 }
