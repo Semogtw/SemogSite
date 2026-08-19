@@ -2,12 +2,13 @@ import { Surface } from "@semogtw/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicProjectsFn } from "../server/public-projects";
+import publicProjectsCss from "../styles/public-projects.css?url";
 import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/")({
   loader: () => getPublicProjectsFn(),
-  head: () =>
-    publicPortfolioHead({
+  head: () => {
+    const head = publicPortfolioHead({
       title: "Semogtw — Portfólio de software e automação",
       description:
         "Portfólio técnico da Semogtw com projetos, habilidades, formação e evidências de trabalho em software, automação e sistemas.",
@@ -27,7 +28,13 @@ export const Route = createFileRoute("/")({
           "Automação de desenvolvimento",
         ],
       },
-    }),
+    });
+
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: publicProjectsCss }],
+    };
+  },
   component: HomePage,
 });
 
