@@ -12,7 +12,7 @@ export function PublicHeader({
   items: readonly PublicNavItem[];
   brand?: string;
   trailing?: ReactNode;
-  activeHref?: string;
+  activeHref?: string | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
