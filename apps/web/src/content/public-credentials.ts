@@ -18,7 +18,7 @@ export type PublicCredential = {
   verificationUrl?: string;
 };
 
-export const publicCredentials = [
+export const publicCredentials: readonly PublicCredential[] = [
   {
     id: "uesb-computer-science",
     kind: "academic",
@@ -39,7 +39,7 @@ export const publicCredentials = [
       "Formação complementar voltada a desenvolver repertório prático para análise de dados e ampliar a atuação técnica.",
     relatedSkills: ["Análise de dados", "SQL", "Visualização"],
   },
-] as const satisfies readonly PublicCredential[];
+];
 
 export const credentialKindLabel: Record<PublicCredentialKind, string> = {
   academic: "Formação acadêmica",
@@ -48,6 +48,8 @@ export const credentialKindLabel: Record<PublicCredentialKind, string> = {
   certification: "Certificação",
 };
 
-export function listPublicCredentialsByStatus(status: PublicCredentialStatus) {
+export function listPublicCredentialsByStatus(
+  status: PublicCredentialStatus,
+): readonly PublicCredential[] {
   return publicCredentials.filter((credential) => credential.status === status);
 }
