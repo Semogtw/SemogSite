@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import auditCss from "../styles/audit.css?url";
 import captureCss from "../styles/capture.css?url";
 import editorialCss from "../styles/editorial.css?url";
+import editorialPortfolioCss from "../styles/editorial-portfolio.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
@@ -48,6 +49,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: captureCss },
       { rel: "stylesheet", href: evidenceCss },
       { rel: "stylesheet", href: editorialCss },
+      { rel: "stylesheet", href: editorialPortfolioCss },
       { rel: "stylesheet", href: stageCompletionCss },
       { rel: "stylesheet", href: auditCss },
       { rel: "stylesheet", href: githubSyncCss },
