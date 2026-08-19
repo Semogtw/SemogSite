@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { createServer } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import { Readable } from "node:stream";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -9,6 +9,10 @@ const clientRoot = resolve(repositoryRoot, "apps/web/dist/client");
 const serverEntry = resolve(repositoryRoot, "apps/web/dist/server/server.js");
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? "4173");
+const e2eApiProxyOrigin = parseE2eApiProxyOrigin(
+  process.env.SEMOGTW_E2E_API_PROXY_ORIGIN,
+  process.env.NODE_ENV,
+);
 
 if (!existsSync(serverEntry)) {
   throw new Error(
@@ -41,6 +45,26 @@ const contentTypes = new Map([
   [".woff2", "font/woff2"],
 ]);
 
+function parseE2eApiProxyOrigin(value, nodeEnv) {
+  if (value === undefined || value.trim().length === 0) return null;
+  if (nodeEnv !== "test") {
+    throw new Error("E2E_API_PROXY_REQUIRES_TEST_ENV");
+  }
+
+  const url = new URL(value);
+  if (
+    url.protocol !== "http:" ||
+    url.username.length > 0 ||
+    url.password.length > 0 ||
+    url.pathname !== "/" ||
+    url.search.length > 0 ||
+    url.hash.length > 0
+  ) {
+    throw new Error("E2E_API_PROXY_ORIGIN_INVALID");
+  }
+  return url;
+}
+
 function resolveStaticFile(pathname) {
   let decoded;
   try {
@@ -69,9 +93,46 @@ function copyResponseHeaders(response, outgoing) {
   if (cookies.length > 0) outgoing.setHeader("set-cookie", cookies);
 }
 
+function proxyApiRequest(request, response, url) {
+  return new Promise((resolveProxy, rejectProxy) => {
+    const upstream = httpRequest(
+      {
+        protocol: e2eApiProxyOrigin.protocol,
+        hostname: e2eApiProxyOrigin.hostname,
+        port: e2eApiProxyOrigin.port,
+        method: request.method,
+        path: `${url.pathname}${url.search}`,
+        headers: {
+          ...request.headers,
+          host: request.headers.host ?? `${host}:${port}`,
+        },
+      },
+      (upstreamResponse) => {
+        response.statusCode = upstreamResponse.statusCode ?? 502;
+        response.statusMessage = upstreamResponse.statusMessage ?? "";
+        for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+          if (value !== undefined) response.setHeader(name, value);
+        }
+        upstreamResponse.on("error", rejectProxy);
+        upstreamResponse.on("end", resolveProxy);
+        upstreamResponse.pipe(response);
+      },
+    );
+
+    upstream.on("error", rejectProxy);
+    request.on("error", rejectProxy);
+    request.pipe(upstream);
+  });
+}
+
 async function handle(request, response) {
   const origin = `http://${request.headers.host ?? `${host}:${port}`}`;
   const url = new URL(request.url ?? "/", origin);
+
+  if (e2eApiProxyOrigin !== null && url.pathname.startsWith("/api/")) {
+    await proxyApiRequest(request, response, url);
+    return;
+  }
 
   if (request.method === "GET" || request.method === "HEAD") {
     const staticFile = resolveStaticFile(url.pathname);
