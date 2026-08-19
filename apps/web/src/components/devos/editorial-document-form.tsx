@@ -6,6 +6,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { readCookie } from "../../client/cookies";
 import { createEditorialDocumentFn } from "../../server/devos-editorial";
 import { PROJECT_CASE_STUDY_MARKDOWN_TEMPLATE } from "./editorial-project-case-study-template";
+import { slugifyEditorialTitle } from "./editorial-slug";
 
 const kindOptions: ReadonlyArray<{
   value: EditorialDocumentKind;
@@ -22,6 +23,7 @@ export function EditorialDocumentForm() {
   const idempotencyKey = useRef<string | null>(null);
   const [kind, setKind] = useState<EditorialDocumentKind>("note");
   const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [tags, setTags] = useState("");
@@ -103,7 +105,7 @@ export function EditorialDocumentForm() {
 
   return (
     <form className="editorial-form" onSubmit={submit}>
-      <div className="editorial-form__preset" aria-labelledby="project-preset-title">
+      <div className="editorial-form__preset" role="group" aria-labelledby="project-preset-title">
         <div>
           <strong id="project-preset-title">Projeto para o portfólio</strong>
           <p>
@@ -151,9 +153,15 @@ export function EditorialDocumentForm() {
             placeholder="meu-projeto"
             onChange={(event) => {
               setSlug(event.target.value.toLowerCase());
+              setSlugEdited(true);
               invalidateRetryIdentity();
             }}
           />
+          <span className="editorial-form__hint">
+            {slugEdited
+              ? "Slug editado manualmente; mudanças no título não irão substituí-lo."
+              : "Sugestão gerada a partir do título até você editar este campo."}
+          </span>
         </label>
       </div>
 
@@ -165,7 +173,9 @@ export function EditorialDocumentForm() {
           value={title}
           disabled={pending}
           onChange={(event) => {
-            setTitle(event.target.value);
+            const nextTitle = event.target.value;
+            setTitle(nextTitle);
+            if (!slugEdited) setSlug(slugifyEditorialTitle(nextTitle));
             invalidateRetryIdentity();
           }}
         />
