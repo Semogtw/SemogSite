@@ -14,6 +14,7 @@ import editorialCss from "../styles/editorial.css?url";
 import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
+import portfolioCss from "../styles/portfolio.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
@@ -32,11 +33,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Semogtw — Produtos, sistemas e experimentos" },
+      { title: "Semogtw — Portfólio técnico" },
       {
         name: "description",
         content:
-          "Plataforma editorial da Semogtw para projetos, notas técnicas e experimentos.",
+          "Portfólio da Semogtw com projetos, habilidades, formação, certificados e evidências de trabalho em software e automação.",
       },
     ],
     links: [
@@ -55,6 +56,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: runsCss },
       { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
+      { rel: "stylesheet", href: portfolioCss },
     ],
   }),
   component: RootComponent,
