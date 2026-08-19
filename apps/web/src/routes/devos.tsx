@@ -1,5 +1,9 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import auditCss from "../styles/audit.css?url";
+import captureCss from "../styles/capture.css?url";
+import editorialCss from "../styles/editorial.css?url";
+import editorialPortfolioCss from "../styles/editorial-portfolio.css?url";
+import evidenceCss from "../styles/evidence.css?url";
 import githubSyncCss from "../styles/github-sync.css?url";
 import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
 import repositoryTargetCss from "../styles/repository-target.css?url";
@@ -12,6 +16,10 @@ export const Route = createFileRoute("/devos")({
   head: () => ({
     links: [
       { rel: "stylesheet", href: auditCss },
+      { rel: "stylesheet", href: captureCss },
+      { rel: "stylesheet", href: editorialCss },
+      { rel: "stylesheet", href: editorialPortfolioCss },
+      { rel: "stylesheet", href: evidenceCss },
       { rel: "stylesheet", href: githubSyncCss },
       { rel: "stylesheet", href: repositoryTargetLifecycleCss },
       { rel: "stylesheet", href: repositoryTargetCss },
