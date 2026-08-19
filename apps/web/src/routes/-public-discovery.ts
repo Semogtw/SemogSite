@@ -8,7 +8,7 @@ export const portfolioDiscoveryPaths = [
   "/journey",
 ] as const;
 
-export type PublicDiscoveryProject = {
+export type PublicDiscoveryDocument = {
   slug: string;
 };
 
@@ -19,7 +19,8 @@ export function normalizePublicOrigin(requestUrl: string): string {
 
 export function buildPortfolioSitemap(
   origin: string,
-  projects: readonly PublicDiscoveryProject[] = [],
+  projects: readonly PublicDiscoveryDocument[] = [],
+  notes: readonly PublicDiscoveryDocument[] = [],
 ): string {
   const normalizedOrigin = origin.replace(/\/+$/u, "");
   const staticUrls = portfolioDiscoveryPaths.map((path) =>
@@ -28,7 +29,16 @@ export function buildPortfolioSitemap(
   const projectUrls = projects.map(
     (project) => `${normalizedOrigin}/projects/${encodeURIComponent(project.slug)}`,
   );
-  const urls = [...staticUrls, ...projectUrls]
+  const noteUrls =
+    notes.length === 0
+      ? []
+      : [
+          `${normalizedOrigin}/notes`,
+          ...notes.map(
+            (note) => `${normalizedOrigin}/notes/${encodeURIComponent(note.slug)}`,
+          ),
+        ];
+  const urls = [...staticUrls, ...projectUrls, ...noteUrls]
     .map((location) => `  <url>\n    <loc>${escapeXml(location)}</loc>\n  </url>`)
     .join("\n");
 
