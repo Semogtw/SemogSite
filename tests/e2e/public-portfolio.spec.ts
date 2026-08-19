@@ -25,16 +25,21 @@ test("public portfolio home exposes the professional navigation", async ({ page 
     );
   }
 
+  await expect(page.getByRole("link", { name: "Trajetória", exact: true })).toHaveAttribute(
+    "href",
+    "/journey",
+  );
   await expect(page.getByRole("link", { name: "Laboratório", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Notas", exact: true })).toHaveCount(0);
 });
 
-test("portfolio primary pages are reachable without owner authentication", async ({ page }) => {
+test("portfolio pages are reachable without owner authentication", async ({ page }) => {
   const destinations = [
     ["/stack", "Tecnologia explicada pelo que foi feito com ela."],
     ["/credentials", "Aprendizado registrado com contexto, não só com selos."],
     ["/about", "Aprender computação construindo sistemas que precisam funcionar de verdade."],
     ["/contact", "Comece pelo trabalho público e continue a conversa por um canal verificável."],
+    ["/journey", "Formação e projetos vistos como uma evolução contínua."],
   ] as const;
 
   for (const [path, heading] of destinations) {
@@ -54,6 +59,14 @@ test("portfolio remains navigable at 360px", async ({ page }) => {
   await page.goto("/credentials");
   await expect(page.getByText("Ciência da Computação", { exact: true })).toBeVisible();
   await expect(page.getByText("Trilha de Analista de Dados", { exact: true })).toBeVisible();
+
+  await page.goto("/journey");
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Portfólio profissional orientado por evidência",
+    }),
+  ).toBeVisible();
 
   await page.goto("/contact");
   const githubLink = page.getByRole("link", { name: "Abrir GitHub", exact: true });
