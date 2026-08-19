@@ -35,6 +35,22 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.project-empty-state {
+  display: grid;
+  gap: 20px;
+  padding-bottom: 96px;
+}
+
+.project-empty-state .sem-state {
+  margin: 0;
+}
+
+.project-empty-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .public-project-card {
   min-height: 300px;
   display: grid;
@@ -138,8 +154,17 @@
     grid-template-columns: 1fr;
   }
 
-  .public-project-grid {
+  .public-project-grid,
+  .project-empty-state {
     padding-bottom: 64px;
+  }
+
+  .project-empty-state__actions {
+    display: grid;
+  }
+
+  .project-empty-state__actions .button {
+    width: 100%;
   }
 
   .public-project-card {
