@@ -7,10 +7,12 @@ export function PublicHeader({
   items,
   brand = "Semogtw",
   trailing,
+  activeHref,
 }: {
   items: readonly PublicNavItem[];
   brand?: string;
   trailing?: ReactNode;
+  activeHref?: string;
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
@@ -29,7 +31,11 @@ export function PublicHeader({
         <ul className="sem-public-nav">
           {items.map((item) => (
             <li key={item.href}>
-              <a href={item.href} onClick={() => setOpen(false)}>
+              <a
+                href={item.href}
+                aria-current={activeHref === item.href ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
                 {item.label}
               </a>
             </li>
