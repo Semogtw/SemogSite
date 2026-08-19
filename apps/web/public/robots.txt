@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /devos
-Disallow: /api/v1/private
-
-# A ausência de sitemap é intencional até a URL canônica ser validada.
