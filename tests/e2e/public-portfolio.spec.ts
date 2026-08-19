@@ -59,6 +59,22 @@ test("keyboard users can skip repeated public navigation", async ({ page }) => {
   await expect(page.locator("#conteudo")).toBeFocused();
 });
 
+test("empty project index offers real portfolio paths without sample case studies", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+
+  await expect(page.getByRole("status")).toContainText("Case studies em preparação");
+  await expect(page.locator(".public-project-card")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Ver habilidades demonstradas", exact: true }),
+  ).toHaveAttribute("href", "/stack");
+  await expect(page.getByRole("link", { name: "Ver trajetória", exact: true })).toHaveAttribute(
+    "href",
+    "/journey",
+  );
+});
+
 test("portfolio pages are reachable without owner authentication", async ({ page }) => {
   const destinations = [
     ["/stack", "Tecnologia explicada pelo que foi feito com ela."],
