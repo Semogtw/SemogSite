@@ -120,8 +120,8 @@ function CredentialRow({ credential }: { credential: PublicCredential }) {
         <strong>{credential.issuer}</strong>
         <span>
           {credential.status === "completed"
-            ? credential.completedAt
-              ? `Concluído em ${formatCredentialDate(credential.completedAt)}`
+            ? credential.issuedOn
+              ? `Concluído em ${formatCredentialDate(credential.issuedOn)}`
               : "Concluído"
             : "Em andamento"}
         </span>
