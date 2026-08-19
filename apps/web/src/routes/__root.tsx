@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
-import journeyCss from "../styles/journey.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
@@ -38,7 +37,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
       { rel: "stylesheet", href: portfolioCss },
-      { rel: "stylesheet", href: journeyCss },
     ],
   }),
   component: RootComponent,
