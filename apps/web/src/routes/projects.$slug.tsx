@@ -38,10 +38,10 @@ function ProjectDetailPage() {
       <PublicShell>
         <header className="editorial-page-header">
           <p className="eyebrow">Projeto não publicado</p>
-          <h1>Nenhuma publicação pública corresponde a “{slug}”.</h1>
+          <h1>Nenhum case study público corresponde a “{slug}”.</h1>
           <p>
-            Uma linha operacional, um rascunho ou uma publicação retirada não é
-            usada como fallback nesta rota.
+            Rascunhos, publicações retiradas e dados operacionais privados não são
+            usados como fallback para preencher esta página.
           </p>
           <Link className="text-link" to="/projects">
             Voltar aos projetos
@@ -51,37 +51,73 @@ function ProjectDetailPage() {
     );
   }
 
+  const publishedDate = new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "long",
+    timeZone: "America/Bahia",
+  }).format(new Date(project.updatedAt));
+
   return (
     <PublicShell>
-      <article className="public-editorial-detail">
-        <header className="editorial-page-header">
-          <p className="eyebrow">Projeto publicado</p>
+      <article className="public-editorial-detail project-case-study">
+        <header className="editorial-page-header project-case-study__header">
+          <p className="eyebrow">Case study</p>
           <h1>{project.title}</h1>
           <p>{project.excerpt}</p>
         </header>
 
-        <div className="public-editorial-byline">
-          <time dateTime={project.updatedAt}>
-            Publicado em{" "}
-            {new Intl.DateTimeFormat("pt-BR", {
-              dateStyle: "long",
-              timeZone: "America/Bahia",
-            }).format(new Date(project.updatedAt))}
-          </time>
-          <div className="public-editorial-tags" aria-label="Marcadores">
-            {project.tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
+        <section
+          className="project-case-study__overview"
+          aria-label="Resumo do projeto"
+        >
+          <div className="project-case-study__meta">
+            <div>
+              <span className="project-case-study__label">Publicado</span>
+              <time dateTime={project.updatedAt}>{publishedDate}</time>
+            </div>
+            <div>
+              <span className="project-case-study__label">Tecnologias e temas</span>
+              {project.tags.length > 0 ? (
+                <div className="public-editorial-tags" aria-label="Tecnologias e temas">
+                  {project.tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              ) : (
+                <span className="project-case-study__muted">
+                  Contexto técnico descrito no case study.
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
-        <Surface className="public-editorial-content">
+          <div className="project-case-study__reading-note">
+            <span className="project-case-study__label">O que procurar</span>
+            <p>
+              O conteúdo publicado prioriza problema, solução, decisões técnicas,
+              trade-offs, verificações e aprendizados. O objetivo é tornar o
+              raciocínio por trás do projeto tão inspecionável quanto a stack.
+            </p>
+          </div>
+        </section>
+
+        <Surface className="public-editorial-content project-case-study__content">
           <PublicMarkdown markdown={project.bodyMarkdown} />
         </Surface>
 
-        <Link className="text-link" to="/projects">
-          Todos os projetos
-        </Link>
+        <footer className="project-case-study__footer">
+          <div>
+            <p className="eyebrow">Continuar explorando</p>
+            <h2>Veja o projeto no contexto das outras habilidades.</h2>
+          </div>
+          <div className="project-case-study__footer-actions">
+            <Link className="button button-primary" to="/projects">
+              Todos os projetos
+            </Link>
+            <Link className="button button-secondary" to="/stack">
+              Ver habilidades
+            </Link>
+          </div>
+        </footer>
       </article>
     </PublicShell>
   );
