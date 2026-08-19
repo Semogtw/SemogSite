@@ -130,9 +130,14 @@ test("portfolio mobile menu navigates and exposes current destination at 360px",
   ).toBeVisible();
 
   await page.goto("/contact");
-  const githubLink = page.getByRole("link", { name: "Abrir GitHub", exact: true });
+  const githubLink = page.getByRole("link", {
+    name: "Abrir GitHub (abre em nova aba)",
+    exact: true,
+  });
   await expect(githubLink).toBeVisible();
   await expect(githubLink).toHaveAttribute("href", "https://github.com/Semogtw");
+  await expect(githubLink).toHaveAttribute("target", "_blank");
+  await expect(githubLink).toHaveAttribute("rel", "noreferrer");
 });
 
 test("portfolio discovery endpoints expose only intentional public surfaces", async ({ request }) => {
