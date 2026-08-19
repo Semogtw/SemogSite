@@ -18,7 +18,7 @@ const config = {
     basePath: "/projects",
     listTitle: "Projetos — Semogtw",
     listDescription:
-      "Projetos publicados pela Semogtw após revisão editorial explícita.",
+      "Case studies de projetos da Semogtw com contexto, decisões técnicas, verificações e resultados publicados após revisão editorial explícita.",
     missingTitle: (slug: string) => `Projeto ${slug} — Semogtw`,
     missingDescription: "Projeto ainda não publicado na vitrine editorial.",
   },
@@ -33,12 +33,24 @@ const config = {
   }
 >;
 
+function socialMeta(title: string, description: string) {
+  return [
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+  ];
+}
+
 export function publicEditorialListHead(kind: PublicEditorialKind) {
   const value = config[kind];
   return {
     meta: [
       { title: value.listTitle },
       { name: "description", content: value.listDescription },
+      ...socialMeta(value.listTitle, value.listDescription),
     ],
     links: [{ rel: "canonical", href: value.basePath }],
   };
@@ -64,10 +76,12 @@ export function publicEditorialDetailHead({
     };
   }
 
+  const title = `${document.title} — Semogtw`;
   return {
     meta: [
-      { title: `${document.title} — Semogtw` },
+      { title },
       { name: "description", content: document.excerpt },
+      ...socialMeta(title, document.excerpt),
     ],
     links: [
       {
