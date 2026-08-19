@@ -58,8 +58,9 @@ Implemented on `develop/public-portfolio-v1`:
 - Home reframed from platform/infrastructure explanation to professional portfolio;
 - primary navigation reduced to Projects, Skills, Credentials, About and Contact;
 - active navigation semantics with `aria-current="page"` on desktop/mobile;
+- mobile navigation closes with Escape and restores focus to its trigger;
 - complementary Journey surface with current context and formation sourced from the same typed credential model;
-- unfinished Lab/Notes surfaces removed from global discovery while remaining routable;
+- unfinished Lab/Notes surfaces removed from global navigation while remaining routable;
 - evidence-led skill groups covering frontend/product, backend/APIs, data/persistence and software-engineering automation;
 - typed public credential content model with explicit in-progress/completed states, related skills, issue date and optional verification URL;
 - dedicated formation/credentials page that separates active study from completed certificates;
@@ -71,8 +72,16 @@ Implemented on `develop/public-portfolio-v1`:
 - About placeholder replaced by a concise professional profile and working approach;
 - Contact placeholder replaced by an allowlisted public GitHub channel;
 - responsive portfolio-specific layout styles and updated root metadata;
-- Playwright coverage for primary portfolio navigation, anonymous page reachability, Journey and a 360 px viewport;
-- unit coverage for active public-navigation semantics and canonical slug suggestion.
+- provider-neutral canonical links plus Open Graph and Twitter metadata;
+- published editorial details advertised as `og:type=article`, while indexes remain `website`;
+- minimal factual Home JSON-LD using the public Semogtw identity and GitHub profile, with script-safe serialization;
+- dynamic `/robots.txt` backed by a single route rather than a competing static file;
+- dynamic `/sitemap.xml` containing static portfolio routes plus only published editorial projections;
+- Notes discovery follows real publication state: the empty index is `noindex` and absent from the sitemap, then becomes discoverable when a reviewed note is published;
+- Playwright topology that runs the canonical API and web app together under a browser-facing same-origin facade in tests only, with the API upstream restricted to loopback;
+- dedicated auth-topology E2E proving anonymous session, same-origin owner login, authenticated session and cross-site mutation rejection;
+- Playwright coverage for workflow/privacy, complete editorial publish/replace/rollback/withdraw behavior, primary portfolio navigation, discovery endpoints and a 360 px viewport;
+- unit coverage for active public-navigation semantics, canonical slug suggestion, metadata/discovery helpers and structured-data escaping.
 
 No private DevOS data is used as public portfolio content.
 
@@ -114,6 +123,16 @@ Course enrollment is never promoted automatically to a completed credential. The
 
 The primary header favors recruiter/reviewer tasks. `Journey` is kept as a complementary surface, while empty Lab/Notes routes are not advertised globally. The active primary destination is exposed semantically through `aria-current` and has distinct desktop/mobile states.
 
+### Discovery and sharing foundation
+
+Canonical paths, Open Graph/Twitter metadata, structured data, robots policy and sitemap generation are now part of the V1 implementation rather than future work. Discovery intentionally follows publication state: private or withdrawn editorial content never enters the sitemap, unknown detail routes remain `noindex`, and an empty Notes index is withheld from search discovery until it contains published content.
+
+The deployment-domain decision remains provider-neutral. Canonical metadata uses path-form URLs until the final public origin is deliberately configured rather than hard-coding a preview host.
+
+### Browser/API verification topology
+
+Playwright exercises the same canonical authentication/private API surface used by the application. During E2E only, the web server proxies `/api/*` to the loopback API process so browser cookies and same-origin defenses are exercised without reintroducing the retired Node auth facade. The proxy is disabled outside `NODE_ENV=test` and rejects non-loopback upstreams.
+
 ## Next implementation slices
 
 ### 1. Real public content
@@ -134,14 +153,13 @@ Continue a dedicated public-only polish pass:
 - intentional empty states;
 - no visual regressions in private DevOS surfaces.
 
-### 3. Discovery and sharing
+### 3. Sharing assets and deployment-origin finalization
 
-Add after content stabilizes:
+The metadata/discovery plumbing exists. Remaining work after the public origin and stable content are known is limited to assets/configuration that should not be fabricated early:
 
-- canonical/public metadata review;
-- Open Graph/social preview assets;
-- sitemap/robots policy suitable for the chosen deployment visibility;
-- structured data where it is accurate and useful.
+- a deliberate social preview image treatment;
+- absolute public-origin/canonical configuration if required by the selected deployment;
+- final crawler policy review against the chosen deployment visibility.
 
 ## Verification
 
@@ -155,15 +173,19 @@ boundary/confidentiality checks
 focused tests/typechecks
 full pnpm check
 production web build
-isolated Playwright privacy/mobile navigation
+isolated Playwright auth/privacy/editorial/portfolio flows
 ```
 
 Observed Portfolio V1 checkpoints:
 
 - `0cfcc1d57875ef4f449555c9fbec60d5ca3260f7`: checkout and several focused checks ran, then `pnpm check` correctly rejected the public credential field name `completedAt` because it collides with protected run-lifecycle vocabulary. The public field was renamed to `issuedOn`; the guardrail was not weakened.
 - `7fb9b427d7cd745ed4b43e2a65cd072bef2ab2e8`: the prior confidentiality failure was resolved; the next failure was a TypeScript `exactOptionalPropertyTypes` mismatch on the optional public navigation `activeHref`. The component contract was corrected.
-- later checkpoints include additional portfolio/editor/Journey changes and must not reuse either historical result. A new exact-head run is required before declaring the branch fully verified.
+- `4da3f672c0109e2331c6a0f652e6317e96ae1911`: **fully verified V1 checkpoint**. Both public-hub jobs checked out this exact private commit and completed successfully:
+  - shared gate run `32259159710`: frozen install, native SQLite verification, boundary/confidentiality gates, focused tests, recursive typechecks, complete `pnpm check`, production web build and workflow/privacy E2E all passed; the full Vitest workspace reported 260 test files and 964 passing tests, and workflow/privacy E2E reported 6/6 passing;
+  - specialized portfolio run `32259159691`: auth topology 2/2, workflow privacy 6/6, editorial publication 2/2 and public portfolio 6/6 all passed. The specialized job log confirms checkout of this exact private SHA.
 
-Portfolio-specific Playwright coverage checks the five primary public destinations, the useful Journey surface, hidden unfinished secondary links and a 360 px path through the main public flow.
+The public CI receipt intentionally omits the private resolved SHA and logs; exact-head attribution is verified from the protected job checkout while the public issue exposes only sanitized outcomes.
+
+Any commit after `4da3f672c0109e2331c6a0f652e6317e96ae1911` must be treated as newer than that green checkpoint until reverified.
 
 If a runner or external dependency blocks a gate, record the limitation and continue with code tasks that can still be resolved.
