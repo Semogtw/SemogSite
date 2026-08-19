@@ -10,7 +10,7 @@ const items = [
 afterEach(() => cleanup());
 
 describe("PublicHeader", () => {
-  it("opens and closes the mobile navigation with accessible state", () => {
+  it("opens the mobile navigation and moves focus into the first destination", () => {
     render(<PublicHeader items={items} />);
 
     const button = screen.getByRole("button", { name: "Abrir menu" });
@@ -26,6 +26,7 @@ describe("PublicHeader", () => {
     expect(button).toHaveAttribute("aria-expanded", "true");
     expect(button).toHaveAccessibleName("Fechar menu");
     expect(navigation).toHaveAttribute("data-open", "true");
+    expect(screen.getByRole("link", { name: "Projetos" })).toHaveFocus();
 
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "false");
