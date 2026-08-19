@@ -1,5 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import {
+  credentialKindLabel,
+  listPublicCredentialsByStatus,
+  type PublicCredential,
+} from "../content/public-credentials";
 
 export const Route = createFileRoute("/credentials")({
   head: () => ({
@@ -15,26 +20,10 @@ export const Route = createFileRoute("/credentials")({
   component: CredentialsPage,
 });
 
-const learningEntries = [
-  {
-    kind: "Formação acadêmica",
-    title: "Ciência da Computação",
-    issuer: "UESB",
-    status: "Em andamento",
-    description:
-      "Graduação usada como base para aprofundar fundamentos de computação e conectar teoria com projetos de software.",
-  },
-  {
-    kind: "Formação complementar",
-    title: "Trilha de Analista de Dados",
-    issuer: "DataCamp",
-    status: "Em andamento",
-    description:
-      "Formação complementar voltada a desenvolver repertório prático para análise de dados e ampliar a atuação técnica.",
-  },
-] as const;
-
 function CredentialsPage() {
+  const activeCredentials = listPublicCredentialsByStatus("in_progress");
+  const completedCredentials = listPublicCredentialsByStatus("completed");
+
   return (
     <PublicShell>
       <header className="editorial-page-header">
@@ -60,18 +49,8 @@ function CredentialsPage() {
         </div>
 
         <div className="credential-list">
-          {learningEntries.map((entry) => (
-            <article className="credential-row" key={`${entry.issuer}-${entry.title}`}>
-              <div>
-                <span>{entry.kind}</span>
-                <h3>{entry.title}</h3>
-              </div>
-              <div>
-                <strong>{entry.issuer}</strong>
-                <span>{entry.status}</span>
-              </div>
-              <p>{entry.description}</p>
-            </article>
+          {activeCredentials.map((credential) => (
+            <CredentialRow credential={credential} key={credential.id} />
           ))}
         </div>
       </section>
@@ -83,19 +62,27 @@ function CredentialsPage() {
             <h2 id="certificates-title">Certificados</h2>
           </div>
           <p>
-            Certificados individuais serão publicados com nome exato, instituição,
-            data e link de verificação quando esses dados estiverem preparados para
-            exposição pública.
+            Certificados individuais são publicados com nome exato, instituição,
+            data e link de verificação quando essas informações estão disponíveis
+            e preparadas para exposição pública.
           </p>
         </div>
 
-        <div className="credential-empty-state">
-          <strong>Nenhum certificado individual publicado ainda.</strong>
-          <p>
-            A ausência é intencional: o portfólio não cria credenciais de exemplo
-            nem transforma cursos em andamento em certificações concluídas.
-          </p>
-        </div>
+        {completedCredentials.length > 0 ? (
+          <div className="credential-list">
+            {completedCredentials.map((credential) => (
+              <CredentialRow credential={credential} key={credential.id} />
+            ))}
+          </div>
+        ) : (
+          <div className="credential-empty-state">
+            <strong>Nenhum certificado individual publicado ainda.</strong>
+            <p>
+              A ausência é intencional: o portfólio não cria credenciais de exemplo
+              nem transforma cursos em andamento em certificações concluídas.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="portfolio-inline-cta" aria-labelledby="credentials-projects-title">
@@ -115,4 +102,49 @@ function CredentialsPage() {
       </section>
     </PublicShell>
   );
+}
+
+function CredentialRow({ credential }: { credential: PublicCredential }) {
+  return (
+    <article className="credential-row">
+      <div>
+        <span>{credentialKindLabel[credential.kind]}</span>
+        <h3>{credential.title}</h3>
+        <div className="public-editorial-tags" aria-label="Habilidades relacionadas">
+          {credential.relatedSkills.map((skill) => (
+            <span key={skill}>{skill}</span>
+          ))}
+        </div>
+      </div>
+      <div>
+        <strong>{credential.issuer}</strong>
+        <span>
+          {credential.status === "completed"
+            ? credential.completedAt
+              ? `Concluído em ${formatCredentialDate(credential.completedAt)}`
+              : "Concluído"
+            : "Em andamento"}
+        </span>
+        {credential.verificationUrl ? (
+          <a
+            className="text-link"
+            href={credential.verificationUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Verificar credencial
+          </a>
+        ) : null}
+      </div>
+      <p>{credential.description}</p>
+    </article>
+  );
+}
+
+function formatCredentialDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
 }
