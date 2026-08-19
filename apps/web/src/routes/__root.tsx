@@ -12,15 +12,11 @@ import captureCss from "../styles/capture.css?url";
 import editorialCss from "../styles/editorial.css?url";
 import editorialPortfolioCss from "../styles/editorial-portfolio.css?url";
 import evidenceCss from "../styles/evidence.css?url";
-import githubSyncCss from "../styles/github-sync.css?url";
 import globalCss from "../styles/global.css?url";
 import journeyCss from "../styles/journey.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import publicProjectsCss from "../styles/public-projects.css?url";
-import repositoryTargetLifecycleCss from "../styles/repository-target-lifecycle.css?url";
-import repositoryTargetCss from "../styles/repository-target.css?url";
-import stageCompletionCss from "../styles/stage-completion.css?url";
 import surfacesCss from "../styles/surfaces.css?url";
 
 type RouterContext = {
@@ -47,10 +43,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "stylesheet", href: evidenceCss },
       { rel: "stylesheet", href: editorialCss },
       { rel: "stylesheet", href: editorialPortfolioCss },
-      { rel: "stylesheet", href: stageCompletionCss },
-      { rel: "stylesheet", href: githubSyncCss },
-      { rel: "stylesheet", href: repositoryTargetCss },
-      { rel: "stylesheet", href: repositoryTargetLifecycleCss },
       { rel: "stylesheet", href: publicProjectsCss },
       { rel: "stylesheet", href: publicEditorialCss },
       { rel: "stylesheet", href: portfolioCss },
