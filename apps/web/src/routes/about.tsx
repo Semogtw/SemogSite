@@ -76,8 +76,9 @@ function AboutPage() {
         </div>
         <div>
           <p>
-            Os case studies conectam essa forma de trabalhar a código, decisões,
-            tecnologias e resultados concretos.
+            A área de Projetos recebe os case studies depois da revisão editorial,
+            conectando esta forma de trabalhar a código, decisões, tecnologias e
+            resultados que já podem ser apresentados publicamente.
           </p>
           <Link className="button button-primary" to="/projects">
             Ver projetos
