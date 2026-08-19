@@ -83,6 +83,7 @@ export function publicEditorialDetailHead({
         { name: "robots", content: "noindex, nofollow" },
         { name: "description", content: value.missingDescription },
       ],
+      links: [],
     };
   }
 
