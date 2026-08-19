@@ -70,7 +70,7 @@ describe("public editorial head metadata", () => {
       document: null,
     });
 
-    expect(head.links).toBeUndefined();
+    expect(head.links).toEqual([]);
     expect(head.meta).toContainEqual({
       name: "robots",
       content: "noindex, nofollow",
