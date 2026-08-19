@@ -1,16 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
 import { publicCredentials } from "../content/public-credentials";
+import journeyCss from "../styles/journey.css?url";
 import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/journey")({
-  head: () =>
-    publicPortfolioHead({
+  head: () => {
+    const head = publicPortfolioHead({
       title: "Trajetória — Semogtw",
       description:
         "Formação, aprendizado e marcos técnicos que ajudam a contextualizar a evolução profissional da Semogtw.",
       path: "/journey",
-    }),
+    });
+
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: journeyCss }],
+    };
+  },
   component: JourneyPage,
 });
 
