@@ -5,18 +5,16 @@ import {
   listPublicCredentialsByStatus,
   type PublicCredential,
 } from "../content/public-credentials";
+import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/credentials")({
-  head: () => ({
-    meta: [
-      { title: "Formação e certificados — Semogtw" },
-      {
-        name: "description",
-        content:
-          "Formação acadêmica, cursos em andamento e certificados da Semogtw apresentados com contexto e status explícitos.",
-      },
-    ],
-  }),
+  head: () =>
+    publicPortfolioHead({
+      title: "Formação e certificados — Semogtw",
+      description:
+        "Formação acadêmica, cursos em andamento e certificados da Semogtw apresentados com contexto e status explícitos.",
+      path: "/credentials",
+    }),
   component: CredentialsPage,
 });
 
