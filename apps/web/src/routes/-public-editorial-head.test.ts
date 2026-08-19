@@ -5,13 +5,22 @@ import {
 } from "./-public-editorial-head";
 
 describe("public editorial head metadata", () => {
-  it("uses provider-neutral canonical paths for public indexes", () => {
-    expect(publicEditorialListHead("note").links).toEqual([
-      { rel: "canonical", href: "/notes" },
-    ]);
-    expect(publicEditorialListHead("project").links).toEqual([
+  it("uses provider-neutral canonical paths and website social type for indexes", () => {
+    const notesHead = publicEditorialListHead("note");
+    const projectsHead = publicEditorialListHead("project");
+
+    expect(notesHead.links).toEqual([{ rel: "canonical", href: "/notes" }]);
+    expect(projectsHead.links).toEqual([
       { rel: "canonical", href: "/projects" },
     ]);
+    expect(notesHead.meta).toContainEqual({
+      property: "og:type",
+      content: "website",
+    });
+    expect(projectsHead.meta).toContainEqual({
+      property: "og:type",
+      content: "website",
+    });
   });
 
   it("keeps an empty editorial index out of search discovery", () => {
@@ -24,7 +33,7 @@ describe("public editorial head metadata", () => {
     expect(head.links).toEqual([{ rel: "canonical", href: "/notes" }]);
   });
 
-  it("adds canonical and social metadata only for a published detail projection", () => {
+  it("adds canonical and article social metadata only for a published detail projection", () => {
     const head = publicEditorialDetailHead({
       kind: "note",
       slug: "arquitetura-portatil",
@@ -50,6 +59,7 @@ describe("public editorial head metadata", () => {
       property: "og:description",
       content: "Resumo público revisado.",
     });
+    expect(head.meta).toContainEqual({ property: "og:type", content: "article" });
     expect(head.meta).toContainEqual({ name: "twitter:card", content: "summary" });
   });
 
