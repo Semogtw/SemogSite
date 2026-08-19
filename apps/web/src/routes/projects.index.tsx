@@ -19,17 +19,29 @@ function ProjectsPage() {
         <p className="eyebrow">Projetos</p>
         <h1>Projetos explicados como trabalho, não como uma lista de repositórios.</h1>
         <p>
-          Cada case study público existe para mostrar contexto, decisões técnicas,
-          stack, verificações e aprendizados. Informações operacionais privadas do
-          processo de desenvolvimento continuam fora da vitrine.
+          Cada case study reúne contexto, decisões técnicas, stack, verificações
+          e aprendizados para mostrar como um problema foi transformado em software.
         </p>
       </header>
 
       {projects.length === 0 ? (
-        <EmptyState
-          title="Case studies em preparação"
-          description="Os primeiros projetos serão publicados quando tiverem contexto suficiente para explicar problema, solução, decisões e resultados sem preencher a página com conteúdo de exemplo."
-        />
+        <div className="project-empty-state">
+          <EmptyState
+            title="Case studies em preparação"
+            description="Os primeiros projetos serão publicados quando tiverem contexto suficiente para explicar problema, solução, decisões e resultados sem preencher a página com conteúdo de exemplo."
+          />
+          <nav
+            className="project-empty-state__actions"
+            aria-label="Outras formas de explorar o portfólio"
+          >
+            <Link className="button button-primary" to="/stack">
+              Ver habilidades demonstradas
+            </Link>
+            <Link className="button button-secondary" to="/journey">
+              Ver trajetória
+            </Link>
+          </nav>
+        </div>
       ) : (
         <section className="public-project-grid" aria-label="Case studies publicados">
           {projects.map((project) => (
