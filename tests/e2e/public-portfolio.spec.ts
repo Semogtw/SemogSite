@@ -25,12 +25,15 @@ test("public portfolio home exposes the professional navigation and factual stru
     );
   }
 
+  await expect(page.getByRole("link", { name: "Notas", exact: true })).toHaveAttribute(
+    "href",
+    "/notes",
+  );
   await expect(page.getByRole("link", { name: "Trajetória", exact: true })).toHaveAttribute(
     "href",
     "/journey",
   );
   await expect(page.getByRole("link", { name: "Laboratório", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Notas", exact: true })).toHaveCount(0);
 
   const structuredDataText = await page
     .locator('script[type="application/ld+json"]')
@@ -107,6 +110,7 @@ test("portfolio pages are reachable without owner authentication", async ({ page
     ["/about", "Aprender computação construindo sistemas que precisam funcionar de verdade."],
     ["/contact", "Comece pelo trabalho público e continue a conversa por um canal verificável."],
     ["/journey", "Formação e projetos vistos como uma evolução contínua."],
+    ["/notes", "Decisões e aprendizados que merecem permanecer."],
   ] as const;
 
   for (const [path, heading] of destinations) {
