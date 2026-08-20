@@ -3,6 +3,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicProjectRouteFn } from "../server/public-projects";
+import projectCaseStudyCss from "../styles/project-case-study.css?url";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import { publicEditorialDetailHead } from "./-public-editorial-head";
 
@@ -29,7 +30,11 @@ export const Route = createFileRoute("/projects/$slug")({
     });
     return {
       ...head,
-      links: [...head.links, { rel: "stylesheet", href: publicEditorialCss }],
+      links: [
+        ...head.links,
+        { rel: "stylesheet", href: publicEditorialCss },
+        { rel: "stylesheet", href: projectCaseStudyCss },
+      ],
     };
   },
   component: ProjectDetailPage,
