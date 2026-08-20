@@ -1,22 +1,17 @@
 import sharedCss from "@semogtw/ui/styles/global.css?url";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   HeadContent,
   Link,
   Outlet,
   Scripts,
-  createRootRouteWithContext,
+  createRootRoute,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
 import publicSurfacesCss from "../styles/public-surfaces.css?url";
 
-type RouterContext = {
-  queryClient: QueryClient;
-};
-
-export const Route = createRootRouteWithContext<RouterContext>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -41,13 +36,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-
   return (
     <Document>
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-      </QueryClientProvider>
+      <Outlet />
     </Document>
   );
 }
