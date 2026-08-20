@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from "react";
 import globalCss from "../styles/global.css?url";
 import portfolioCss from "../styles/portfolio.css?url";
-import surfacesCss from "../styles/surfaces.css?url";
+import publicSurfacesCss from "../styles/public-surfaces.css?url";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -31,7 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
-      { rel: "stylesheet", href: surfacesCss },
+      { rel: "stylesheet", href: publicSurfacesCss },
       { rel: "stylesheet", href: portfolioCss },
     ],
   }),
