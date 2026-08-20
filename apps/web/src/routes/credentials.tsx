@@ -5,16 +5,23 @@ import {
   listPublicCredentialsByStatus,
   type PublicCredential,
 } from "../content/public-credentials";
+import credentialsCss from "../styles/credentials.css?url";
 import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/credentials")({
-  head: () =>
-    publicPortfolioHead({
+  head: () => {
+    const head = publicPortfolioHead({
       title: "Formação e certificados — Semogtw",
       description:
         "Formação acadêmica, cursos em andamento e certificados da Semogtw apresentados com contexto e status explícitos.",
       path: "/credentials",
-    }),
+    });
+
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: credentialsCss }],
+    };
+  },
   component: CredentialsPage,
 });
 
