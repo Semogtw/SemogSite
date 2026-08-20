@@ -5,6 +5,11 @@ import { getPublicEditorialFn } from "../server/public-editorial";
 import publicEditorialCss from "../styles/public-editorial.css?url";
 import { publicEditorialListHead } from "./-public-editorial-head";
 
+const publishedDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "medium",
+  timeZone: "America/Bahia",
+});
+
 export const Route = createFileRoute("/notes/")({
   loader: () => getPublicEditorialFn({ data: { kind: "note", limit: 50 } }),
   head: ({ loaderData }) => {
@@ -45,10 +50,7 @@ function NotesPage() {
               <div className="public-editorial-card__meta">
                 <p className="eyebrow">Nota publicada</p>
                 <time dateTime={note.updatedAt}>
-                  {new Intl.DateTimeFormat("pt-BR", {
-                    dateStyle: "medium",
-                    timeZone: "America/Bahia",
-                  }).format(new Date(note.updatedAt))}
+                  {publishedDateFormatter.format(new Date(note.updatedAt))}
                 </time>
               </div>
               <h2>{note.title}</h2>
