@@ -4,6 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { loginPrivateOwner } from "../lib/private-auth-client";
 import { safeReturnTo } from "../server/auth-navigation";
+import loginCss from "../styles/login.css?url";
 
 const SearchSchema = z.object({
   returnTo: z.string().optional(),
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/devos/login")({
       { name: "description", content: "Área privada da plataforma Semogtw." },
       { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
+    links: [{ rel: "stylesheet", href: loginCss }],
   }),
   component: LoginPage,
 });
