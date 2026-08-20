@@ -65,6 +65,7 @@ export { SqlitePublishedEditorialReadModel } from "./repositories/published-edit
 export type {
   PublishedEditorialProjection,
   PublishedEditorialProjectionKind,
+  PublishedEditorialSummary,
 } from "./repositories/published-editorial-read-model";
 export { SqliteEvidenceWriteRepository } from "./repositories/evidence-write-repository";
 export { SqliteGitHubObservationRepository } from "./repositories/github-observation-repository";
