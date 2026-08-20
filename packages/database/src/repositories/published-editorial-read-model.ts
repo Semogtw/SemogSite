@@ -6,7 +6,6 @@ export type PublishedEditorialProjectionKind =
   | "experiment"
   | "page";
 
-
 export type PublishedEditorialRedirect = {
   targetSlug: string;
 };
@@ -23,7 +22,12 @@ export type PublishedEditorialProjection = {
   updatedAt: string;
 };
 
-type Row = {
+export type PublishedEditorialSummary = Pick<
+  PublishedEditorialProjection,
+  "kind" | "slug" | "title" | "excerpt" | "tags" | "updatedAt"
+>;
+
+type ProjectionRow = {
   kind: PublishedEditorialProjectionKind;
   slug: string;
   title: string;
@@ -32,6 +36,15 @@ type Row = {
   tags_json: string;
   content_hash: string;
   published_revision_id: string;
+  published_at: string;
+};
+
+type SummaryRow = {
+  kind: PublishedEditorialProjectionKind;
+  slug: string;
+  title: string;
+  excerpt: string;
+  tags_json: string;
   published_at: string;
 };
 
@@ -69,7 +82,7 @@ function normalizeLimit(value: number): number {
   return Math.min(100, Math.max(1, Math.floor(value)));
 }
 
-function project(row: Row): PublishedEditorialProjection | null {
+function project(row: ProjectionRow): PublishedEditorialProjection | null {
   const tags = parseTags(row.tags_json);
   if (
     !kinds.has(row.kind) ||
@@ -102,16 +115,32 @@ function project(row: Row): PublishedEditorialProjection | null {
   };
 }
 
-const selectPublished = `
-  SELECT document.kind,
-         document.slug,
-         revision.title,
-         revision.excerpt,
-         revision.body_markdown,
-         revision.tags_json,
-         revision.content_hash,
-         document.published_revision_id,
-         publication.occurred_at AS published_at
+function projectSummary(row: SummaryRow): PublishedEditorialSummary | null {
+  const tags = parseTags(row.tags_json);
+  if (
+    !kinds.has(row.kind) ||
+    !slugPattern.test(row.slug) ||
+    row.title.trim().length === 0 ||
+    row.title.length > 160 ||
+    row.excerpt.trim().length === 0 ||
+    row.excerpt.length > 320 ||
+    tags === null ||
+    Number.isNaN(Date.parse(row.published_at))
+  ) {
+    return null;
+  }
+
+  return {
+    kind: row.kind,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    tags,
+    updatedAt: new Date(Date.parse(row.published_at)).toISOString(),
+  };
+}
+
+const publishedJoin = `
   FROM editorial_documents AS document
   JOIN editorial_revisions AS revision
     ON revision.id = document.published_revision_id
@@ -130,6 +159,27 @@ const selectPublished = `
   WHERE document.publication_status = 'published'
     AND document.published_revision_id IS NOT NULL`;
 
+const selectPublished = `
+  SELECT document.kind,
+         document.slug,
+         revision.title,
+         revision.excerpt,
+         revision.body_markdown,
+         revision.tags_json,
+         revision.content_hash,
+         document.published_revision_id,
+         publication.occurred_at AS published_at
+  ${publishedJoin}`;
+
+const selectPublishedSummary = `
+  SELECT document.kind,
+         document.slug,
+         revision.title,
+         revision.excerpt,
+         revision.tags_json,
+         publication.occurred_at AS published_at
+  ${publishedJoin}`;
+
 export class SqlitePublishedEditorialReadModel {
   constructor(private readonly database: SqliteDatabase) {}
 
@@ -141,7 +191,7 @@ export class SqlitePublishedEditorialReadModel {
 
     const row = this.database.$client
       .prepare(`${selectPublished} AND document.slug = ? LIMIT 1`)
-      .get(slug) as Row | undefined;
+      .get(slug) as ProjectionRow | undefined;
     return row === undefined ? null : project(row);
   }
 
@@ -202,12 +252,42 @@ export class SqlitePublishedEditorialReadModel {
                LIMIT ?`,
             )
             .all(input.kind, limit)
-    ) as Row[];
+    ) as ProjectionRow[];
 
     return rows
       .map(project)
       .filter(
         (item): item is PublishedEditorialProjection => item !== null,
       );
+  }
+
+  async listSummaries(input: {
+    kind: PublishedEditorialProjectionKind | null;
+    limit: number;
+  }): Promise<readonly PublishedEditorialSummary[]> {
+    if (input.kind !== null && !kinds.has(input.kind)) return [];
+    const limit = normalizeLimit(input.limit);
+    const rows = (
+      input.kind === null
+        ? this.database.$client
+            .prepare(
+              `${selectPublishedSummary}
+               ORDER BY publication.occurred_at DESC, document.slug ASC
+               LIMIT ?`,
+            )
+            .all(limit)
+        : this.database.$client
+            .prepare(
+              `${selectPublishedSummary}
+               AND document.kind = ?
+               ORDER BY publication.occurred_at DESC, document.slug ASC
+               LIMIT ?`,
+            )
+            .all(input.kind, limit)
+    ) as SummaryRow[];
+
+    return rows
+      .map(projectSummary)
+      .filter((item): item is PublishedEditorialSummary => item !== null);
   }
 }
