@@ -1,15 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import contactCss from "../styles/contact.css?url";
 import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/contact")({
-  head: () =>
-    publicPortfolioHead({
+  head: () => {
+    const head = publicPortfolioHead({
       title: "Contato — Semogtw",
       description:
         "Canais públicos para conhecer o trabalho da Semogtw e entrar em contato sobre projetos, colaboração ou oportunidades.",
       path: "/contact",
-    }),
+    });
+
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: contactCss }],
+    };
+  },
   component: ContactPage,
 });
 
