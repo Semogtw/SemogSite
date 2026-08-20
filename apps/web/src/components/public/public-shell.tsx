@@ -57,6 +57,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <span>Projetos, habilidades e aprendizado demonstrados por trabalho real.</span>
         </div>
         <nav className="public-footer__nav" aria-label="Navegação complementar">
+          <Link to="/notes">Notas</Link>
           <Link to="/journey">Trajetória</Link>
         </nav>
       </footer>
