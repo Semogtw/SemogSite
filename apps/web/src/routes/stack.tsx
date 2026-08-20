@@ -1,15 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicShell } from "../components/public/public-shell";
+import skillsCss from "../styles/skills.css?url";
 import { publicPortfolioHead } from "./-public-portfolio-head";
 
 export const Route = createFileRoute("/stack")({
-  head: () =>
-    publicPortfolioHead({
+  head: () => {
+    const head = publicPortfolioHead({
       title: "Habilidades — Semogtw",
       description:
         "Habilidades técnicas da Semogtw apresentadas por uso real em projetos, decisões de arquitetura, testes e entrega.",
       path: "/stack",
-    }),
+    });
+
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: skillsCss }],
+    };
+  },
   component: SkillsPage,
 });
 
