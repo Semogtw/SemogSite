@@ -5,6 +5,11 @@ import { getPublicProjectsFn } from "../server/public-projects";
 import publicProjectsCss from "../styles/public-projects.css?url";
 import { publicEditorialListHead } from "./-public-editorial-head";
 
+const publishedDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "medium",
+  timeZone: "America/Bahia",
+});
+
 export const Route = createFileRoute("/projects/")({
   loader: () => getPublicProjectsFn(),
   head: () => {
@@ -56,10 +61,7 @@ function ProjectsPage() {
               <div className="public-project-card__eyebrow">
                 <span>Case study</span>
                 <time dateTime={project.updatedAt}>
-                  {new Intl.DateTimeFormat("pt-BR", {
-                    dateStyle: "medium",
-                    timeZone: "America/Bahia",
-                  }).format(new Date(project.updatedAt))}
+                  {publishedDateFormatter.format(new Date(project.updatedAt))}
                 </time>
               </div>
               <h2>{project.title}</h2>
