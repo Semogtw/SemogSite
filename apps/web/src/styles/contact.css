@@ -1,0 +1,51 @@
+.contact-channel-list {
+  padding-bottom: 104px;
+}
+
+.contact-channel {
+  min-height: 220px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 32px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding-block: 32px;
+}
+
+.contact-channel h2 {
+  margin: 6px 0 0;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  letter-spacing: -0.04em;
+}
+
+.contact-channel > div > span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.contact-channel p {
+  max-width: 680px;
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .contact-channel {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-channel > .button {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 720px) {
+  .contact-channel-list {
+    padding-bottom: 72px;
+  }
+}
