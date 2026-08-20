@@ -5,9 +5,15 @@ import {
 import {
   SqlitePublishedEditorialReadModel,
   type PublishedEditorialProjectionKind,
+  type PublishedEditorialSummary,
   type SqliteDatabase,
 } from "@semogtw/database";
 import { getNodeDatabase } from "./node-database.server";
+
+export type PublicEditorialSummary = Pick<
+  PublicEditorialDocument,
+  "kind" | "slug" | "title" | "excerpt" | "tags" | "updatedAt"
+>;
 
 export type PublicEditorialRouteResolution = {
   document: PublicEditorialDocument | null;
@@ -19,6 +25,10 @@ export type PublicEditorialReader = {
     kind: PublishedEditorialProjectionKind | null;
     limit: number;
   }): Promise<readonly PublicEditorialDocument[]>;
+  listSummaries(input: {
+    kind: PublishedEditorialProjectionKind | null;
+    limit: number;
+  }): Promise<readonly PublicEditorialSummary[]>;
   findBySlug(
     slug: string,
     kind: PublishedEditorialProjectionKind | null,
@@ -31,6 +41,20 @@ export type PublicEditorialReader = {
 
 function validatePublicProjection(value: unknown): PublicEditorialDocument | null {
   const parsed = PublicEditorialDocumentSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function validatePublicSummary(
+  value: PublishedEditorialSummary,
+): PublicEditorialSummary | null {
+  const parsed = PublicEditorialDocumentSchema.pick({
+    kind: true,
+    slug: true,
+    title: true,
+    excerpt: true,
+    tags: true,
+    updatedAt: true,
+  }).safeParse(value);
   return parsed.success ? parsed.data : null;
 }
 
@@ -69,6 +93,12 @@ export function createPublicEditorialReader(
         .filter(
           (document): document is PublicEditorialDocument => document !== null,
         ),
+    listSummaries: async (input) =>
+      (await readModel.listSummaries(input))
+        .map(validatePublicSummary)
+        .filter(
+          (document): document is PublicEditorialSummary => document !== null,
+        ),
     findBySlug: async (slug, kind) =>
       (await resolveBySlug(slug, kind)).document,
     resolveBySlug,
@@ -83,9 +113,9 @@ async function getReader(): Promise<PublicEditorialReader | null> {
 export async function readPublicEditorial(input: {
   kind: PublishedEditorialProjectionKind | null;
   limit: number;
-}): Promise<readonly PublicEditorialDocument[]> {
+}): Promise<readonly PublicEditorialSummary[]> {
   const reader = await getReader();
-  return reader?.list(input) ?? [];
+  return reader?.listSummaries(input) ?? [];
 }
 
 export async function readPublicEditorialBySlug(
