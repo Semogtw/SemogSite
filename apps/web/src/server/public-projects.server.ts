@@ -5,12 +5,10 @@ import {
   createPublicEditorialReader,
   type PublicEditorialReader,
   type PublicEditorialRouteResolution,
+  type PublicEditorialSummary,
 } from "./public-editorial.server";
 
-export type PublicProjectSummary = Pick<
-  PublicEditorialDocument,
-  "slug" | "title" | "excerpt" | "tags" | "updatedAt"
->;
+export type PublicProjectSummary = Omit<PublicEditorialSummary, "kind">;
 
 export type PublicProjectReader = {
   list(): Promise<readonly PublicProjectSummary[]>;
@@ -19,7 +17,7 @@ export type PublicProjectReader = {
 };
 
 function toPublicProjectSummary(
-  document: PublicEditorialDocument,
+  document: PublicEditorialSummary,
 ): PublicProjectSummary {
   return {
     slug: document.slug,
@@ -36,7 +34,7 @@ export function createPublicProjectReader(
   const editorial: PublicEditorialReader = createPublicEditorialReader(database);
   return {
     list: async () =>
-      (await editorial.list({ kind: "project", limit: 100 })).map(
+      (await editorial.listSummaries({ kind: "project", limit: 100 })).map(
         toPublicProjectSummary,
       ),
     findBySlug: (slug) => editorial.findBySlug(slug, "project"),
