@@ -105,7 +105,7 @@ async function publishEditorialProject(database: SqliteDatabase) {
 }
 
 describe("public project reader", () => {
-  it("publishes editorial projections and ignores operational project rows", async () => {
+  it("publishes compact editorial summaries and ignores operational project rows", async () => {
     const database = createSqliteDatabase(":memory:");
     opened.push(database);
     migrate(database);
@@ -115,20 +115,25 @@ describe("public project reader", () => {
     const reader = createPublicProjectReader(database);
     const projects = await reader.list();
 
-    expect(projects).toHaveLength(1);
-    expect(projects[0]).toMatchObject({
-      kind: "project",
-      slug: "semogtw-platform",
-      title: "Semogtw Platform",
-      excerpt: "Plataforma pessoal publicada por revisão editorial.",
-      bodyMarkdown: "# Semogtw Platform\n\nArquitetura e decisões públicas.",
-      tags: ["produto", "arquitetura"],
-      updatedAt: "2026-08-02T06:15:00.000Z",
-    });
-    expect(projects[0]?.publishedRevisionId).toBeTruthy();
-    expect(projects[0]?.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(projects).toEqual([
+      {
+        slug: "semogtw-platform",
+        title: "Semogtw Platform",
+        excerpt: "Plataforma pessoal publicada por revisão editorial.",
+        tags: ["produto", "arquitetura"],
+        updatedAt: "2026-08-02T06:15:00.000Z",
+      },
+    ]);
+    expect(projects[0]).not.toHaveProperty("bodyMarkdown");
+    expect(projects[0]).not.toHaveProperty("contentHash");
+    expect(projects[0]).not.toHaveProperty("publishedRevisionId");
     expect(JSON.stringify(projects)).not.toContain("LEGACY_OPERATIONAL");
     expect(JSON.stringify(projects)).not.toContain("PRIVATE_");
+
+    const project = await reader.findBySlug("semogtw-platform");
+    expect(project?.bodyMarkdown).toBe(
+      "# Semogtw Platform\n\nArquitetura e decisões públicas.",
+    );
     await expect(reader.findBySlug("legacy-project")).resolves.toBeNull();
   });
 });
