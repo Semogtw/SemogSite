@@ -1,0 +1,109 @@
+.skill-group-list {
+  border-top: 1px solid var(--color-border);
+  padding-bottom: 104px;
+}
+
+.skill-group {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(150px, 0.45fr);
+  gap: clamp(24px, 5vw, 64px);
+  border-bottom: 1px solid var(--color-border);
+  padding-block: 36px;
+}
+
+.skill-group__intro h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+  line-height: 1.06;
+}
+
+.skill-group__intro p {
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  line-height: 1.65;
+}
+
+.skill-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-list li {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.skill-list li:nth-child(-n + 2) {
+  border-top: 1px solid var(--color-border);
+}
+
+.skill-list li:nth-child(odd) {
+  padding-right: 18px;
+}
+
+.skill-list li:nth-child(even) {
+  border-left: 1px solid var(--color-border);
+  padding-left: 18px;
+}
+
+.skill-group__evidence {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.skill-group__evidence span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.skill-group__evidence strong {
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .skill-group {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-group__evidence {
+    border-top: 1px solid var(--color-border);
+    padding-top: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .skill-group-list {
+    padding-block: 72px;
+  }
+
+  .skill-list {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-list li:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .skill-list li:first-child {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .skill-list li:nth-child(odd),
+  .skill-list li:nth-child(even) {
+    border-left: 0;
+    padding-inline: 0;
+  }
+}
