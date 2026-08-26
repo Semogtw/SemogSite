@@ -1,3 +1,5 @@
+import { publicUrl } from "./-public-url";
+
 type PublicEditorialKind = "note" | "project";
 
 type PublicHeadDocument = {
@@ -37,11 +39,13 @@ function socialMeta(
   title: string,
   description: string,
   type: "website" | "article",
+  url: string,
 ) {
   return [
     { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:type", content: type },
+    { property: "og:url", content: url },
     { name: "twitter:card", content: "summary" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
@@ -53,6 +57,7 @@ export function publicEditorialListHead(
   options: { index?: boolean } = {},
 ) {
   const value = config[kind];
+  const canonicalUrl = publicUrl(value.basePath);
   return {
     meta: [
       { title: value.listTitle },
@@ -60,9 +65,14 @@ export function publicEditorialListHead(
       ...(options.index === false
         ? [{ name: "robots", content: "noindex, follow" }]
         : []),
-      ...socialMeta(value.listTitle, value.listDescription, "website"),
+      ...socialMeta(
+        value.listTitle,
+        value.listDescription,
+        "website",
+        canonicalUrl,
+      ),
     ],
-    links: [{ rel: "canonical", href: value.basePath }],
+    links: [{ rel: "canonical", href: canonicalUrl }],
   };
 }
 
@@ -88,16 +98,17 @@ export function publicEditorialDetailHead({
   }
 
   const title = `${document.title} — Semogtw`;
+  const canonicalUrl = publicUrl(`${value.basePath}/${slug}`);
   return {
     meta: [
       { title },
       { name: "description", content: document.excerpt },
-      ...socialMeta(title, document.excerpt, "article"),
+      ...socialMeta(title, document.excerpt, "article", canonicalUrl),
     ],
     links: [
       {
         rel: "canonical",
-        href: `${value.basePath}/${slug}`,
+        href: canonicalUrl,
       },
     ],
   };
