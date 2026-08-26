@@ -1,3 +1,5 @@
+import { publicUrl } from "./-public-url";
+
 type PublicStructuredData = Record<string, unknown>;
 
 export function publicPortfolioHead({
@@ -11,6 +13,7 @@ export function publicPortfolioHead({
   path: string;
   structuredData?: PublicStructuredData;
 }) {
+  const canonicalUrl = publicUrl(path);
   return {
     meta: [
       { title },
@@ -18,11 +21,12 @@ export function publicPortfolioHead({
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: canonicalUrl },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
     ],
-    links: [{ rel: "canonical", href: path }],
+    links: [{ rel: "canonical", href: canonicalUrl }],
     ...(structuredData === undefined
       ? {}
       : {
