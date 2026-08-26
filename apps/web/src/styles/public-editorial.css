@@ -57,14 +57,118 @@
 }
 
 .public-editorial-detail {
+  min-width: 0;
   display: grid;
   gap: 28px;
   padding-bottom: 104px;
 }
 
 .public-editorial-content {
+  min-width: 0;
   display: grid;
   gap: 20px;
+  overflow: hidden;
+}
+
+.public-markdown {
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(1rem, 1.35vw, 1.1rem);
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+}
+
+.public-markdown > :first-child {
+  margin-top: 0;
+}
+
+.public-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.public-markdown h1,
+.public-markdown h2,
+.public-markdown h3 {
+  max-width: 34ch;
+  margin: 2.2em 0 0.7em;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.public-markdown h1 {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+}
+
+.public-markdown h2 {
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+}
+
+.public-markdown h3 {
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+}
+
+.public-markdown p,
+.public-markdown ul,
+.public-markdown ol,
+.public-markdown blockquote {
+  max-width: 72ch;
+  margin: 1.2em 0;
+}
+
+.public-markdown ul,
+.public-markdown ol {
+  padding-left: 1.35em;
+}
+
+.public-markdown li + li {
+  margin-top: 0.45em;
+}
+
+.public-markdown a {
+  color: var(--color-primary);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.public-markdown blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 1.1rem;
+  color: var(--color-muted);
+}
+
+.public-markdown img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 30px auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.public-markdown pre,
+.public-markdown__code {
+  max-width: 100%;
+  margin: 1.5em 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--color-bg);
+  font-size: 0.9em;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.public-markdown :not(pre) > code {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.08em 0.34em;
+  background: var(--color-surface-2);
+  font-size: 0.92em;
 }
 
 .public-editorial-content__notice {
@@ -103,5 +207,15 @@
 
   .public-editorial-detail {
     padding-bottom: 72px;
+  }
+
+  .public-markdown img {
+    margin-block: 22px;
+  }
+
+  .public-markdown pre,
+  .public-markdown__code {
+    margin-inline: -8px;
+    border-radius: 8px;
   }
 }
