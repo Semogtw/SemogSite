@@ -9,6 +9,7 @@ const clientRoot = resolve(repositoryRoot, "apps/web/dist/client");
 const serverEntry = resolve(repositoryRoot, "apps/web/dist/server/server.js");
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? "4173");
+const isProduction = process.env.NODE_ENV === "production";
 const e2eApiProxyOrigin = parseE2eApiProxyOrigin(
   process.env.SEMOGTW_E2E_API_PROXY_ORIGIN,
   process.env.NODE_ENV,
@@ -44,6 +45,40 @@ const contentTypes = new Map([
   [".woff", "font/woff"],
   [".woff2", "font/woff2"],
 ]);
+
+const baselineHeaders = new Map([
+  ["x-content-type-options", "nosniff"],
+  ["referrer-policy", "strict-origin-when-cross-origin"],
+  ["x-frame-options", "DENY"],
+  [
+    "permissions-policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  ],
+  ["cross-origin-opener-policy", "same-origin"],
+  ["cross-origin-resource-policy", "same-origin"],
+]);
+
+const productionContentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "connect-src 'self' https:",
+  "font-src 'self' data:",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data: https:",
+  "object-src 'none'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+].join("; ");
+
+function applyBaselineHeaders(response) {
+  for (const [name, value] of baselineHeaders) {
+    if (!response.hasHeader(name)) response.setHeader(name, value);
+  }
+  if (isProduction && !response.hasHeader("content-security-policy")) {
+    response.setHeader("content-security-policy", productionContentSecurityPolicy);
+  }
+}
 
 function parseE2eApiProxyOrigin(value, nodeEnv) {
   if (value === undefined || value.trim().length === 0) return null;
@@ -115,6 +150,7 @@ function proxyApiRequest(request, response, url) {
         for (const [name, value] of Object.entries(upstreamResponse.headers)) {
           if (value !== undefined) response.setHeader(name, value);
         }
+        applyBaselineHeaders(response);
         upstreamResponse.on("error", rejectProxy);
         upstreamResponse.on("end", resolveProxy);
         upstreamResponse.pipe(response);
@@ -151,6 +187,7 @@ async function handle(request, response) {
           ? "public, max-age=31536000, immutable"
           : "public, max-age=0, must-revalidate",
       );
+      applyBaselineHeaders(response);
       if (request.method === "HEAD") {
         response.end();
       } else {
@@ -173,6 +210,10 @@ async function handle(request, response) {
   response.statusCode = fetchResponse.status;
   response.statusMessage = fetchResponse.statusText;
   copyResponseHeaders(fetchResponse, response);
+  applyBaselineHeaders(response);
+  if (fetchResponse.status >= 400 && !response.hasHeader("cache-control")) {
+    response.setHeader("cache-control", "no-store, max-age=0");
+  }
 
   if (method === "HEAD" || fetchResponse.body === null) {
     response.end();
@@ -188,6 +229,8 @@ const server = createServer((request, response) => {
     if (!response.headersSent) {
       response.statusCode = 500;
       response.setHeader("content-type", "text/plain; charset=utf-8");
+      response.setHeader("cache-control", "no-store, max-age=0");
+      applyBaselineHeaders(response);
     }
     response.end("Internal Server Error");
   });
