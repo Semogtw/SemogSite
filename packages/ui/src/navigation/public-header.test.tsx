@@ -47,6 +47,50 @@ describe("PublicHeader", () => {
     expect(button).toHaveFocus();
   });
 
+  it("closes when a pointer interaction happens outside the header", () => {
+    render(
+      <div>
+        <PublicHeader items={items} />
+        <button type="button">Conteúdo externo</button>
+      </div>,
+    );
+
+    const menuButton = screen.getByRole("button", { name: "Abrir menu" });
+    fireEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Conteúdo externo" }));
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    expect(menuButton).toHaveAccessibleName("Abrir menu");
+  });
+
+  it("closes an open mobile menu after switching to a desktop viewport", () => {
+    render(<PublicHeader items={items} />);
+
+    const menuButton = screen.getByRole("button", { name: "Abrir menu" });
+    fireEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent(window, new Event("resize"));
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes when the active public route changes", () => {
+    const { rerender } = render(
+      <PublicHeader items={items} activeHref="/projects" />,
+    );
+
+    const menuButton = screen.getByRole("button", { name: "Abrir menu" });
+    fireEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+    rerender(<PublicHeader items={items} activeHref="/notes" />);
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("delegates ordinary internal clicks to client-side navigation", () => {
     const onNavigate = vi.fn();
     render(<PublicHeader items={items} onNavigate={onNavigate} />);
