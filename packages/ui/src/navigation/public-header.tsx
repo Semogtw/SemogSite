@@ -25,6 +25,7 @@ export function PublicHeader({
 }) {
   const [open, setOpen] = useState(false);
   const navigationId = useId();
+  const headerRef = useRef<HTMLElement>(null);
   const navigationRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const MenuIcon = open ? X : Menu;
@@ -40,9 +41,29 @@ export function PublicHeader({
       menuButtonRef.current?.focus();
     }
 
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node) || headerRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function onResize() {
+      setOpen(false);
+    }
+
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", onResize);
+    };
   }, [open]);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [activeHref]);
 
   function handleNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
     setOpen(false);
@@ -64,7 +85,7 @@ export function PublicHeader({
   }
 
   return (
-    <header className="sem-public-header">
+    <header ref={headerRef} className="sem-public-header">
       <a
         className="sem-wordmark"
         href="/"
