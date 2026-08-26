@@ -1,3 +1,8 @@
+import {
+  configuredPublicSiteOrigin,
+  normalizeConfiguredPublicOrigin,
+} from "./-public-url";
+
 export const portfolioDiscoveryPaths = [
   "/",
   "/projects",
@@ -12,9 +17,23 @@ export type PublicDiscoveryDocument = {
   slug: string;
 };
 
-export function normalizePublicOrigin(requestUrl: string): string {
+export function normalizePublicOrigin(
+  requestUrl: string,
+  explicitOrigin: string | null = configuredPublicSiteOrigin(),
+): string {
+  if (explicitOrigin !== null) {
+    return normalizeConfiguredPublicOrigin(explicitOrigin) ?? explicitOrigin;
+  }
+
   const url = new URL(requestUrl);
-  return `${url.protocol}//${url.host}`;
+  if (
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    url.username.length > 0 ||
+    url.password.length > 0
+  ) {
+    throw new Error("PUBLIC_REQUEST_ORIGIN_INVALID");
+  }
+  return url.origin;
 }
 
 export function buildPortfolioSitemap(
@@ -47,7 +66,7 @@ export function buildPortfolioSitemap(
 
 export function buildPortfolioRobots(origin: string): string {
   const normalizedOrigin = origin.replace(/\/+$/u, "");
-  return `User-agent: *\nAllow: /\nDisallow: /devos\nDisallow: /api/v1/private/\n\nSitemap: ${normalizedOrigin}/sitemap.xml\n`;
+  return `User-agent: *\nAllow: /\nDisallow: /devos\nDisallow: /api/\n\nSitemap: ${normalizedOrigin}/sitemap.xml\n`;
 }
 
 function escapeXml(value: string): string {
