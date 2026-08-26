@@ -1,5 +1,10 @@
 import { Surface } from "@semogtw/ui";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  notFound,
+  redirect,
+} from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicProjectRouteFn } from "../server/public-projects";
@@ -20,6 +25,9 @@ export const Route = createFileRoute("/projects/$slug")({
         headers: { "Cache-Control": "no-store, max-age=0" },
       });
     }
+    if (resolution.document === null) {
+      throw notFound();
+    }
     return resolution.document;
   },
   head: ({ loaderData, params }) => {
@@ -37,31 +45,31 @@ export const Route = createFileRoute("/projects/$slug")({
       ],
     };
   },
+  notFoundComponent: ProjectNotFoundPage,
   component: ProjectDetailPage,
 });
 
-function ProjectDetailPage() {
+function ProjectNotFoundPage() {
   const { slug } = Route.useParams();
+  return (
+    <PublicShell>
+      <header className="editorial-page-header">
+        <p className="eyebrow">Projeto não encontrado</p>
+        <h1>Nenhum case study público corresponde a “{slug}”.</h1>
+        <p>
+          Rascunhos, publicações retiradas e dados operacionais privados não são
+          usados como fallback para preencher esta página.
+        </p>
+        <Link className="text-link" to="/projects">
+          Voltar aos projetos
+        </Link>
+      </header>
+    </PublicShell>
+  );
+}
+
+function ProjectDetailPage() {
   const project = Route.useLoaderData();
-
-  if (project === null) {
-    return (
-      <PublicShell>
-        <header className="editorial-page-header">
-          <p className="eyebrow">Projeto não publicado</p>
-          <h1>Nenhum case study público corresponde a “{slug}”.</h1>
-          <p>
-            Rascunhos, publicações retiradas e dados operacionais privados não são
-            usados como fallback para preencher esta página.
-          </p>
-          <Link className="text-link" to="/projects">
-            Voltar aos projetos
-          </Link>
-        </header>
-      </PublicShell>
-    );
-  }
-
   const publishedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "long",
     timeZone: "America/Bahia",
