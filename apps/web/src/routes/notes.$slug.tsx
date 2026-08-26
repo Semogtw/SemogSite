@@ -1,5 +1,10 @@
 import { Surface } from "@semogtw/ui";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  notFound,
+  redirect,
+} from "@tanstack/react-router";
 import { PublicMarkdown } from "../components/public/public-markdown";
 import { PublicShell } from "../components/public/public-shell";
 import { getPublicEditorialDocumentRouteFn } from "../server/public-editorial";
@@ -19,6 +24,9 @@ export const Route = createFileRoute("/notes/$slug")({
         headers: { "Cache-Control": "no-store, max-age=0" },
       });
     }
+    if (resolution.document === null) {
+      throw notFound();
+    }
     return resolution.document;
   },
   head: ({ loaderData, params }) => {
@@ -32,30 +40,31 @@ export const Route = createFileRoute("/notes/$slug")({
       links: [...head.links, { rel: "stylesheet", href: publicEditorialCss }],
     };
   },
+  notFoundComponent: NoteNotFoundPage,
   component: NotePage,
 });
 
-function NotePage() {
+function NoteNotFoundPage() {
   const { slug } = Route.useParams();
-  const document = Route.useLoaderData();
+  return (
+    <PublicShell>
+      <header className="editorial-page-header">
+        <p className="eyebrow">Nota não encontrada</p>
+        <h1>Nenhuma publicação pública corresponde a “{slug}”.</h1>
+        <p>
+          Rascunhos privados, revisões retiradas e outros tipos editoriais
+          nunca são usados para preencher esta rota.
+        </p>
+        <Link className="text-link" to="/notes">
+          Voltar às notas
+        </Link>
+      </header>
+    </PublicShell>
+  );
+}
 
-  if (document === null) {
-    return (
-      <PublicShell>
-        <header className="editorial-page-header">
-          <p className="eyebrow">Nota não publicada</p>
-          <h1>Nenhuma publicação pública corresponde a “{slug}”.</h1>
-          <p>
-            Rascunhos privados, revisões retiradas e outros tipos editoriais
-            nunca são usados para preencher esta rota.
-          </p>
-          <Link className="text-link" to="/notes">
-            Voltar às notas
-          </Link>
-        </header>
-      </PublicShell>
-    );
-  }
+function NotePage() {
+  const document = Route.useLoaderData();
 
   return (
     <PublicShell>
