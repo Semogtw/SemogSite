@@ -66,7 +66,7 @@ export function buildPortfolioSitemap(
 
 export function buildPortfolioRobots(origin: string): string {
   const normalizedOrigin = origin.replace(/\/+$/u, "");
-  return `User-agent: *\nAllow: /\nDisallow: /devos\nDisallow: /api/\n\nSitemap: ${normalizedOrigin}/sitemap.xml\n`;
+  return `User-agent: *\nAllow: /\nDisallow: /devos\nDisallow: /api/\nDisallow: /api/v1/private/\n\nSitemap: ${normalizedOrigin}/sitemap.xml\n`;
 }
 
 function escapeXml(value: string): string {
