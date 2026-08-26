@@ -14,7 +14,8 @@
 }
 
 .public-main {
-  min-height: calc(100vh - 168px);
+  min-height: calc(100dvh - 168px);
+  min-width: 0;
 }
 
 .editorial-page-header {
@@ -24,6 +25,7 @@
 
 .editorial-page-header h1 {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: clamp(2.8rem, 7vw, 6.5rem);
   line-height: 0.98;
   letter-spacing: -0.055em;
@@ -44,6 +46,10 @@
 @media (max-width: 760px) {
   .editorial-page-header {
     padding-block: 72px;
+  }
+
+  .editorial-page-header h1 {
+    font-size: clamp(2.35rem, 13vw, 4.4rem);
   }
 
   .public-main > .sem-state {
