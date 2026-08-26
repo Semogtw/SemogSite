@@ -6,10 +6,31 @@ import {
 } from "./-public-discovery";
 
 describe("public portfolio discovery", () => {
-  it("derives the public origin from the actual request", () => {
+  it("derives the public origin from the actual request when no canonical origin is configured", () => {
     expect(
-      normalizePublicOrigin("https://portfolio.example.test/projects?preview=1"),
+      normalizePublicOrigin(
+        "https://portfolio.example.test/projects?preview=1",
+        null,
+      ),
     ).toBe("https://portfolio.example.test");
+  });
+
+  it("prefers an explicit canonical public origin over the request host", () => {
+    expect(
+      normalizePublicOrigin(
+        "https://preview-host.example.test/projects",
+        "https://portfolio.example.test",
+      ),
+    ).toBe("https://portfolio.example.test");
+  });
+
+  it("rejects request origins with embedded credentials", () => {
+    expect(() =>
+      normalizePublicOrigin(
+        "https://user:secret@portfolio.example.test/projects",
+        null,
+      ),
+    ).toThrow("PUBLIC_REQUEST_ORIGIN_INVALID");
   });
 
   it("keeps unfinished/private surfaces out and includes published projects", () => {
@@ -63,12 +84,12 @@ describe("public portfolio discovery", () => {
     expect(sitemap).not.toContain("nota & decisão");
   });
 
-  it("allows the portfolio while discouraging crawler access to private routes", () => {
+  it("allows the portfolio while discouraging crawler access to non-page endpoints", () => {
     const robots = buildPortfolioRobots("https://portfolio.example.test/");
 
     expect(robots).toContain("Allow: /");
     expect(robots).toContain("Disallow: /devos");
-    expect(robots).toContain("Disallow: /api/v1/private/");
+    expect(robots).toContain("Disallow: /api/");
     expect(robots).toContain(
       "Sitemap: https://portfolio.example.test/sitemap.xml",
     );
