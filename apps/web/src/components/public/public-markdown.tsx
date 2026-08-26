@@ -41,8 +41,36 @@ function reviewedHref(rawHref: string): string | null {
   }
 }
 
+function reviewedImageSrc(rawSrc: string): string | null {
+  const src = reviewedHref(rawSrc);
+  return src === null || src.startsWith("#") ? null : src;
+}
+
 function nextInlineMatch(value: string): InlineMatch | null {
   const matches: InlineMatch[] = [];
+
+  const image = /!\[([^\]\n]+)\]\(([^)\n]+)\)/u.exec(value);
+  if (image?.index !== undefined) {
+    const alt = (image[1] ?? "").trim();
+    const src = reviewedImageSrc(image[2] ?? "");
+    matches.push({
+      index: image.index,
+      length: image[0].length,
+      render: (key) =>
+        alt.length === 0 || src === null ? (
+          <Fragment key={key}>{alt}</Fragment>
+        ) : (
+          <img
+            key={key}
+            src={src}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+          />
+        ),
+    });
+  }
 
   const code = /`([^`\n]+)`/u.exec(value);
   if (code?.index !== undefined) {
