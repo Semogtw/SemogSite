@@ -22,6 +22,7 @@ import {
   SqliteEvidenceWriteRepository,
   SqliteOverviewDataSource,
   SqliteProjectDataSource,
+  SqlitePublishedEditorialReadModel,
   SqlitePublicProjectSource,
   SqliteRepositoryTargetLifecycleRepository,
   SqliteRepositoryTargetRegistrationRepository,
@@ -63,6 +64,7 @@ import {
   isRequestLoggingEnabled,
 } from "../middleware/request-observer";
 import { createPrivateRuntimeCapabilities } from "../private-capabilities";
+import { createPublicEditorialRoutes } from "../routes/public/editorial";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -125,6 +127,7 @@ export function createSqliteApiRuntime(
   migrate(database);
 
   const publicSource = new SqlitePublicProjectSource(database);
+  const publicEditorial = new SqlitePublishedEditorialReadModel(database);
   const privateAudit = new SqliteAuditDataSource(database);
   const privateAttention = new AttentionCaptureService(
     new SqliteAttentionCaptureRepository(database),
@@ -237,6 +240,10 @@ export function createSqliteApiRuntime(
     privateProjects,
     privateWorkflows,
   });
+  app.route(
+    "/api/v1/public/editorial",
+    createPublicEditorialRoutes(publicEditorial),
+  );
 
   return {
     app,
