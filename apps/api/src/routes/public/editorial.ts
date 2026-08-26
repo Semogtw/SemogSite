@@ -1,5 +1,5 @@
 import type { PublicEditorialDocument } from "@semogtw/contracts";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { ApiEnvironment } from "../../middleware/request-context";
 
 export type PublicEditorialKind = PublicEditorialDocument["kind"];
@@ -50,7 +50,7 @@ function readLimit(value: string | undefined): number | null {
   return Math.min(parsed, 100);
 }
 
-function notFound(context: Parameters<Parameters<Hono<ApiEnvironment>["get"]>[1]>[0]) {
+function notFound(context: Context<ApiEnvironment>) {
   context.header("cache-control", "no-store");
   return context.json(
     {
