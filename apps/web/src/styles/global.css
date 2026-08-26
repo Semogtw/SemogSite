@@ -36,6 +36,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--color-text);
   background:
     radial-gradient(circle at 20% -10%, rgba(124, 140, 255, 0.1), transparent 32rem),
@@ -99,7 +100,7 @@ a {
 }
 
 .hero {
-  min-height: min(760px, calc(100vh - 72px));
+  min-height: min(760px, calc(100dvh - 72px));
   display: grid;
   align-content: center;
   padding-block: 96px;
@@ -119,6 +120,7 @@ a {
 .system-page h1 {
   max-width: 940px;
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: clamp(3rem, 8vw, 7.5rem);
   font-weight: 670;
   letter-spacing: -0.055em;
@@ -133,11 +135,16 @@ a {
   line-height: 1.7;
 }
 
-.hero-actions {
+.hero-actions,
+.system-page__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 40px;
+}
+
+.system-page__actions {
+  margin-top: 8px;
 }
 
 .button {
@@ -149,6 +156,7 @@ a {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-weight: 650;
+  cursor: pointer;
 }
 
 .button-primary {
@@ -237,10 +245,12 @@ a {
 .system-page {
   width: min(100% - 32px, var(--content-reading));
   min-height: 100vh;
+  min-height: 100dvh;
   margin-inline: auto;
   display: grid;
   align-content: center;
   gap: 18px;
+  padding-block: 48px;
 }
 
 .system-page h1 {
@@ -283,10 +293,18 @@ a {
     padding-block: 88px;
   }
 
+  .hero h1 {
+    font-size: clamp(2.7rem, 15vw, 5.1rem);
+  }
+
   .principles,
   .empty-editorial {
     grid-template-columns: 1fr;
     padding-block: 72px;
+  }
+
+  .system-page__actions .button {
+    width: 100%;
   }
 }
 
