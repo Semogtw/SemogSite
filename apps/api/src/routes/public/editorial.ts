@@ -8,9 +8,8 @@ export type PublicEditorialSummary = Pick<
   "kind" | "slug" | "title" | "excerpt" | "tags" | "updatedAt"
 >;
 
-export type PublicEditorialResolution = {
-  document: PublicEditorialDocument | null;
-  redirectSlug: string | null;
+export type PublicEditorialRedirect = {
+  targetSlug: string;
 };
 
 export interface PublicEditorialQueries {
@@ -18,15 +17,17 @@ export interface PublicEditorialQueries {
     kind: PublicEditorialKind;
     limit: number;
   }): Promise<readonly PublicEditorialSummary[]>;
-  resolveBySlug(
+  findBySlug(slug: string): Promise<PublicEditorialDocument | null>;
+  resolveRedirect(
     slug: string,
     kind: PublicEditorialKind,
-  ): Promise<PublicEditorialResolution>;
+  ): Promise<PublicEditorialRedirect | null>;
 }
 
 const emptyQueries: PublicEditorialQueries = {
   listSummaries: async () => [],
-  resolveBySlug: async () => ({ document: null, redirectSlug: null }),
+  findBySlug: async () => null,
+  resolveRedirect: async () => null,
 };
 
 const kinds = new Set<PublicEditorialKind>([
@@ -95,18 +96,18 @@ export function createPublicEditorialRoutes(
       const kind = readKind(context.req.param("kind"));
       if (kind === null) return notFound(context);
 
-      const resolution = await queries.resolveBySlug(
-        context.req.param("slug"),
-        kind,
-      );
-      if (resolution.document !== null) {
+      const slug = context.req.param("slug");
+      const document = await queries.findBySlug(slug);
+      if (document !== null && document.kind === kind) {
         context.header("cache-control", "public, max-age=60, stale-while-revalidate=300");
-        return context.json({ ok: true, data: resolution.document });
+        return context.json({ ok: true, data: document });
       }
-      if (resolution.redirectSlug !== null) {
+
+      const redirect = await queries.resolveRedirect(slug, kind);
+      if (redirect !== null) {
         context.header("cache-control", "public, max-age=300");
         return context.redirect(
-          `/api/v1/public/editorial/${kind}/${encodeURIComponent(resolution.redirectSlug)}`,
+          `/api/v1/public/editorial/${kind}/${encodeURIComponent(redirect.targetSlug)}`,
           308,
         );
       }
