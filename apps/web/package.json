@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build && node ../../scripts/check-web-server-bundle.mjs",
+    "build:public": "node build-public.mjs",
     "dev": "vite dev",
     "start": "node ../../scripts/start-web-server.mjs",
     "test": "vitest run",
