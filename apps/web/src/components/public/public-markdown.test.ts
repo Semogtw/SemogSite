@@ -57,4 +57,31 @@ describe("PublicMarkdown", () => {
     expect(html).toContain("Protocolo relativo");
     expect(html).toContain("HTTP");
   });
+
+  it("renders reviewed project media without allowing unsafe image sources", () => {
+    const html = render([
+      "![Tela do projeto](/media/semogsite-home.webp)",
+      "",
+      "![Diagrama](https://images.example.com/architecture.png)",
+      "",
+      "![Insegura](javascript:alert(1))",
+      "",
+      "![HTTP](http://images.example.com/screenshot.png)",
+      "",
+      "![](https://images.example.com/no-alt.png)",
+    ].join("\n"));
+
+    expect(html).toContain('src="/media/semogsite-home.webp"');
+    expect(html).toContain('alt="Tela do projeto"');
+    expect(html).toContain('src="https://images.example.com/architecture.png"');
+    expect(html).toContain('alt="Diagrama"');
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
+    expect(html).toContain('referrerPolicy="no-referrer"');
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain('src="http://images.example.com/screenshot.png"');
+    expect(html).not.toContain('src="https://images.example.com/no-alt.png"');
+    expect(html).toContain("Insegura");
+    expect(html).toContain("HTTP");
+  });
 });
