@@ -3,8 +3,11 @@ import { Hono, type Context } from "hono";
 import type { ApiEnvironment } from "../../middleware/request-context";
 
 export type PublicEditorialKind = PublicEditorialDocument["kind"];
+export type PublicEditorialProjection = Omit<PublicEditorialDocument, "tags"> & {
+  readonly tags: readonly string[];
+};
 export type PublicEditorialSummary = Pick<
-  PublicEditorialDocument,
+  PublicEditorialProjection,
   "kind" | "slug" | "title" | "excerpt" | "tags" | "updatedAt"
 >;
 
@@ -17,7 +20,7 @@ export interface PublicEditorialQueries {
     kind: PublicEditorialKind;
     limit: number;
   }): Promise<readonly PublicEditorialSummary[]>;
-  findBySlug(slug: string): Promise<PublicEditorialDocument | null>;
+  findBySlug(slug: string): Promise<PublicEditorialProjection | null>;
   resolveRedirect(
     slug: string,
     kind: PublicEditorialKind,
