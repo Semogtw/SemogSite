@@ -1,5 +1,6 @@
+import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../src/app";
+import { createPublicEditorialRoutes } from "../src/routes/public/editorial";
 
 const document = {
   kind: "project" as const,
@@ -13,26 +14,31 @@ const document = {
   updatedAt: "2026-08-25T12:00:00.000Z",
 };
 
+function mount(queries: Parameters<typeof createPublicEditorialRoutes>[0]) {
+  const app = new Hono();
+  app.route("/api/v1/public/editorial", createPublicEditorialRoutes(queries));
+  return app;
+}
+
 describe("public editorial routes", () => {
   it("lists only the requested public editorial kind with a bounded limit", async () => {
     const calls: unknown[] = [];
-    const api = createApiApp({
-      publicEditorial: {
-        listSummaries: async (input) => {
-          calls.push(input);
-          return [
-            {
-              kind: document.kind,
-              slug: document.slug,
-              title: document.title,
-              excerpt: document.excerpt,
-              tags: document.tags,
-              updatedAt: document.updatedAt,
-            },
-          ];
-        },
-        resolveBySlug: async () => ({ document: null, redirectSlug: null }),
+    const api = mount({
+      listSummaries: async (input) => {
+        calls.push(input);
+        return [
+          {
+            kind: document.kind,
+            slug: document.slug,
+            title: document.title,
+            excerpt: document.excerpt,
+            tags: document.tags,
+            updatedAt: document.updatedAt,
+          },
+        ];
       },
+      findBySlug: async () => null,
+      resolveRedirect: async () => null,
     });
 
     const response = await api.request(
@@ -56,12 +62,11 @@ describe("public editorial routes", () => {
     });
   });
 
-  it("returns a canonical published document and no-store is not required for public reads", async () => {
-    const api = createApiApp({
-      publicEditorial: {
-        listSummaries: async () => [],
-        resolveBySlug: async () => ({ document, redirectSlug: null }),
-      },
+  it("returns a canonical published document", async () => {
+    const api = mount({
+      listSummaries: async () => [],
+      findBySlug: async () => document,
+      resolveRedirect: async () => null,
     });
 
     const response = await api.request(
@@ -72,15 +77,25 @@ describe("public editorial routes", () => {
     await expect(response.json()).resolves.toEqual({ ok: true, data: document });
   });
 
+  it("does not serve a published document through the wrong editorial kind", async () => {
+    const api = mount({
+      listSummaries: async () => [],
+      findBySlug: async () => document,
+      resolveRedirect: async () => null,
+    });
+
+    const response = await api.request(
+      "http://localhost/api/v1/public/editorial/note/semogsite",
+    );
+    expect(response.status).toBe(404);
+  });
+
   it("returns 308 for a reviewed alias and 404 for a missing projection", async () => {
-    const api = createApiApp({
-      publicEditorial: {
-        listSummaries: async () => [],
-        resolveBySlug: async (slug) =>
-          slug === "site-antigo"
-            ? { document: null, redirectSlug: "semogsite" }
-            : { document: null, redirectSlug: null },
-      },
+    const api = mount({
+      listSummaries: async () => [],
+      findBySlug: async () => null,
+      resolveRedirect: async (slug) =>
+        slug === "site-antigo" ? { targetSlug: "semogsite" } : null,
     });
 
     const alias = await api.request(
@@ -104,16 +119,18 @@ describe("public editorial routes", () => {
 
   it("rejects unsupported kinds and malformed limits without reaching the reader", async () => {
     let calls = 0;
-    const api = createApiApp({
-      publicEditorial: {
-        listSummaries: async () => {
-          calls += 1;
-          return [];
-        },
-        resolveBySlug: async () => {
-          calls += 1;
-          return { document: null, redirectSlug: null };
-        },
+    const api = mount({
+      listSummaries: async () => {
+        calls += 1;
+        return [];
+      },
+      findBySlug: async () => {
+        calls += 1;
+        return null;
+      },
+      resolveRedirect: async () => {
+        calls += 1;
+        return null;
       },
     });
 
