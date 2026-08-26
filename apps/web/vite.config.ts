@@ -32,6 +32,6 @@ export default defineConfig({
         : undefined,
     }),
     react(),
-    databaseMigrationAssetsPlugin(),
+    ...(publicBuild ? [] : [databaseMigrationAssetsPlugin()]),
   ],
 });
