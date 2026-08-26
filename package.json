@@ -9,6 +9,7 @@
   "scripts": {
     "backup:database": "node scripts/backup-database.mjs",
     "build": "pnpm -r build",
+    "build:public-web": "pnpm --filter @semogtw/web build:public",
     "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:cloudflare-worker-boundary && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:run-ledger-guardrails && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm check:public-production && pnpm -r typecheck && pnpm test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
