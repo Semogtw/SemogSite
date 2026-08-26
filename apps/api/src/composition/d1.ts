@@ -24,6 +24,7 @@ import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
 import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
 import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
+import { D1PublishedEditorialReadModel } from "@semogtw/database/d1-published-editorial";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";
 import { D1RepositoryTargetRegistrationRepository } from "@semogtw/database/d1-repository-target-registration";
@@ -63,6 +64,7 @@ import {
   isRequestLoggingEnabled,
 } from "../middleware/request-observer";
 import { createPrivateRuntimeCapabilities } from "../private-capabilities";
+import { createPublicEditorialRoutes } from "../routes/public/editorial";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
 
@@ -144,6 +146,7 @@ async function composeD1ApiRuntime(
 ): Promise<D1ApiRuntime> {
   const database = createD1Database(bindings.DB);
   const publicProjects = new D1PublicProjectSource(database);
+  const publicEditorial = new D1PublishedEditorialReadModel(bindings.DB);
   const privateAudit = new D1AuditDataSource(database);
   const privateAttention = new AttentionCaptureService(
     new D1AttentionCaptureRepository(bindings.DB),
@@ -233,39 +236,45 @@ async function composeD1ApiRuntime(
     ? consoleRequestObserver
     : undefined;
 
+  const app = createApiApp({
+    ...(auth === undefined ? {} : { auth }),
+    ...(requestObserver === undefined ? {} : { requestObserver }),
+    readiness,
+    publicProjects: {
+      list: () => publicProjects.listListed(),
+      findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
+    },
+    privateCapabilities,
+    privateAttention,
+    privateAttentionLifecycle,
+    privateEvidence,
+    privateSessionHandoffs,
+    privateStages,
+    privateRepositoryTargets,
+    privateRepositoryTargetRegistration,
+    privateBranchRecommendations,
+    privateCooperativeRuns,
+    privateCooperativeRunCheckpoints,
+    privateCooperativeRunCommands,
+    privateCooperativeRunQueries,
+    privateCooperativeRunTransitions,
+    privateVerificationObligations,
+    privateScopeReservations,
+    privateEditorialRedirects,
+    privateAudit,
+    privateOverview,
+    privateToday,
+    privateRoadmap,
+    privateProjects,
+    privateWorkflows,
+  });
+  app.route(
+    "/api/v1/public/editorial",
+    createPublicEditorialRoutes(publicEditorial),
+  );
+
   return {
-    app: createApiApp({
-      ...(auth === undefined ? {} : { auth }),
-      ...(requestObserver === undefined ? {} : { requestObserver }),
-      readiness,
-      publicProjects: {
-        list: () => publicProjects.listListed(),
-        findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
-      },
-      privateCapabilities,
-      privateAttention,
-      privateAttentionLifecycle,
-      privateEvidence,
-      privateSessionHandoffs,
-      privateStages,
-      privateRepositoryTargets,
-      privateRepositoryTargetRegistration,
-      privateBranchRecommendations,
-      privateCooperativeRuns,
-      privateCooperativeRunCheckpoints,
-      privateCooperativeRunCommands,
-      privateCooperativeRunQueries,
-      privateCooperativeRunTransitions,
-      privateVerificationObligations,
-      privateScopeReservations,
-      privateEditorialRedirects,
-      privateAudit,
-      privateOverview,
-      privateToday,
-      privateRoadmap,
-      privateProjects,
-      privateWorkflows,
-    }),
+    app,
     authProvider: auth?.provider,
   };
 }
