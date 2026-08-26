@@ -16,6 +16,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#0b0d12" },
+      { name: "color-scheme", content: "dark" },
+      { name: "application-name", content: "Semogtw" },
+      { name: "format-detection", content: "telephone=no" },
       { title: "Semogtw — Portfólio técnico" },
       {
         name: "description",
@@ -24,6 +28,8 @@ export const Route = createRootRoute({
       },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "stylesheet", href: sharedCss },
       { rel: "stylesheet", href: globalCss },
       { rel: "stylesheet", href: publicSurfacesCss },
@@ -62,7 +68,7 @@ function NotFoundPage() {
     <main className="system-page">
       <p className="eyebrow">Erro 404</p>
       <h1>Página não encontrada.</h1>
-      <p>O endereço pode ter mudado ou ainda não fazer parte da plataforma.</p>
+      <p>O endereço pode ter mudado ou ainda não fazer parte do portfólio público.</p>
       <Link className="text-link" to="/">
         Voltar ao início
       </Link>
@@ -75,10 +81,19 @@ function ErrorPage() {
     <main className="system-page" role="alert">
       <p className="eyebrow">Falha temporária</p>
       <h1>Não foi possível abrir esta página.</h1>
-      <p>Nenhum detalhe interno foi exposto. Tente novamente em instantes.</p>
-      <a className="text-link" href="/">
-        Recarregar a plataforma
-      </a>
+      <p>Nenhum detalhe interno foi exposto. Você pode tentar novamente ou voltar ao início.</p>
+      <div className="system-page__actions">
+        <button
+          className="button button-primary"
+          type="button"
+          onClick={() => window.location.reload()}
+        >
+          Tentar novamente
+        </button>
+        <Link className="button button-secondary" to="/">
+          Voltar ao início
+        </Link>
+      </div>
     </main>
   );
 }
