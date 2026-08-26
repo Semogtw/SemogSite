@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteDatabase, migrate } from "../adapters/sqlite";
 import { SqlitePublishedEditorialReadModel } from "./published-editorial-read-model";
 
+const createdAt = "2026-08-20T02:50:00.000Z";
 const publishedAt = "2026-08-20T03:00:00.000Z";
 
 function seedPublishedProject() {
@@ -16,11 +17,10 @@ function seedPublishedProject() {
         working_revision_id, approved_revision_id, published_revision_id,
         last_published_revision_id, version, created_at, updated_at
       ) VALUES (
-        'document-summary', 'project', 'summary-project', 'approved', 'published',
-        'revision-summary', 'revision-summary', 'revision-summary',
-        'revision-summary', 1, ?, ?
+        'document-summary', 'project', 'summary-project', 'draft', 'unpublished',
+        'revision-summary', NULL, NULL, NULL, 1, ?, ?
       )
-    `).run(publishedAt, publishedAt);
+    `).run(createdAt, createdAt);
 
     database.$client.prepare(`
       INSERT INTO editorial_revisions (
@@ -31,15 +31,49 @@ function seedPublishedProject() {
         'Compact public excerpt.', '# Heavy body that list summaries must not return',
         '["performance","typescript"]', ?, 'owner', ?
       )
-    `).run(hash, publishedAt);
+    `).run(hash, createdAt);
 
     database.$client.prepare(`
       INSERT INTO editorial_events (
         id, document_id, sequence, kind, actor, revision_id, summary, reason,
         before_json, after_json, occurred_at, idempotency_key, correlation_id
       ) VALUES (
-        'event-summary', 'document-summary', 1, 'editorial.published', 'owner',
-        'revision-summary', 'Published.', NULL, '{}', '{}', ?,
+        'event-summary-created', 'document-summary', 1,
+        'editorial.document_created', 'owner', NULL, 'Created.', NULL,
+        NULL, '{}', ?, 'summary-create-key', 'summary-create-correlation'
+      )
+    `).run(createdAt);
+
+    database.$client.prepare(`
+      INSERT INTO editorial_reviews (
+        id, document_id, revision_id, content_hash, reviewer_id, reason, notes,
+        credentials_reviewed, personal_data_reviewed,
+        operational_metadata_reviewed, external_links_reviewed,
+        legal_attribution_reviewed, factual_claims_reviewed,
+        markdown_safety_reviewed, reviewed_at, idempotency_key
+      ) VALUES (
+        'review-summary', 'document-summary', 'revision-summary', ?, 'owner',
+        'Reviewed for publication.', NULL, 1, 1, 1, 1, 1, 1, 1, ?,
+        'summary-review-key'
+      )
+    `).run(hash, publishedAt);
+
+    database.$client.prepare(`
+      UPDATE editorial_documents
+      SET workflow_status = 'approved', approved_revision_id = 'revision-summary',
+          publication_status = 'published', published_revision_id = 'revision-summary',
+          last_published_revision_id = 'revision-summary', version = 2,
+          updated_at = ?
+      WHERE id = 'document-summary'
+    `).run(publishedAt);
+
+    database.$client.prepare(`
+      INSERT INTO editorial_events (
+        id, document_id, sequence, kind, actor, revision_id, summary, reason,
+        before_json, after_json, occurred_at, idempotency_key, correlation_id
+      ) VALUES (
+        'event-summary-published', 'document-summary', 2, 'editorial.published',
+        'owner', 'revision-summary', 'Published.', NULL, '{}', '{}', ?,
         'summary-publish-key', 'summary-publish-correlation'
       )
     `).run(publishedAt);
