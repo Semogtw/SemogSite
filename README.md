@@ -45,7 +45,7 @@ Uma futura API para agentes, se habilitada, será restrita a operações
 editoriais tipadas e autorizadas, não à execução de agentes, comandos de servidor,
 Git, deploy ou controle de infraestrutura.
 
-Consulte [o plano de simplificação](docs/DEVOS_ADMIN_SIMPLIFICATION.md).
+Consulte [o estado atual](docs/SITE_STATUS.md), [a arquitetura administrativa](docs/DEVOS_ADMIN_SIMPLIFICATION.md) e [o guia de desenvolvimento](docs/DEVELOPMENT.md).
 
 ## Tecnologias
 

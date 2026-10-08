@@ -6,7 +6,7 @@ Cloudflare Workers + D1 is the selected hosting direction for SemogSite. The pro
 
 No production deployment is authorized yet. The checked-in Wrangler configuration points only to the development D1 database. Remote preview promotion still requires exact-head gates, D1 export/restore proof, edge-path auth/CSRF verification, observability review and rollback evidence.
 
-The MCP adapter remains in-process/read-only; no stdio or remote transport is enabled.
+Historical MCP source remains disconnected. No MCP transport or agent execution service is part of the active product.
 
 ## Current deployment mode
 
@@ -14,11 +14,15 @@ The implementation is transitioning toward **Mode A (Unified)** on Cloudflare, b
 
 Today the safe description is a temporary **split mode**:
 
-- Cloudflare Worker + D1: public project reads, owner login/session/logout, login rate limiting and private read models;
-- Node/SQLite: full existing DevOS mutation surface and local development reference path;
-- MCP: in-process/read-only only.
+- Cloudflare Worker + D1: public editorial/project reads, owner authentication,
+  rate limits, audit and bounded editorial redirect operations;
+- Node/SQLite: the existing private CMS authoring, revision, approval,
+  publication, rollback and withdrawal server functions;
+- No mounted project/agent orchestration API, transport or WebSocket.
 
-Do not claim a fully unified Cloudflare DevOS until the required private writes have Worker-safe adapters and the exact deployment candidate passes the production gates.
+Do not claim a unified Cloudflare editor until those CMS writes have a
+verified Worker-safe adapter, or a secure separately hosted admin runtime is
+explicitly adopted, with consistent publishing storage and migration tests.
 
 ## Capability verification
 

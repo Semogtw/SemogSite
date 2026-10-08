@@ -1,6 +1,6 @@
 # Public Portfolio V1
 
-> Atualizado em 25 de agosto de 2026. Para o inventário operacional mais detalhado de superfícies, lacunas e sequência de trabalho, consulte [`docs/SITE_STATUS.md`](SITE_STATUS.md).
+> Histórico do Portfolio V1 (25 de agosto de 2026); linha oficial de desenvolvimento desde 8 de outubro de 2026: **`develop/site`**. Para o inventário operacional mais detalhado de superfícies, lacunas e sequência de trabalho, consulte [`docs/SITE_STATUS.md`](SITE_STATUS.md).
 
 ## Product priority
 
@@ -26,11 +26,10 @@ The site must not read like product documentation for its own infrastructure. De
 
 ## Active development line
 
-The public portfolio is developed on `develop/public-portfolio-v1`.
-
-Before the 25 August documentation refresh, this branch was at `adaa00fd182fea4776f424fc6b42dde152bde891`, **162 commits ahead of `main` and 0 behind**. `main` was still at `42adc1b578d33e272f55dff568acb9597221bae9`.
-
-Until the public line is deliberately merged, `main` must not be treated as the source of truth for the current public-site UX.
+Development now continues only in `develop/site`, which incorporates the
+public V1 work from `develop/public-portfolio-v1` and the simplified private
+editorial admin. Historical commits and test numbers below refer to earlier
+snapshots, not the current HEAD.
 
 ## Primary information architecture
 

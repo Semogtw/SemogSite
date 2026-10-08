@@ -1,3 +1,12 @@
+## 2026-10-08 — Working line `develop/site` (not released)
+
+- Changed the product direction to public portfolio plus private editorial administration.
+- Retired orchestration routes, command/execution monitoring screens and their HTTP mounts.
+- Simplified owner navigation, Node/D1 compositions and browser client to editorial operations.
+- Preserved session security, CSRF, editorial revision/publish workflow, audit and redirects.
+- Kept historical schema/tables and disconnected domain/database/MCP source pending separately verified cleanup.
+- Added a site-admin surface guard; the new branch has no claim of CI, build or production validation.
+
 # Changelog
 
 All notable changes to Semogtw Platform are recorded here. Dates use `America/Bahia` for presentation; Git timestamps remain UTC.
