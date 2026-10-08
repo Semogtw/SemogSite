@@ -9,7 +9,7 @@ export const Route = createFileRoute("/devos/settings")({
   }),
   head: () => ({
     meta: [
-      { title: "Configurações — Semogtw DevOS" },
+      { title: "Configurações — Administração Semogtw" },
       { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
   }),
@@ -21,7 +21,7 @@ function SettingsPage() {
     <DevOSShell activePath="/devos/settings">
       <header className="devos-page-header">
         <div>
-          <p className="eyebrow">Preferências privadas</p>
+          <p className="eyebrow">Administração privada</p>
           <h1>Configurações</h1>
         </div>
       </header>
@@ -37,7 +37,7 @@ function SettingsPage() {
           <h2>Integrações</h2>
           <EmptyState
             title="Nenhuma integração conectada"
-            description="GitHub, MCP e hospedagem continuarão atrás de adaptadores e permissões explícitas."
+            description="Uma futura API para agentes poderá editar apenas conteúdo autorizado, com autenticação e revisão. Nenhuma integração de agentes está habilitada."
           />
         </Surface>
       </div>

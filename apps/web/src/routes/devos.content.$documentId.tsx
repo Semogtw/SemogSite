@@ -63,7 +63,7 @@ function EditorialDocumentPage() {
   const detail = Route.useLoaderData();
   if (detail === null) {
     return (
-      <DevOSShell activePath="/devos/more">
+      <DevOSShell activePath="/devos/content">
         <EmptyState
           title="Documento não encontrado"
           description="O documento pode ter sido removido da referência ou o identificador é inválido."
@@ -96,7 +96,7 @@ function EditorialDocumentPage() {
     }));
 
   return (
-    <DevOSShell activePath="/devos/more">
+    <DevOSShell activePath="/devos/content">
       <header className="devos-page-header">
         <div>
           <p className="eyebrow">/{detail.document.slug}</p>

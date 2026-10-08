@@ -9,7 +9,7 @@ export const Route = createFileRoute("/devos/more")({
   }),
   head: () => ({
     meta: [
-      { title: "Mais — Semogtw DevOS" },
+      { title: "Ferramentas — Administração Semogtw" },
       { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
   }),
@@ -17,50 +17,18 @@ export const Route = createFileRoute("/devos/more")({
 });
 
 const destinations = [
-  {
-    to: "/devos/runs",
-    title: "Execuções",
-    description: "Relatos cooperativos, checkpoints e comandos enfileirados.",
-  },
-  {
-    to: "/devos/insights",
-    title: "Insights",
-    description: "Padrões e decisões derivados de evidência.",
-  },
-  {
-    to: "/devos/capture",
-    title: "Capturar",
-    description: "Atenções e handoffs manuais com confirmação e auditoria.",
-  },
-  {
-    to: "/devos/audit",
-    title: "Auditoria",
-    description: "Histórico privado de mutações, motivos e correlações.",
-  },
-  {
-    to: "/devos/search",
-    title: "Busca",
-    description: "Pesquisa privada sobre conteúdo autorizado.",
-  },
-  {
-    to: "/devos/content",
-    title: "Conteúdo",
-    description: "Fluxo editorial privado antes da publicação.",
-  },
-  {
-    to: "/devos/settings",
-    title: "Configurações",
-    description: "Conta, integrações e preferências.",
-  },
+  { to: "/devos/content", title: "Conteúdo", description: "Rascunhos, revisões e publicação do portfólio." },
+  { to: "/devos/audit", title: "Auditoria", description: "Histórico privado de alterações." },
+  { to: "/devos/settings", title: "Configurações", description: "Acesso e preferências do site." },
 ] as const;
 
 function MorePage() {
   return (
-    <DevOSShell activePath="/devos/more">
+    <DevOSShell activePath="/devos">
       <header className="devos-page-header">
         <div>
-          <p className="eyebrow">Outras ferramentas</p>
-          <h1>Mais</h1>
+          <p className="eyebrow">Administração do site</p>
+          <h1>Ferramentas</h1>
         </div>
       </header>
       <div className="more-grid">

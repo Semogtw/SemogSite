@@ -30,11 +30,22 @@ O site também reúne minha formação acadêmica, estudos em andamento e certif
 
 Além dos projetos, existem espaços para registrar decisões técnicas, aprendizados e a evolução da minha formação ao longo do tempo.
 
-## Semogtw DevOS
+## Área administrativa privada
 
-O repositório também contém o **Semogtw DevOS**, uma área privada que uso para organizar e acompanhar meu próprio processo de desenvolvimento.
+A área `/devos` está sendo simplificada para servir como painel administrativo
+do portfólio: criação e edição de projetos, notas e páginas, revisão editorial,
+publicação, segurança e auditoria. A experiência pública permanece independente
+de dados operacionais privados.
 
-Ele reúne ferramentas para projetos, workflows, sessões de trabalho, evidências, publicação de conteúdo e automações. Essa parte existe como infraestrutura pessoal; o foco público do projeto continua sendo o portfólio.
+O histórico de acompanhamento de projetos de IA, runs, checkpoints, sincronização
+GitHub e orquestração está sendo retirado em etapas. A migração não autoriza
+apagar dados existentes nem expor endpoints antigos sem revisão.
+
+Uma futura API para agentes, se habilitada, será restrita a operações
+editoriais tipadas e autorizadas, não à execução de agentes, comandos de servidor,
+Git, deploy ou controle de infraestrutura.
+
+Consulte [o plano de simplificação](docs/DEVOS_ADMIN_SIMPLIFICATION.md).
 
 ## Tecnologias
 

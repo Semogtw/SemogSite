@@ -71,7 +71,7 @@ function ContentPage() {
   ).length;
 
   return (
-    <DevOSShell activePath="/devos/more">
+    <DevOSShell activePath="/devos/content">
       <header className="devos-page-header">
         <div>
           <p className="eyebrow">Workflow editorial privado</p>
