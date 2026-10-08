@@ -14,8 +14,8 @@ export const Route = createFileRoute("/devos/login")({
   validateSearch: SearchSchema,
   head: () => ({
     meta: [
-      { title: "Entrar no Semogtw DevOS" },
-      { name: "description", content: "Área privada da plataforma Semogtw." },
+      { title: "Entrar no Administração Semogtw" },
+      { name: "description", content: "Área privada de edição e publicação do portfólio." },
       { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
     links: [{ rel: "stylesheet", href: loginCss }],
@@ -49,7 +49,7 @@ function LoginPage() {
   return (
     <main className="login-page">
       <Surface className="login-card" aria-labelledby="login-title">
-        <p className="eyebrow">Semogtw DevOS</p>
+        <p className="eyebrow">Administração Semogtw</p>
         <h1 id="login-title">Acesso privado</h1>
         <p>
           Entre com a credencial do proprietário. Nenhum dado operacional é

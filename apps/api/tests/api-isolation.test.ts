@@ -57,30 +57,19 @@ describe("API isolation", () => {
     expect(detailResponse.status).toBe(404);
   });
 
-  it("rejects private routes before invoking services and disables caching", async () => {
-    const getOverview = vi.fn(async () => ({
-      activeProjectCount: 4,
-      inProgressStageCount: 0,
-      highImpactAttentionCount: 0,
-      projects: [],
-      currentStages: [],
-      attention: [],
-      lastSyncedAt: null,
-    }));
+  it("rejects private audit reads before invoking the private service", async () => {
+    const list = vi.fn(async () => ({ items: [], page: 1, pageSize: 25, total: 0, totalPages: 0 }));
     const app = createApiApp({
       authProvider: {
         authenticate: vi.fn(),
         resolveSession: vi.fn(async () => null),
         revokeSession: vi.fn(),
       },
-      privateOverview: { getOverview },
+      privateAudit: { list },
     });
-
-    const response = await app.request("/api/v1/private/overview");
-
+    const response = await app.request("/api/v1/private/audit");
     expect(response.status).toBe(401);
     expect(response.headers.get("cache-control")).toBe("no-store, private");
-    expect(response.headers.get("pragma")).toBe("no-cache");
-    expect(getOverview).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
   });
 });

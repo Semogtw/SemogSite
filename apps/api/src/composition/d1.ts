@@ -5,65 +5,16 @@ import {
   type RuntimeNodeEnv,
 } from "@semogtw/auth";
 import { parseRuntimeConfig } from "@semogtw/config";
-import {
-  createD1Database,
-  type D1DatabaseBinding,
-} from "@semogtw/database/d1";
+import { createD1Database, type D1DatabaseBinding } from "@semogtw/database/d1";
 import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";
 import { D1AuditDataSource } from "@semogtw/database/d1-audit";
-import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";
-import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";
-import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";
-import { D1CooperativeRunCheckpointRepository } from "@semogtw/database/d1-cooperative-run-checkpoint";
-import { D1CooperativeRunCommandQueueRepository } from "@semogtw/database/d1-cooperative-run-command-queue";
-import { D1CooperativeRunReadModel } from "@semogtw/database/d1-cooperative-run-read";
-import { D1CooperativeRunRegistrationRepository } from "@semogtw/database/d1-cooperative-run-registration";
-import { D1CooperativeRunTransitionRepository } from "@semogtw/database/d1-cooperative-run-transition";
 import { D1EditorialRedirectRepository } from "@semogtw/database/d1-editorial-redirects";
-import { D1EvidenceWriteRepository } from "@semogtw/database/d1-evidence-write";
 import { D1LoginRateLimiter } from "@semogtw/database/d1-login-rate-limiter";
-import { D1OverviewDataSource } from "@semogtw/database/d1-overview";
-import { D1ProjectDataSource } from "@semogtw/database/d1-projects";
 import { D1PublishedEditorialReadModel } from "@semogtw/database/d1-published-editorial";
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
-import { D1RepositoryTargetLifecycleRepository } from "@semogtw/database/d1-repository-target-lifecycle";
-import { D1RepositoryTargetRegistrationRepository } from "@semogtw/database/d1-repository-target-registration";
-import { D1RoadmapDataSource } from "@semogtw/database/d1-roadmap";
-import { D1ScopeReservationRepository } from "@semogtw/database/d1-scope-reservations";
-import { D1SessionHandoffRepository } from "@semogtw/database/d1-session-handoff";
-import { D1StageCompletionRepository } from "@semogtw/database/d1-stage-completion";
-import { D1TodayDataSource } from "@semogtw/database/d1-today";
-import { D1VerificationObligationRepository } from "@semogtw/database/d1-verification-obligations";
-import { D1WorkflowOrchestrationReadModel } from "@semogtw/database/d1-workflows";
-import {
-  AttentionCaptureService,
-  AttentionLifecycleService,
-  BranchRecommendationAcceptanceService,
-  CooperativeRunCheckpointService,
-  CooperativeRunCommandQueueService,
-  CooperativeRunRegistrationService,
-  CooperativeRunTransitionService,
-  EditorialRedirectService,
-  EvidenceService,
-  OverviewService,
-  ProjectService,
-  RepositoryTargetLifecycleService,
-  RepositoryTargetRegistrationService,
-  RoadmapService,
-  SessionHandoffService,
-  StageCompletionService,
-  TodayService,
-} from "@semogtw/domain";
-import {
-  ScopeReservationService,
-  VerificationObligationService,
-} from "@semogtw/domain/orchestration";
+import { EditorialRedirectService } from "@semogtw/domain";
 import { createApiApp } from "../app";
-import {
-  consoleRequestObserver,
-  isRequestLoggingEnabled,
-} from "../middleware/request-observer";
-import { createPrivateRuntimeCapabilities } from "../private-capabilities";
+import { consoleRequestObserver, isRequestLoggingEnabled } from "../middleware/request-observer";
 import { createPublicEditorialRoutes } from "../routes/public/editorial";
 
 const sessionLifetimeMs = 14 * 24 * 60 * 60 * 1000;
@@ -88,25 +39,18 @@ type ComposedAuth = {
   readonly loginLimiter: D1LoginRateLimiter;
 };
 
-const runtimeCache = new WeakMap<
-  D1DatabaseBinding,
-  Map<string, Promise<D1ApiRuntime>>
->();
+const runtimeCache = new WeakMap<D1DatabaseBinding, Map<string, Promise<D1ApiRuntime>>>();
 
 function configFingerprint(bindings: D1ApiBindings): string {
   return [
     bindings.NODE_ENV ?? "",
     bindings.SEMOGTW_OWNER_PASSWORD_HASH ?? "",
     bindings.SEMOGTW_SESSION_SECRET ?? "",
-    isRequestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING)
-      ? "logging:on"
-      : "logging:off",
+    isRequestLoggingEnabled(bindings.SEMOGTW_REQUEST_LOGGING) ? "logging:on" : "logging:off",
   ].join("\u0000");
 }
 
-async function composeAuth(
-  bindings: D1ApiBindings,
-): Promise<ComposedAuth | undefined> {
+async function composeAuth(bindings: D1ApiBindings): Promise<ComposedAuth | undefined> {
   try {
     const config = parseRuntimeConfig({
       NODE_ENV: bindings.NODE_ENV,
@@ -114,7 +58,6 @@ async function composeAuth(
       SEMOGTW_SESSION_SECRET: bindings.SEMOGTW_SESSION_SECRET,
     });
     if (!isEncodedPasswordHash(config.ownerPasswordHash)) return undefined;
-
     const sessions = new D1AuthSessionStore(bindings.DB);
     await sessions.upsertOwnerAccount({
       id: "semogtw-owner",
@@ -141,92 +84,21 @@ async function composeAuth(
   }
 }
 
-async function composeD1ApiRuntime(
-  bindings: D1ApiBindings,
-): Promise<D1ApiRuntime> {
+async function composeD1ApiRuntime(bindings: D1ApiBindings): Promise<D1ApiRuntime> {
   const database = createD1Database(bindings.DB);
   const publicProjects = new D1PublicProjectSource(database);
   const publicEditorial = new D1PublishedEditorialReadModel(bindings.DB);
   const privateAudit = new D1AuditDataSource(database);
-  const privateAttention = new AttentionCaptureService(
-    new D1AttentionCaptureRepository(bindings.DB),
-  );
-  const privateAttentionLifecycle = new AttentionLifecycleService(
-    new D1AttentionLifecycleRepository(bindings.DB),
-  );
-  const privateEvidence = new EvidenceService(
-    new D1EvidenceWriteRepository(bindings.DB),
-  );
-  const privateSessionHandoffs = new SessionHandoffService(
-    new D1SessionHandoffRepository(bindings.DB),
-  );
-  const privateStages = new StageCompletionService(
-    new D1StageCompletionRepository(bindings.DB),
-  );
-  const privateRepositoryTargets = new RepositoryTargetLifecycleService(
-    new D1RepositoryTargetLifecycleRepository(bindings.DB),
-  );
-  const privateRepositoryTargetRegistration =
-    new RepositoryTargetRegistrationService(
-      new D1RepositoryTargetRegistrationRepository(bindings.DB),
-    );
-  const privateBranchRecommendations = new BranchRecommendationAcceptanceService(
-    new D1BranchRecommendationAcceptanceRepository(bindings.DB),
-  );
-  const privateCooperativeRuns = new CooperativeRunRegistrationService(
-    new D1CooperativeRunRegistrationRepository(bindings.DB),
-  );
-  const privateCooperativeRunCheckpoints = new CooperativeRunCheckpointService(
-    new D1CooperativeRunCheckpointRepository(bindings.DB),
-  );
-  const privateCooperativeRunCommands = new CooperativeRunCommandQueueService(
-    new D1CooperativeRunCommandQueueRepository(bindings.DB),
-  );
-  const privateCooperativeRunQueries = new D1CooperativeRunReadModel(bindings.DB);
-  const privateCooperativeRunTransitions = new CooperativeRunTransitionService(
-    new D1CooperativeRunTransitionRepository(bindings.DB),
-  );
-  const privateVerificationObligations = new VerificationObligationService(
-    new D1VerificationObligationRepository(bindings.DB),
-  );
-  const privateScopeReservations = new ScopeReservationService(
-    new D1ScopeReservationRepository(bindings.DB),
-  );
   const privateEditorialRedirects = new EditorialRedirectService(
     new D1EditorialRedirectRepository(bindings.DB),
   );
-  const privateOverview = new OverviewService(
-    new D1OverviewDataSource(database),
-  );
-  const privateToday = new TodayService(new D1TodayDataSource(database));
-  const roadmap = new RoadmapService(new D1RoadmapDataSource(database));
-  const projects = new ProjectService(new D1ProjectDataSource(database));
-  const privateWorkflows = new D1WorkflowOrchestrationReadModel(database);
-  const privateCapabilities = {
-    getCapabilities: () => createPrivateRuntimeCapabilities("cloudflare-worker-d1"),
-  };
-  const privateRoadmap = {
-    getRoadmap: () =>
-      roadmap.query({
-        projectIds: [],
-        states: [],
-        areas: [],
-        includeCompleted: true,
-      }),
-  };
-  const privateProjects = {
-    listPortfolio: () => projects.listOperationalPortfolio(),
-    getProjectHub: (slug: string) => projects.getProjectHub(slug),
-  };
   const auth = await composeAuth(bindings);
   const readiness = {
     check: async () => {
       if (auth === undefined) return false;
       try {
-        const migrationMarker = await bindings.DB
-          .prepare("SELECT COUNT(*) AS count FROM login_rate_limits")
-          .first();
-        return migrationMarker !== null;
+        const marker = await bindings.DB.prepare("SELECT COUNT(*) AS count FROM login_rate_limits").first();
+        return marker !== null;
       } catch {
         return false;
       }
@@ -244,59 +116,22 @@ async function composeD1ApiRuntime(
       list: () => publicProjects.listListed(),
       findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
     },
-    privateCapabilities,
-    privateAttention,
-    privateAttentionLifecycle,
-    privateEvidence,
-    privateSessionHandoffs,
-    privateStages,
-    privateRepositoryTargets,
-    privateRepositoryTargetRegistration,
-    privateBranchRecommendations,
-    privateCooperativeRuns,
-    privateCooperativeRunCheckpoints,
-    privateCooperativeRunCommands,
-    privateCooperativeRunQueries,
-    privateCooperativeRunTransitions,
-    privateVerificationObligations,
-    privateScopeReservations,
-    privateEditorialRedirects,
     privateAudit,
-    privateOverview,
-    privateToday,
-    privateRoadmap,
-    privateProjects,
-    privateWorkflows,
+    privateEditorialRedirects,
   });
-  app.route(
-    "/api/v1/public/editorial",
-    createPublicEditorialRoutes(publicEditorial),
-  );
-
-  return {
-    app,
-    authProvider: auth?.provider,
-  };
+  app.route("/api/v1/public/editorial", createPublicEditorialRoutes(publicEditorial));
+  return { app, authProvider: auth?.provider };
 }
 
-/**
- * Composes and memoizes the Worker runtime for one D1 binding and secret set.
- * Missing or invalid secrets keep private routes fail-closed while public
- * routes remain available. A new isolate/configuration creates a new runtime.
- */
-export function createD1ApiRuntime(
-  bindings: D1ApiBindings,
-): Promise<D1ApiRuntime> {
+export function createD1ApiRuntime(bindings: D1ApiBindings): Promise<D1ApiRuntime> {
   const fingerprint = configFingerprint(bindings);
   let runtimes = runtimeCache.get(bindings.DB);
   if (runtimes === undefined) {
     runtimes = new Map();
     runtimeCache.set(bindings.DB, runtimes);
   }
-
   const existing = runtimes.get(fingerprint);
   if (existing !== undefined) return existing;
-
   const runtime = composeD1ApiRuntime(bindings);
   runtimes.set(fingerprint, runtime);
   return runtime;

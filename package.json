@@ -10,7 +10,7 @@
     "backup:database": "node scripts/backup-database.mjs",
     "build": "pnpm -r build",
     "build:public-web": "pnpm --filter @semogtw/web build:public",
-    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:cloudflare-worker-boundary && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:run-ledger-guardrails && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm check:public-production && pnpm -r typecheck && pnpm test",
+    "check": "pnpm test:guardrails && pnpm check:upstream-clean && pnpm check:boundaries && pnpm check:cloudflare-worker-boundary && pnpm check:mcp-transport-boundary && pnpm check:mcp-package-boundaries && pnpm check:mcp-node-runtime-boundary && pnpm check:editorial-guardrails && pnpm check:public-confidentiality && pnpm check:public-production && pnpm -r typecheck && pnpm test",
     "check:upstream-clean": "node scripts/check-upstream-clean.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:mcp-transport-boundary": "node scripts/check-mcp-transport-boundary.mjs",
@@ -27,7 +27,6 @@
     "verify:backup": "node scripts/verify-backup.mjs",
     "check:mcp-package-boundaries": "node scripts/check-mcp-package-boundaries.mjs",
     "check:mcp-node-runtime-boundary": "node scripts/check-mcp-node-runtime-boundary.mjs",
-    "check:run-ledger-guardrails": "node scripts/check-run-ledger-guardrails.mjs",
     "check:editorial-guardrails": "node scripts/check-editorial-guardrails.mjs",
     "test:e2e": "node scripts/prepare-e2e.mjs && pnpm --filter @semogtw/web build && playwright test",
     "check:cloudflare-worker-boundary": "node scripts/check-cloudflare-worker-boundary.mjs"
