@@ -18,6 +18,8 @@ function createFixture(overrides = {}) {
     "apps/api/src/composition/d1.ts": [
       'import { createD1Database } from "@semogtw/database/d1";',
       'import { D1AuthSessionStore } from "@semogtw/database/d1-auth-sessions";',
+      'import { D1AuditDataSource } from "@semogtw/database/d1-audit";',
+      'import { D1PublishedEditorialReadModel } from "@semogtw/database/d1-published-editorial";',
       'import { D1AttentionCaptureRepository } from "@semogtw/database/d1-attention-capture";',
       'import { D1AttentionLifecycleRepository } from "@semogtw/database/d1-attention-lifecycle";',
       'import { D1BranchRecommendationAcceptanceRepository } from "@semogtw/database/d1-branch-recommendation-acceptance";',
@@ -59,6 +61,10 @@ function createFixture(overrides = {}) {
         exports: {
           "./d1": "./src/adapters/d1.ts",
           "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+  "./d1-audit": "./src/repositories/d1-audit-data-source.ts",
+  "./d1-published-editorial": "./src/repositories/d1-published-editorial-read-model.ts",
+          "./d1-audit": "./src/repositories/d1-audit-data-source.ts",
+          "./d1-published-editorial": "./src/repositories/d1-published-editorial-read-model.ts",
           "./d1-attention-capture":
             "./src/repositories/d1-attention-capture-repository.ts",
           "./d1-attention-lifecycle":
@@ -100,6 +106,10 @@ function createFixture(overrides = {}) {
     "packages/database/src/adapters/d1.ts": "export const createD1Database = () => null;\n",
     "packages/database/src/repositories/d1-auth-session-store.ts":
       "export class D1AuthSessionStore {}\n",
+    "packages/database/src/repositories/d1-audit-data-source.ts":
+      "export class D1AuditDataSource {}\n",
+    "packages/database/src/repositories/d1-published-editorial-read-model.ts":
+      "export class D1PublishedEditorialReadModel {}\n",
     "packages/database/src/repositories/d1-attention-capture-repository.ts":
       "export class D1AttentionCaptureRepository {}\n",
     "packages/database/src/repositories/d1-attention-lifecycle-repository.ts":
@@ -219,6 +229,8 @@ const requiredExports = {
 };
 
 for (const missing of [
+  "./d1-audit",
+  "./d1-published-editorial",
   "./d1-attention-capture",
   "./d1-attention-lifecycle",
   "./d1-branch-recommendation-acceptance",

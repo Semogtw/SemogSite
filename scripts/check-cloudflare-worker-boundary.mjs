@@ -118,6 +118,8 @@ function validateDatabaseExports(root, violations) {
   const requiredExports = {
     "./d1": "./src/adapters/d1.ts",
     "./d1-auth-sessions": "./src/repositories/d1-auth-session-store.ts",
+    "./d1-audit": "./src/repositories/d1-audit-data-source.ts",
+    "./d1-published-editorial": "./src/repositories/d1-published-editorial-read-model.ts",
     "./d1-attention-capture":
       "./src/repositories/d1-attention-capture-repository.ts",
     "./d1-attention-lifecycle":
