@@ -14,6 +14,7 @@ import { D1PublishedEditorialReadModel } from "@semogtw/database/d1-published-ed
 import { D1PublicProjectSource } from "@semogtw/database/d1-public-projects";
 import { EditorialRedirectService } from "@semogtw/domain";
 import { createApiApp } from "../app";
+import { createPrivateRuntimeCapabilities } from "../private-capabilities";
 import { consoleRequestObserver, isRequestLoggingEnabled } from "../middleware/request-observer";
 import { createPublicEditorialRoutes } from "../routes/public/editorial";
 
@@ -117,6 +118,7 @@ async function composeD1ApiRuntime(bindings: D1ApiBindings): Promise<D1ApiRuntim
       findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
     },
     privateAudit,
+    privateCapabilities: { getCapabilities: () => createPrivateRuntimeCapabilities("cloudflare-worker-d1") },
     privateEditorialRedirects,
   });
   app.route("/api/v1/public/editorial", createPublicEditorialRoutes(publicEditorial));

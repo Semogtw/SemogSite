@@ -10,6 +10,7 @@ import { requestContext, type ApiEnvironment } from "./middleware/request-contex
 import { securityHeaders } from "./middleware/security-headers";
 import { createAuthSessionRoutes, type ApiAuthDependencies } from "./routes/auth/session";
 import { createPrivateAuditRoutes, type PrivateAuditQueries } from "./routes/private/audit";
+import { createPrivateCapabilityRoutes, type PrivateCapabilityQueries } from "./routes/private/capabilities";
 import { createPrivateEditorialRedirectRoutes, type PrivateEditorialRedirectCommands } from "./routes/private/editorial-redirects";
 import { createPublicProjectRoutes, type PublicProjectQueries } from "./routes/public/projects";
 import { createReadinessRoutes, type ApiReadinessProbe } from "./routes/readiness";
@@ -21,6 +22,7 @@ export type ApiDependencies = {
   readiness?: ApiReadinessProbe;
   publicProjects?: PublicProjectQueries;
   privateAudit?: PrivateAuditQueries;
+  privateCapabilities?: PrivateCapabilityQueries;
   privateEditorialRedirects?: PrivateEditorialRedirectCommands;
 };
 
@@ -60,6 +62,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   api.use("/api/v1/private/*", requireRegisteredPrivateMutation);
 
   api.route("/api/v1/private/audit", createPrivateAuditRoutes(dependencies.privateAudit));
+  api.route("/api/v1/private/capabilities", createPrivateCapabilityRoutes(dependencies.privateCapabilities));
   api.route(
     "/api/v1/private/editorial-redirects",
     createPrivateEditorialRedirectRoutes(dependencies.privateEditorialRedirects),

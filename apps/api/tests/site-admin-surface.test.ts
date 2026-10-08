@@ -19,7 +19,6 @@ const retiredPaths = [
   "/api/v1/private/cooperative-runs",
   "/api/v1/private/repository-targets",
   "/api/v1/private/branch-recommendations",
-  "/api/v1/private/capabilities",
 ];
 
 describe("site admin only API", () => {

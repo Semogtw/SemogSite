@@ -9,13 +9,15 @@ de controle para execução, acompanhamento ou orquestração de projetos de IA.
 Base: `develop/public-portfolio-v1`, commit
 `37109650acf8308dd3e23c80d3d756a87f612713`.
 
-Nesta primeira etapa apenas a **experiência administrativa principal** é
-simplificada: página inicial, sidebar, barra mobile, rota legada /more e links
-ativos do editor. A página inicial deixa de consultar o overview de runs,
-stages e GitHub. O fluxo editorial existente permanece intacto.
+A página inicial, sidebar, navegação mobile e links editoriais foram
+simplificados. Os endpoints privados de orquestração foram desmontados em
+Node e D1. Permanecem endpoints privados de auditoria, capabilities editoriais
+e redirects, protegidos por sessão, origem, CSRF e allowlist. O fluxo
+editorial humano continua preservado.
 
-**Os endpoints, rotas operacionais diretas, migrations e tabelas antigas ainda
-existem.** Ocultá-los da navegação não significa que foram removidos ou
+**A migração do runtime está em andamento.** Os endpoints de orquestração
+foram desmontados da API e as rotas operacionais foram removidas do router;
+migrations e tabelas históricas continuam por compatibilidade e recuperação. Ocultá-los da navegação não significa que foram removidos ou
 desabilitados. Nenhuma remoção do backend, migração destrutiva ou deploy é
 declarada concluída por este commit. É necessário realizar as etapas seguintes
 antes de afirmar que o control plane foi eliminado.

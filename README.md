@@ -55,6 +55,10 @@ O projeto é desenvolvido principalmente com:
 
 A arquitetura foi pensada para manter a interface pública separada das ferramentas privadas e permitir evolução sem depender de um único ambiente de execução.
 
+## Desenvolvimento oficial
+
+A branch canônica de desenvolvimento do site é [`develop/site`](https://github.com/Semogtw/SemogSite/tree/develop/site). O portfólio público e o painel administrativo privado são mantidos nessa linha. `main` continua como base integrada/estável, sem promoção automática; as antigas branches de orquestração e Growth são históricas e não devem ser mescladas em bloco.
+
 ## Estado atual
 
 A estrutura principal do portfólio já inclui:
@@ -75,7 +79,7 @@ O foco atual é aumentar a qualidade do conteúdo público: publicar os primeiro
 
 ## Desenvolvimento
 
-Este é um projeto pessoal em evolução contínua. A linha de desenvolvimento mais recente do portfólio está em `develop/public-portfolio-v1` até sua integração na branch principal.
+Este é um projeto pessoal em evolução contínua. A linha oficial de desenvolvimento é `develop/site`; o site público permanece priorizado.
 
 Para quem quiser explorar a implementação:
 

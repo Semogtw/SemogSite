@@ -13,6 +13,7 @@ import { EditorialRedirectService } from "@semogtw/domain";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createApiApp } from "../app";
+import { createPrivateRuntimeCapabilities } from "../private-capabilities";
 import { consoleRequestObserver, isRequestLoggingEnabled } from "../middleware/request-observer";
 import { createPublicEditorialRoutes } from "../routes/public/editorial";
 
@@ -98,6 +99,7 @@ export function createSqliteApiRuntime(env: Record<string, string | undefined>):
       findBySlug: (slug) => publicProjects.findPublishableBySlug(slug),
     },
     privateAudit,
+    privateCapabilities: { getCapabilities: () => createPrivateRuntimeCapabilities("node-sqlite") },
     privateEditorialRedirects,
   });
   app.route("/api/v1/public/editorial", createPublicEditorialRoutes(publicEditorial));
