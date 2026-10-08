@@ -65,6 +65,20 @@ All notable changes to Semogtw Platform are recorded here. Dates use `America/Ba
 - `apps/mcp` SQLite composition returning an in-process `McpServer` without opening a listener;
 - official in-memory protocol tests and package/runtime boundary guardrails.
 
+#### Remote MCP and Gemini Spark planning
+
+- approved provider-neutral design for a separately deployable Mode B remote MCP bridge;
+- planned framework-free `packages/mcp-auth` authorization core;
+- planned additive migration `0014_mcp_oauth.sql` with digest-only OAuth client/code/token persistence;
+- planned owner-managed preregistration, Dynamic Client Registration, authorization code and mandatory PKCE S256;
+- planned private DevOS client management/consent and dedicated Node 22 `apps/mcp-http` runtime;
+- planned OAuth discovery, token rotation/revocation, authenticated stateless Streamable HTTP, limits, sanitized telemetry and independent kill switch;
+- executable remote transport/Spark plan and separate six-tool workflow/recovery read-catalog plan;
+- Gemini Spark treated as an optional compatibility target rather than a domain or subscription dependency;
+- specification and plan indexes updated so the 2026-08-01 transport reservation remains historical rather than executable current guidance.
+
+This entry records documentation and approved planning only. No OAuth migration, network endpoint, remote client, Spark custom app or MCP write tool has been implemented by these commits.
+
 ### Fixed during implementation and review
 
 - login limiter result treated incorrectly as a boolean;
@@ -116,18 +130,20 @@ Workflow run `30841132598` for commit `94956d10f805e13af7f11e5e2e4f63e8e4abe4b8`
 - exact-SHA gate creation and `blocked/environment_missing` result;
 - recovery generation failing closed without a persisted GitHub branch observation.
 
-The documentation reconciliation commits after that run require one final full workflow execution before merge.
+The documentation reconciliation and remote-MCP planning commits after that run require fresh applicable gates during implementation; planning-only changes do not constitute OAuth, transport or client compatibility evidence.
 
 ### Constraints and remaining work
 
 - no production host or deployment mode is selected;
 - no public deployment is authorized;
-- no remote MCP, stdio listener or external-agent transport is enabled;
+- no remote MCP, OAuth migration, stdio listener or external-agent transport is enabled;
+- remote MCP implementation must follow the 2026-08-03 specification and executable plans rather than the historical 2026-08-01 transport reservation;
+- Gemini Spark exists in the owner's Brazilian AI Pro account, but **Custom apps for Spark** must still be observed separately before Spark acceptance can pass;
 - live GitHub token permissions/provider behavior still require validation in the selected runtime;
 - no Notion content migration has been performed;
 - backup encryption/upload/retention remain operational responsibilities;
-- multi-instance authentication throttling requires a shared limiter;
+- multi-instance authentication and remote-MCP throttling require shared limiters;
 - host-specific CSP, cache, cookie, logs and rollback remain to be verified;
 - branch inactivity is not proof that an AI session completed;
-- a future inactivity detector and ChatGPT continuation launcher require a separately approved design;
-- temporary one-shot workflow executors are removed in draft cleanup PR #18 and should not survive the final integration.
+- provider-specific prompt launching/automation remains outside the remote read plans;
+- no MCP write scope or mutation tool is planned until authenticated read phases and rollback are verified.
